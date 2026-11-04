@@ -1,0 +1,26 @@
+## .NET / Visual Studio
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.jfm
+*.pfx
+*.publishsettings
+launchSettings.json.user
+
+## Build logs
+*.log
+msbuild.log
+build_diag.log
+infra_err.txt
+
+## OS generated
+.DS_Store
+Thumbs.db
+desktop.ini
