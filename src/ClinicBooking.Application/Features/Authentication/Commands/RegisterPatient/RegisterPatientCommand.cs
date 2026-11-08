@@ -43,6 +43,7 @@ public sealed class RegisterPatientCommandHandler : IRequestHandler<RegisterPati
     private readonly IPatientRepository _patientRepository;
     private readonly ITenantRepository _tenantRepository;
     private readonly ITokenService _tokenService;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
 
     public RegisterPatientCommandHandler(
@@ -50,12 +51,14 @@ public sealed class RegisterPatientCommandHandler : IRequestHandler<RegisterPati
         IPatientRepository patientRepository,
         ITenantRepository tenantRepository,
         ITokenService tokenService,
+        IPasswordHasher passwordHasher,
         IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _patientRepository = patientRepository;
         _tenantRepository = tenantRepository;
         _tokenService = tokenService;
+        _passwordHasher = passwordHasher;
         _unitOfWork = unitOfWork;
     }
 
@@ -78,6 +81,8 @@ public sealed class RegisterPatientCommandHandler : IRequestHandler<RegisterPati
             request.LastName,
             UserRole.Patient,
             request.TenantId);
+
+        user.SetPasswordHash(_passwordHasher.HashPassword(request.Password));
 
         var patient = Patient.Create(
             request.TenantId,

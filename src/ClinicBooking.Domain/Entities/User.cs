@@ -14,6 +14,32 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
     public UserRole Role { get; private set; }
     public bool IsActive { get; private set; }
 
+    /// <summary>
+    /// Opaque password hash produced by the infrastructure password hasher (PBKDF2 via ASP.NET Core Identity).
+    /// The domain never sees plaintext passwords.
+    /// </summary>
+    public string PasswordHash { get; private set; } = string.Empty;
+
+    public void SetPasswordHash(string passwordHash)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+        {
+            throw new DomainValidationException("Password hash cannot be empty.");
+        }
+
+        PasswordHash = passwordHash;
+    }
+
+    public RefreshToken? FindRefreshToken(string token) => _refreshTokens.FirstOrDefault(t => t.Token == token);
+
+    public void RevokeAllActiveRefreshTokens(string? revokedByIp, string reason)
+    {
+        foreach (var refreshToken in _refreshTokens.Where(t => t.IsActive))
+        {
+            refreshToken.Revoke(DateTime.UtcNow, revokedByIp, reason);
+        }
+    }
+
     public DateTime CreatedAtUtc { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime? LastModifiedAtUtc { get; set; }

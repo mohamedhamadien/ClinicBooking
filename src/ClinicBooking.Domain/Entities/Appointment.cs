@@ -12,7 +12,32 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHa
     public Guid DoctorId { get; private set; }
     public Guid PatientId { get; private set; }
     public Guid ClinicId { get; private set; }
-    public DateTimeRange ScheduledRange { get; private set; } = default!;
+    /// <summary>
+    /// Persisted UTC start of the appointment. Stored as a first-class column so the database
+    /// can enforce the filtered unique double-booking indexes on it.
+    /// </summary>
+    public DateTime StartTimeUtc { get; private set; }
+
+    /// <summary>
+    /// Persisted UTC end of the appointment.
+    /// </summary>
+    public DateTime EndTimeUtc { get; private set; }
+
+    /// <summary>
+    /// Domain view of the appointment time window, backed by <see cref="StartTimeUtc"/> and <see cref="EndTimeUtc"/>.
+    /// </summary>
+    public DateTimeRange ScheduledRange
+    {
+        get => DateTimeRange.Create(
+            DateTime.SpecifyKind(StartTimeUtc, DateTimeKind.Utc),
+            DateTime.SpecifyKind(EndTimeUtc, DateTimeKind.Utc));
+        private set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            StartTimeUtc = value.StartUtc;
+            EndTimeUtc = value.EndUtc;
+        }
+    }
     public AppointmentStatus Status { get; private set; }
     public string? Notes { get; private set; }
     public string? CancellationReason { get; private set; }
