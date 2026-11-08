@@ -10,10 +10,16 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
     public Guid UserId { get; private set; }
     public Guid SpecialtyId { get; private set; }
     public string LicenseNumber { get; private set; } = default!;
-    public string Bio { get; private set; } = default!;
+    public string BioEn { get; private set; } = default!;
+    public string BioAr { get; private set; } = default!;
     public int DefaultSlotDurationMinutes { get; private set; }
     public bool RequiresApproval { get; private set; }
     public bool IsActive { get; private set; }
+
+    /// <summary>
+    /// Default display bio (English).
+    /// </summary>
+    public string Bio => BioEn;
 
     public DateTime CreatedAtUtc { get; set; }
     public string? CreatedBy { get; set; }
@@ -37,17 +43,18 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
         Guid userId,
         Guid specialtyId,
         string licenseNumber,
-        string bio,
+        string bioEn,
         int defaultSlotDurationMinutes = 30,
         bool requiresApproval = false,
-        bool isActive = true) : base(id)
+        bool isActive = true,
+        string? bioAr = null) : base(id)
     {
         if (tenantId == Guid.Empty) throw new DomainValidationException("Tenant ID cannot be empty.");
         TenantId = tenantId;
         UserId = userId;
         SpecialtyId = specialtyId;
         SetLicenseNumber(licenseNumber);
-        Bio = bio?.Trim() ?? string.Empty;
+        SetBio(bioEn, bioAr);
         SetSlotDuration(defaultSlotDurationMinutes);
         RequiresApproval = requiresApproval;
         IsActive = isActive;
@@ -58,9 +65,10 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
         Guid userId,
         Guid specialtyId,
         string licenseNumber,
-        string bio,
+        string bioEn,
         int defaultSlotDurationMinutes = 30,
-        bool requiresApproval = false)
+        bool requiresApproval = false,
+        string? bioAr = null)
     {
         return new Doctor(
             Guid.NewGuid(),
@@ -68,10 +76,11 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
             userId,
             specialtyId,
             licenseNumber,
-            bio,
+            bioEn,
             defaultSlotDurationMinutes,
             requiresApproval,
-            true);
+            true,
+            bioAr);
     }
 
     public void SetLicenseNumber(string licenseNumber)
@@ -82,6 +91,12 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
         }
 
         LicenseNumber = licenseNumber.Trim().ToUpperInvariant();
+    }
+
+    public void SetBio(string bioEn, string? bioAr = null)
+    {
+        BioEn = bioEn?.Trim() ?? string.Empty;
+        BioAr = string.IsNullOrWhiteSpace(bioAr) ? BioEn : bioAr.Trim();
     }
 
     public void SetSlotDuration(int minutes)
@@ -99,13 +114,15 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
         RequiresApproval = requiresApproval;
     }
 
-    public void UpdateProfile(string bio, int defaultSlotDurationMinutes, bool requiresApproval, bool isActive)
+    public void UpdateProfile(string bioEn, int defaultSlotDurationMinutes, bool requiresApproval, bool isActive, string? bioAr = null)
     {
-        Bio = bio?.Trim() ?? string.Empty;
+        SetBio(bioEn, bioAr);
         SetSlotDuration(defaultSlotDurationMinutes);
         RequiresApproval = requiresApproval;
         IsActive = isActive;
     }
+
+    public string GetLocalizedBio(bool isArabic) => isArabic && !string.IsNullOrWhiteSpace(BioAr) ? BioAr : BioEn;
 
     public void AddAvailability(Guid clinicId, DayOfWeek dayOfWeek, TimeOnly startTime, TimeOnly endTime)
     {

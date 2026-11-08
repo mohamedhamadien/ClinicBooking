@@ -1,5 +1,6 @@
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
+using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Clinics.DTOs;
 using MediatR;
 
@@ -10,24 +11,35 @@ public sealed record GetClinicsQuery(Guid TenantId) : IRequest<Result<IReadOnlyL
 public sealed class GetClinicsQueryHandler : IRequestHandler<GetClinicsQuery, Result<IReadOnlyList<ClinicDto>>>
 {
     private readonly IClinicRepository _clinicRepository;
+    private readonly ILocalizationService _localizationService;
 
-    public GetClinicsQueryHandler(IClinicRepository clinicRepository)
+    public GetClinicsQueryHandler(
+        IClinicRepository clinicRepository,
+        ILocalizationService localizationService)
     {
         _clinicRepository = clinicRepository;
+        _localizationService = localizationService;
     }
 
     public async Task<Result<IReadOnlyList<ClinicDto>>> Handle(GetClinicsQuery request, CancellationToken cancellationToken)
     {
         var clinics = await _clinicRepository.ListAsync(request.TenantId, cancellationToken);
+        var isArabic = _localizationService.IsArabic;
 
         var dtos = clinics.Select(c => new ClinicDto(
             c.Id,
             c.TenantId,
-            c.Name,
-            c.Address,
-            c.City,
+            c.NameEn,
+            c.AddressEn,
+            c.CityEn,
             c.PhoneNumber.Value,
-            c.IsActive)).ToList();
+            c.IsActive,
+            c.NameAr,
+            c.AddressAr,
+            c.CityAr,
+            c.GetLocalizedName(isArabic),
+            c.GetLocalizedAddress(isArabic),
+            c.GetLocalizedCity(isArabic))).ToList();
 
         return Result.Success<IReadOnlyList<ClinicDto>>(dtos);
     }

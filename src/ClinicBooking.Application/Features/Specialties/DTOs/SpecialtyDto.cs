@@ -5,4 +5,8 @@ public sealed record SpecialtyDto(
     Guid? TenantId,
     string Name,
     string Description,
-    bool IsActive);
+    bool IsActive,
+    string? NameAr = null,
+    string? DescriptionAr = null,
+    string? LocalizedName = null,
+    string? LocalizedDescription = null);

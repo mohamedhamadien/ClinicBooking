@@ -1,3 +1,4 @@
+using ClinicBooking.Application.Common.Localization;
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
 using ClinicBooking.Application.Contracts.Services;
@@ -44,6 +45,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
     private readonly IPatientRepository _patientRepository;
     private readonly ITenantRepository _tenantRepository;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILocalizationService _localizationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public BookAppointmentCommandHandler(
@@ -52,7 +54,8 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         IPatientRepository patientRepository,
         ITenantRepository tenantRepository,
         IDateTimeProvider dateTimeProvider,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILocalizationService? localizationService = null)
     {
         _appointmentRepository = appointmentRepository;
         _doctorRepository = doctorRepository;
@@ -60,6 +63,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         _tenantRepository = tenantRepository;
         _dateTimeProvider = dateTimeProvider;
         _unitOfWork = unitOfWork;
+        _localizationService = localizationService ?? new LocalizationService();
     }
 
     public async Task<Result<AppointmentDto>> Handle(BookAppointmentCommand request, CancellationToken cancellationToken)
@@ -68,7 +72,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         if (request.StartTimeUtc <= currentUtc)
         {
             return Result.Failure<AppointmentDto>(Error.Validation("Appointment.PastTime",
-                "Cannot book an appointment in the past."));
+                _localizationService.GetString(LocalizationKeys.AppointmentPastAppointment)));
         }
 
         var tenant = await _tenantRepository.GetByIdAsync(request.TenantId, cancellationToken);
@@ -95,7 +99,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         if (doctor.IsBlockedAt(requestedRange))
         {
             return Result.Failure<AppointmentDto>(Error.Conflict("Doctor.BlackoutException",
-                "The doctor has blocked availability during the requested time."));
+                _localizationService.GetString(LocalizationKeys.AppointmentDoctorUnavailable)));
         }
 
         // 2. Validate doctor working hours for day of week
@@ -125,7 +129,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         if (doctorHasConflict)
         {
             return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.DoctorSlotUnavailable",
-                "The requested appointment slot is already reserved for this doctor."));
+                _localizationService.GetString(LocalizationKeys.AppointmentSlotAlreadyBooked)));
         }
 
         // 4. Check for patient active appointment collision
@@ -140,7 +144,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         if (patientHasConflict)
         {
             return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.PatientDoubleBooking",
-                "The patient already has an active overlapping appointment during this time."));
+                _localizationService.GetString(LocalizationKeys.AppointmentPatientOverlapping)));
         }
 
         // Determine if approval is needed (tenant policy OR doctor preference)
@@ -170,7 +174,8 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
             appointment.Status,
             appointment.Notes,
             appointment.CancellationReason,
-            appointment.CancelledAtUtc);
+            appointment.CancelledAtUtc,
+            _localizationService.GetStatusName(appointment.Status));
 
         return Result.Success(dto);
     }

@@ -1,3 +1,4 @@
+using ClinicBooking.Application.Common.Localization;
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
 using ClinicBooking.Application.Contracts.Services;
@@ -29,15 +30,18 @@ public sealed class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailable
     private readonly IDoctorRepository _doctorRepository;
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILocalizationService _localizationService;
 
     public GetAvailableSlotsQueryHandler(
         IDoctorRepository doctorRepository,
         IAppointmentRepository appointmentRepository,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        ILocalizationService? localizationService = null)
     {
         _doctorRepository = doctorRepository;
         _appointmentRepository = appointmentRepository;
         _dateTimeProvider = dateTimeProvider;
+        _localizationService = localizationService ?? new LocalizationService();
     }
 
     public async Task<Result<IReadOnlyList<AvailableSlotDto>>> Handle(GetAvailableSlotsQuery request, CancellationToken cancellationToken)
@@ -58,27 +62,27 @@ public sealed class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailable
             return Result.Success<IReadOnlyList<AvailableSlotDto>>([]);
         }
 
-        var durationMinutes = doctor.DefaultSlotDurationMinutes > 0 ? doctor.DefaultSlotDurationMinutes : 30;
-        var slotDuration = TimeSpan.FromMinutes(durationMinutes);
-        var currentUtc = _dateTimeProvider.UtcNow;
+        // Fetch existing appointments for the day
+        var dayStartUtc = request.Date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var dayEndUtc = request.Date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
-        var startOfDayUtc = DateTime.SpecifyKind(request.Date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
-        var endOfDayUtc = DateTime.SpecifyKind(request.Date.ToDateTime(TimeOnly.MaxValue), DateTimeKind.Utc);
-
-        // Fetch existing active appointments for the doctor on that date
         var existingAppointments = await _appointmentRepository.GetActiveAppointmentsForDoctorAsync(
             request.TenantId,
             request.DoctorId,
-            startOfDayUtc,
-            endOfDayUtc,
+            dayStartUtc,
+            dayEndUtc,
             cancellationToken);
 
+        var currentUtc = _dateTimeProvider.UtcNow;
+        var durationMinutes = doctor.DefaultSlotDurationMinutes;
+        var slotDuration = TimeSpan.FromMinutes(durationMinutes);
         var availableSlots = new List<AvailableSlotDto>();
+        var dayOfWeekName = _localizationService.GetDayOfWeekName(dayOfWeek);
 
         foreach (var shift in shifts)
         {
-            var shiftStartUtc = DateTime.SpecifyKind(request.Date.ToDateTime(shift.Shift.StartTime), DateTimeKind.Utc);
-            var shiftEndUtc = DateTime.SpecifyKind(request.Date.ToDateTime(shift.Shift.EndTime), DateTimeKind.Utc);
+            var shiftStartUtc = request.Date.ToDateTime(shift.Shift.StartTime, DateTimeKind.Utc);
+            var shiftEndUtc = request.Date.ToDateTime(shift.Shift.EndTime, DateTimeKind.Utc);
 
             var candidateSlotStart = shiftStartUtc;
 
@@ -103,7 +107,8 @@ public sealed class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailable
                         request.ClinicId,
                         candidateSlotStart,
                         candidateSlotEnd,
-                        durationMinutes));
+                        durationMinutes,
+                        dayOfWeekName));
                 }
 
                 candidateSlotStart = candidateSlotEnd;

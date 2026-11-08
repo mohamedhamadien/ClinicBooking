@@ -13,4 +13,5 @@ public sealed record AppointmentDto(
     AppointmentStatus Status,
     string? Notes,
     string? CancellationReason,
-    DateTime? CancelledAtUtc);
+    DateTime? CancelledAtUtc,
+    string? StatusDescription = null);

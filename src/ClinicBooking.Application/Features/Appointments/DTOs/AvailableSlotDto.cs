@@ -5,4 +5,5 @@ public sealed record AvailableSlotDto(
     Guid ClinicId,
     DateTime StartUtc,
     DateTime EndUtc,
-    int DurationMinutes);
+    int DurationMinutes,
+    string? DayOfWeekName = null);

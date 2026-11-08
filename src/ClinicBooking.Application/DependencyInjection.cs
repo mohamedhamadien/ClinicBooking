@@ -1,4 +1,6 @@
 using ClinicBooking.Application.Common.Behaviors;
+using ClinicBooking.Application.Common.Localization;
+using ClinicBooking.Application.Contracts.Services;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,8 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddSingleton<ILocalizationService, LocalizationService>();
 
         return services;
     }

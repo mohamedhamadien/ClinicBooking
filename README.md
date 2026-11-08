@@ -416,7 +416,33 @@ RESTful APIs with URL versioning (`/api/v1/`):
 
 ---
 
-## 9. Security Architecture
+## 9. Arabic Language & Multi-Lingual Architecture
+
+The platform provides complete bilingual support for English (`en-US`) and Arabic (`ar-EG`, `ar-SA`) to cater to healthcare networks across the Middle East and worldwide:
+
+1. **Dual Entity Fields (Arabic & English)**:
+   - **`Specialty`**: `NameEn`, `NameAr`, `DescriptionEn`, `DescriptionAr`.
+   - **`Clinic`**: `NameEn`, `NameAr`, `AddressEn`, `AddressAr`, `CityEn`, `CityAr`.
+   - **`Tenant`**: `NameEn`, `NameAr`.
+   - **`Doctor`**: `BioEn`, `BioAr`.
+   - Entities provide `.GetLocalizedName(bool isArabic)`, `.GetLocalizedDescription(bool isArabic)`, etc., falling back gracefully if one language is omitted.
+
+2. **Application Localization Service (`ILocalizationService`)**:
+   - Registered in dependency injection via `AddApplication()`.
+   - Automatic culture detection via `CultureInfo.CurrentUICulture` (compatible with ASP.NET Core `RequestLocalization` middleware).
+   - Localized status names: e.g. `PendingApproval` $\rightarrow$ "في انتظار موافقة الطبيب", `Confirmed` $\rightarrow$ "مؤكد", `Completed` $\rightarrow$ "مكتمل", `CancelledByPatient` $\rightarrow$ "ملغي من قِبل المريض".
+   - Localized gender names: `Male` $\rightarrow$ "ذكر", `Female` $\rightarrow$ "أنثى".
+   - Localized days of the week: Sunday $\rightarrow$ "الأحد" through Saturday $\rightarrow$ "السبت".
+   - Localized error messages & validation keys:
+     - `Appointment.PastAppointment`: "لا يمكن حجز موعد في تاريخ أو وقت سابق."
+     - `Appointment.DoctorUnavailable`: "الطبيب غير متاح في هذا الوقت المحدد."
+     - `Appointment.SlotAlreadyBooked`: "هذا الموعد محجوز بالفعل لمريض آخر."
+     - `Appointment.PatientOverlapping`: "لديك موعد آخر متداخل في هذا الوقت."
+     - `Appointment.CancellationNoticeExpired`: "لا يمكن إلغاء الموعد لانتهاء المهلة المحددة مسبقاً لإلغاء المواعيد."
+
+---
+
+## 10. Security Architecture
 
 - **Identity**: ASP.NET Core Identity with PBKDF2 password hashing.
 - **JWT Authentication**: Short-lived access tokens (15-60 minutes) signed with HMAC-SHA256.
@@ -553,11 +579,13 @@ dotnet run --project src/ClinicBooking.API/ClinicBooking.API.csproj
 ## 15. Implementation Roadmap
 
 - [x] **Phase 1: Architecture, Planning & Solution Skeleton**
-- [ ] **Phase 2: Domain Layer** (Entities, Value Objects, Domain Exceptions, Business Rules, Unit Tests)
-- [ ] **Phase 3: Application Layer** (CQRS Commands & Queries, MediatR, FluentValidation, DTOs, Handlers)
+- [x] **Phase 2: Domain Layer** (Entities, Value Objects, Domain Exceptions, Business Rules, Unit Tests)
+- [x] **Multi-Tenancy Support** (Tenant Aggregate Root, `IMustHaveTenant`, `IMayHaveTenant`, Tenant Context, Filtered Constraints)
+- [x] **Phase 3: Application Layer** (CQRS with MediatR, FluentValidation Pipeline Behaviors, Dynamic Slot Engine, Handlers, Unit Tests)
+- [x] **Arabic Language & Bilingual Localization Support** (`ILocalizationService`, Arabic/English entity fields `NameAr`/`NameEn`, localized error codes, status translations, RTL readiness, unit tests)
 - [ ] **Phase 4: Infrastructure Layer** (EF Core DbContext, Configurations, Filtered Unique Indexes, Identity, JWT, Repositories, Migrations, Seeder)
-- [ ] **Phase 5: API Layer** (Controllers, Swagger/OpenAPI, Global Exception Middleware, Serilog, Health Checks)
-- [ ] **Phase 6: Advanced Booking Engine** (Dynamic slot computation, Transactional booking, Concurrency integration tests)
+- [ ] **Phase 5: API Layer** (Controllers, Swagger/OpenAPI, RequestLocalization Middleware, TenantResolutionMiddleware, Global Exception Middleware, Serilog, Health Checks)
+- [ ] **Phase 6: Advanced Booking Engine** (Transactional booking, SQL Server concurrency integration tests)
 - [ ] **Phase 7: Docker & Containerization** (Multi-stage Dockerfile, docker-compose.yml)
 - [ ] **Phase 8: CI/CD Workflows** (`ci.yml` & `cd.yml` with GHCR and Azure App Service)
 - [ ] **Phase 9: Final Review, End-to-End Validation & Documentation**

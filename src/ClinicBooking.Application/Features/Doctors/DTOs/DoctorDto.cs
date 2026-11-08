@@ -6,7 +6,8 @@ public sealed record DoctorAvailabilityDto(
     DayOfWeek DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    bool IsActive);
+    bool IsActive,
+    string? DayOfWeekName = null);
 
 public sealed record DoctorDto(
     Guid Id,
@@ -18,4 +19,6 @@ public sealed record DoctorDto(
     int DefaultSlotDurationMinutes,
     bool RequiresApproval,
     bool IsActive,
-    IReadOnlyList<DoctorAvailabilityDto> Availabilities);
+    IReadOnlyList<DoctorAvailabilityDto> Availabilities,
+    string? BioAr = null,
+    string? LocalizedBio = null);

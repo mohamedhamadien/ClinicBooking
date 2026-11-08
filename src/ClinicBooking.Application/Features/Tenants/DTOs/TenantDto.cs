@@ -6,4 +6,6 @@ public sealed record TenantDto(
     string Identifier,
     bool IsActive,
     int CancellationNoticeHours,
-    bool RequiresDoctorApproval);
+    bool RequiresDoctorApproval,
+    string? NameAr = null,
+    string? LocalizedName = null);

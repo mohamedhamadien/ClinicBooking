@@ -6,11 +6,17 @@ namespace ClinicBooking.Domain.Entities;
 
 public sealed partial class Tenant : AggregateRoot<Guid>, IAuditableEntity
 {
-    public string Name { get; private set; } = default!;
+    public string NameEn { get; private set; } = default!;
+    public string NameAr { get; private set; } = default!;
     public string Identifier { get; private set; } = default!;
     public bool IsActive { get; private set; }
     public int CancellationNoticeHours { get; private set; }
     public bool RequiresDoctorApproval { get; private set; }
+
+    /// <summary>
+    /// Default display name (English).
+    /// </summary>
+    public string Name => NameEn;
 
     public DateTime CreatedAtUtc { get; set; }
     public string? CreatedBy { get; set; }
@@ -24,13 +30,14 @@ public sealed partial class Tenant : AggregateRoot<Guid>, IAuditableEntity
 
     public Tenant(
         Guid id,
-        string name,
+        string nameEn,
         string identifier,
         bool isActive = true,
         int cancellationNoticeHours = 24,
-        bool requiresDoctorApproval = false) : base(id)
+        bool requiresDoctorApproval = false,
+        string? nameAr = null) : base(id)
     {
-        SetName(name);
+        SetName(nameEn, nameAr);
         SetIdentifier(identifier);
         IsActive = isActive;
         SetCancellationNoticeHours(cancellationNoticeHours);
@@ -38,28 +45,31 @@ public sealed partial class Tenant : AggregateRoot<Guid>, IAuditableEntity
     }
 
     public static Tenant Create(
-        string name,
+        string nameEn,
         string identifier,
         int cancellationNoticeHours = 24,
-        bool requiresDoctorApproval = false)
+        bool requiresDoctorApproval = false,
+        string? nameAr = null)
     {
         return new Tenant(
             Guid.NewGuid(),
-            name,
+            nameEn,
             identifier,
             true,
             cancellationNoticeHours,
-            requiresDoctorApproval);
+            requiresDoctorApproval,
+            nameAr);
     }
 
-    public void SetName(string name)
+    public void SetName(string nameEn, string? nameAr = null)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(nameEn))
         {
             throw new DomainValidationException("Tenant name cannot be empty.");
         }
 
-        Name = name.Trim();
+        NameEn = nameEn.Trim();
+        NameAr = string.IsNullOrWhiteSpace(nameAr) ? NameEn : nameAr.Trim();
     }
 
     public void SetIdentifier(string identifier)
@@ -92,6 +102,8 @@ public sealed partial class Tenant : AggregateRoot<Guid>, IAuditableEntity
     {
         RequiresDoctorApproval = requiresApproval;
     }
+
+    public string GetLocalizedName(bool isArabic) => isArabic && !string.IsNullOrWhiteSpace(NameAr) ? NameAr : NameEn;
 
     public void Deactivate() => IsActive = false;
     public void Activate() => IsActive = true;

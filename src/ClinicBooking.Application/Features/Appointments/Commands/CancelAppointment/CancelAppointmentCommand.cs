@@ -1,3 +1,4 @@
+using ClinicBooking.Application.Common.Localization;
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
 using ClinicBooking.Application.Contracts.Services;
@@ -29,18 +30,21 @@ public sealed class CancelAppointmentCommandHandler : IRequestHandler<CancelAppo
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly ITenantRepository _tenantRepository;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILocalizationService _localizationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CancelAppointmentCommandHandler(
         IAppointmentRepository appointmentRepository,
         ITenantRepository tenantRepository,
         IDateTimeProvider dateTimeProvider,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILocalizationService? localizationService = null)
     {
         _appointmentRepository = appointmentRepository;
         _tenantRepository = tenantRepository;
         _dateTimeProvider = dateTimeProvider;
         _unitOfWork = unitOfWork;
+        _localizationService = localizationService ?? new LocalizationService();
     }
 
     public async Task<Result<AppointmentDto>> Handle(CancelAppointmentCommand request, CancellationToken cancellationToken)
@@ -66,36 +70,40 @@ public sealed class CancelAppointmentCommandHandler : IRequestHandler<CancelAppo
             {
                 appointment.CancelByDoctor(request.Reason, currentUtc);
             }
-            else
+            else if (request.CancelledByRole == "Admin")
             {
                 appointment.CancelByAdmin(request.Reason, currentUtc);
             }
-
-            await _appointmentRepository.UpdateAsync(appointment, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            var dto = new AppointmentDto(
-                appointment.Id,
-                appointment.TenantId,
-                appointment.DoctorId,
-                appointment.PatientId,
-                appointment.ClinicId,
-                appointment.ScheduledRange.StartUtc,
-                appointment.ScheduledRange.EndUtc,
-                appointment.Status,
-                appointment.Notes,
-                appointment.CancellationReason,
-                appointment.CancelledAtUtc);
-
-            return Result.Success(dto);
         }
-        catch (AppointmentCancellationPolicyException policyEx)
+        catch (AppointmentCancellationPolicyException)
         {
-            return Result.Failure<AppointmentDto>(Error.Validation("Appointment.CancellationPolicyViolation", policyEx.Message));
+            return Result.Failure<AppointmentDto>(Error.Conflict(
+                "Appointment.CancellationPolicyViolation",
+                _localizationService.GetString(LocalizationKeys.AppointmentCancellationNoticeExpired)));
         }
-        catch (InvalidAppointmentStateException stateEx)
+        catch (InvalidAppointmentStateException)
         {
-            return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.InvalidState", stateEx.Message));
+            return Result.Failure<AppointmentDto>(Error.Conflict(
+                "Appointment.InvalidState",
+                _localizationService.GetString(LocalizationKeys.AppointmentInvalidStatusTransition)));
         }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var dto = new AppointmentDto(
+            appointment.Id,
+            appointment.TenantId,
+            appointment.DoctorId,
+            appointment.PatientId,
+            appointment.ClinicId,
+            appointment.ScheduledRange.StartUtc,
+            appointment.ScheduledRange.EndUtc,
+            appointment.Status,
+            appointment.Notes,
+            appointment.CancellationReason,
+            appointment.CancelledAtUtc,
+            _localizationService.GetStatusName(appointment.Status));
+
+        return Result.Success(dto);
     }
 }

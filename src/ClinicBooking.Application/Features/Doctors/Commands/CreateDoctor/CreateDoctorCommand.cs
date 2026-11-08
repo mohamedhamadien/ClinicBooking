@@ -1,5 +1,6 @@
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
+using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Doctors.DTOs;
 using ClinicBooking.Domain.Entities;
 using FluentValidation;
@@ -14,7 +15,8 @@ public sealed record CreateDoctorCommand(
     string LicenseNumber,
     string Bio,
     int DefaultSlotDurationMinutes = 30,
-    bool RequiresApproval = false) : IRequest<Result<DoctorDto>>;
+    bool RequiresApproval = false,
+    string? BioAr = null) : IRequest<Result<DoctorDto>>;
 
 public sealed class CreateDoctorCommandValidator : AbstractValidator<CreateDoctorCommand>
 {
@@ -27,6 +29,8 @@ public sealed class CreateDoctorCommandValidator : AbstractValidator<CreateDocto
         RuleFor(x => x.DefaultSlotDurationMinutes)
             .InclusiveBetween(10, 180)
             .WithMessage("Default slot duration must be between 10 and 180 minutes.");
+        RuleFor(x => x.Bio).MaximumLength(2000);
+        RuleFor(x => x.BioAr).MaximumLength(2000);
     }
 }
 
@@ -35,17 +39,20 @@ public sealed class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCom
     private readonly IDoctorRepository _doctorRepository;
     private readonly ITenantRepository _tenantRepository;
     private readonly ISpecialtyRepository _specialtyRepository;
+    private readonly ILocalizationService _localizationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateDoctorCommandHandler(
         IDoctorRepository doctorRepository,
         ITenantRepository tenantRepository,
         ISpecialtyRepository specialtyRepository,
+        ILocalizationService localizationService,
         IUnitOfWork unitOfWork)
     {
         _doctorRepository = doctorRepository;
         _tenantRepository = tenantRepository;
         _specialtyRepository = specialtyRepository;
+        _localizationService = localizationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -70,10 +77,13 @@ public sealed class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCom
             request.LicenseNumber,
             request.Bio,
             request.DefaultSlotDurationMinutes,
-            request.RequiresApproval);
+            request.RequiresApproval,
+            request.BioAr);
 
         await _doctorRepository.AddAsync(doctor, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var isArabic = _localizationService.IsArabic;
 
         var dto = new DoctorDto(
             doctor.Id,
@@ -81,11 +91,13 @@ public sealed class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCom
             doctor.UserId,
             doctor.SpecialtyId,
             doctor.LicenseNumber,
-            doctor.Bio,
+            doctor.BioEn,
             doctor.DefaultSlotDurationMinutes,
             doctor.RequiresApproval,
             doctor.IsActive,
-            []);
+            [],
+            doctor.BioAr,
+            doctor.GetLocalizedBio(isArabic));
 
         return Result.Success(dto);
     }

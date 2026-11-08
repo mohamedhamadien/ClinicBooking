@@ -7,4 +7,10 @@ public sealed record ClinicDto(
     string Address,
     string City,
     string PhoneNumber,
-    bool IsActive);
+    bool IsActive,
+    string? NameAr = null,
+    string? AddressAr = null,
+    string? CityAr = null,
+    string? LocalizedName = null,
+    string? LocalizedAddress = null,
+    string? LocalizedCity = null);

@@ -1,3 +1,4 @@
+using ClinicBooking.Application.Common.Localization;
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
 using ClinicBooking.Application.Contracts.Services;
@@ -31,18 +32,21 @@ public sealed class RescheduleAppointmentCommandHandler : IRequestHandler<Resche
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IDoctorRepository _doctorRepository;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILocalizationService _localizationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public RescheduleAppointmentCommandHandler(
         IAppointmentRepository appointmentRepository,
         IDoctorRepository doctorRepository,
         IDateTimeProvider dateTimeProvider,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILocalizationService? localizationService = null)
     {
         _appointmentRepository = appointmentRepository;
         _doctorRepository = doctorRepository;
         _dateTimeProvider = dateTimeProvider;
         _unitOfWork = unitOfWork;
+        _localizationService = localizationService ?? new LocalizationService();
     }
 
     public async Task<Result<AppointmentDto>> Handle(RescheduleAppointmentCommand request, CancellationToken cancellationToken)
@@ -57,7 +61,7 @@ public sealed class RescheduleAppointmentCommandHandler : IRequestHandler<Resche
         if (request.NewStartTimeUtc <= currentUtc)
         {
             return Result.Failure<AppointmentDto>(Error.Validation("Appointment.PastTime",
-                "Cannot reschedule an appointment to a past time."));
+                _localizationService.GetString(LocalizationKeys.AppointmentPastAppointment)));
         }
 
         var doctor = await _doctorRepository.GetByIdWithSchedulesAsync(appointment.DoctorId, cancellationToken);
@@ -72,7 +76,7 @@ public sealed class RescheduleAppointmentCommandHandler : IRequestHandler<Resche
         if (doctor.IsBlockedAt(newRange))
         {
             return Result.Failure<AppointmentDto>(Error.Conflict("Doctor.BlackoutException",
-                "The doctor has blocked availability during the requested new time."));
+                _localizationService.GetString(LocalizationKeys.AppointmentDoctorUnavailable)));
         }
 
         // Check conflicts
@@ -87,7 +91,7 @@ public sealed class RescheduleAppointmentCommandHandler : IRequestHandler<Resche
         if (doctorHasConflict)
         {
             return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.DoctorSlotUnavailable",
-                "The doctor already has an appointment during this new slot."));
+                _localizationService.GetString(LocalizationKeys.AppointmentSlotAlreadyBooked)));
         }
 
         var patientHasConflict = await _appointmentRepository.HasConflictingAppointmentForPatientAsync(
@@ -101,7 +105,7 @@ public sealed class RescheduleAppointmentCommandHandler : IRequestHandler<Resche
         if (patientHasConflict)
         {
             return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.PatientDoubleBooking",
-                "The patient already has an overlapping appointment during this new slot."));
+                _localizationService.GetString(LocalizationKeys.AppointmentPatientOverlapping)));
         }
 
         try
@@ -121,17 +125,22 @@ public sealed class RescheduleAppointmentCommandHandler : IRequestHandler<Resche
                 appointment.Status,
                 appointment.Notes,
                 appointment.CancellationReason,
-                appointment.CancelledAtUtc);
+                appointment.CancelledAtUtc,
+                _localizationService.GetStatusName(appointment.Status));
 
             return Result.Success(dto);
         }
-        catch (PastAppointmentException pastEx)
+        catch (PastAppointmentException)
         {
-            return Result.Failure<AppointmentDto>(Error.Validation("Appointment.PastDate", pastEx.Message));
+            return Result.Failure<AppointmentDto>(Error.Validation(
+                "Appointment.PastDate",
+                _localizationService.GetString(LocalizationKeys.AppointmentPastAppointment)));
         }
-        catch (InvalidAppointmentStateException stateEx)
+        catch (InvalidAppointmentStateException)
         {
-            return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.InvalidState", stateEx.Message));
+            return Result.Failure<AppointmentDto>(Error.Conflict(
+                "Appointment.InvalidState",
+                _localizationService.GetString(LocalizationKeys.AppointmentInvalidStatusTransition)));
         }
     }
 }

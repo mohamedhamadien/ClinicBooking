@@ -1,5 +1,7 @@
+using ClinicBooking.Application.Common.Localization;
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
+using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Appointments.DTOs;
 using MediatR;
 
@@ -10,10 +12,14 @@ public sealed record GetAppointmentByIdQuery(Guid AppointmentId) : IRequest<Resu
 public sealed class GetAppointmentByIdQueryHandler : IRequestHandler<GetAppointmentByIdQuery, Result<AppointmentDto>>
 {
     private readonly IAppointmentRepository _appointmentRepository;
+    private readonly ILocalizationService _localizationService;
 
-    public GetAppointmentByIdQueryHandler(IAppointmentRepository appointmentRepository)
+    public GetAppointmentByIdQueryHandler(
+        IAppointmentRepository appointmentRepository,
+        ILocalizationService? localizationService = null)
     {
         _appointmentRepository = appointmentRepository;
+        _localizationService = localizationService ?? new LocalizationService();
     }
 
     public async Task<Result<AppointmentDto>> Handle(GetAppointmentByIdQuery request, CancellationToken cancellationToken)
@@ -35,7 +41,8 @@ public sealed class GetAppointmentByIdQueryHandler : IRequestHandler<GetAppointm
             appointment.Status,
             appointment.Notes,
             appointment.CancellationReason,
-            appointment.CancelledAtUtc);
+            appointment.CancelledAtUtc,
+            _localizationService.GetStatusName(appointment.Status));
 
         return Result.Success(dto);
     }

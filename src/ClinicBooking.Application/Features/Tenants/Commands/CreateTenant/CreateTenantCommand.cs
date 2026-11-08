@@ -1,5 +1,6 @@
 using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
+using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Tenants.DTOs;
 using ClinicBooking.Domain.Entities;
 using FluentValidation;
@@ -11,7 +12,8 @@ public sealed record CreateTenantCommand(
     string Name,
     string Identifier,
     int CancellationNoticeHours = 24,
-    bool RequiresDoctorApproval = false) : IRequest<Result<TenantDto>>;
+    bool RequiresDoctorApproval = false,
+    string? NameAr = null) : IRequest<Result<TenantDto>>;
 
 public sealed class CreateTenantCommandValidator : AbstractValidator<CreateTenantCommand>
 {
@@ -19,6 +21,9 @@ public sealed class CreateTenantCommandValidator : AbstractValidator<CreateTenan
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Tenant name is required.")
+            .MaximumLength(150);
+
+        RuleFor(x => x.NameAr)
             .MaximumLength(150);
 
         RuleFor(x => x.Identifier)
@@ -37,11 +42,16 @@ public sealed class CreateTenantCommandValidator : AbstractValidator<CreateTenan
 public sealed class CreateTenantCommandHandler : IRequestHandler<CreateTenantCommand, Result<TenantDto>>
 {
     private readonly ITenantRepository _tenantRepository;
+    private readonly ILocalizationService _localizationService;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreateTenantCommandHandler(ITenantRepository tenantRepository, IUnitOfWork unitOfWork)
+    public CreateTenantCommandHandler(
+        ITenantRepository tenantRepository,
+        ILocalizationService localizationService,
+        IUnitOfWork unitOfWork)
     {
         _tenantRepository = tenantRepository;
+        _localizationService = localizationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -57,18 +67,23 @@ public sealed class CreateTenantCommandHandler : IRequestHandler<CreateTenantCom
             request.Name,
             request.Identifier,
             request.CancellationNoticeHours,
-            request.RequiresDoctorApproval);
+            request.RequiresDoctorApproval,
+            request.NameAr);
 
         await _tenantRepository.AddAsync(tenant, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var isArabic = _localizationService.IsArabic;
+
         var dto = new TenantDto(
             tenant.Id,
-            tenant.Name,
+            tenant.NameEn,
             tenant.Identifier,
             tenant.IsActive,
             tenant.CancellationNoticeHours,
-            tenant.RequiresDoctorApproval);
+            tenant.RequiresDoctorApproval,
+            tenant.NameAr,
+            tenant.GetLocalizedName(isArabic));
 
         return Result.Success(dto);
     }
