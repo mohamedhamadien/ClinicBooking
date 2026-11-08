@@ -23,11 +23,11 @@ public sealed class UserRepository : IUserRepository
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        var normalized = email.Trim().ToLowerInvariant();
+        var emailAddress = Domain.ValueObjects.EmailAddress.Create(email);
         return _dbContext.Users
             .Include(u => u.RefreshTokens)
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => (string)(object)u.Email == normalized, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == emailAddress, cancellationToken);
     }
 
     public Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
@@ -40,10 +40,10 @@ public sealed class UserRepository : IUserRepository
 
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        var normalized = email.Trim().ToLowerInvariant();
+        var emailAddress = Domain.ValueObjects.EmailAddress.Create(email);
         return _dbContext.Users
             .IgnoreQueryFilters()
-            .AnyAsync(u => (string)(object)u.Email == normalized, cancellationToken);
+            .AnyAsync(u => u.Email == emailAddress, cancellationToken);
     }
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)

@@ -23,21 +23,24 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // 2. Database Context with SQL Server
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Server=localhost;Database=ClinicBookingDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
-
-        services.AddDbContext<ClinicBookingDbContext>(options =>
+        // 2. Database Context with SQL Server (only if not already registered by testing harness)
+        if (!services.Any(d => d.ServiceType == typeof(DbContextOptions<ClinicBookingDbContext>)))
         {
-            options.UseSqlServer(connectionString, sqlOptions =>
+            var connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? "Server=localhost;Database=ClinicBookingDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+
+            services.AddDbContext<ClinicBookingDbContext>(options =>
             {
-                sqlOptions.MigrationsAssembly(typeof(ClinicBookingDbContext).Assembly.FullName);
-                sqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(30),
-                    errorNumbersToAdd: null);
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    sqlOptions.MigrationsAssembly(typeof(ClinicBookingDbContext).Assembly.FullName);
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                });
             });
-        });
+        }
 
         // 3. Unit of Work & Repositories
         services.AddScoped<IUnitOfWork, UnitOfWork>();

@@ -173,6 +173,7 @@ public sealed class ClinicBookingDbContext : DbContext
             return;
         }
 
+        var isSystemAdmin = string.Equals(_currentUserService?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
         var currentTenantId = CurrentTenantId.Value;
 
         foreach (var entry in ChangeTracker.Entries())
@@ -190,6 +191,12 @@ public sealed class ClinicBookingDbContext : DbContext
             };
 
             var isSharedRowModification = entry.Entity is IMayHaveTenant && entityTenantId is null;
+
+            // System administrators can create or manage shared global rows (e.g. global Specialties)
+            if (isSharedRowModification && isSystemAdmin)
+            {
+                continue;
+            }
 
             if ((entityTenantId is not null && entityTenantId != currentTenantId) || isSharedRowModification)
             {

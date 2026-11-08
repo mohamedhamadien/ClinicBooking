@@ -46,9 +46,10 @@ public sealed class DatabaseSeeder
 
         // 2. Seed System Administrator
         var adminEmail = "admin@clinicbooking.com";
+        var adminEmailVo = Domain.ValueObjects.EmailAddress.Create(adminEmail);
         var adminExists = await _dbContext.Users
             .IgnoreQueryFilters()
-            .AnyAsync(u => (string)(object)u.Email == adminEmail, cancellationToken);
+            .AnyAsync(u => u.Email == adminEmailVo, cancellationToken);
 
         if (!adminExists)
         {
