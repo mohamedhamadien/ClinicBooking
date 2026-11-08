@@ -6,15 +6,24 @@ namespace ClinicBooking.Domain.Tests;
 
 public class DoctorAvailabilityTests
 {
+    private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _userId = Guid.NewGuid();
     private readonly Guid _specialtyId = Guid.NewGuid();
     private readonly Guid _clinicId = Guid.NewGuid();
 
     [Fact]
+    public void Create_WithEmptyTenantId_ThrowsDomainValidationException()
+    {
+        // Act & Assert
+        Assert.Throws<DomainValidationException>(() =>
+            Doctor.Create(Guid.Empty, _userId, _specialtyId, "DOC-12345", "Cardiologist"));
+    }
+
+    [Fact]
     public void AddAvailability_WithValidShift_AddsToAvailabilities()
     {
         // Arrange
-        var doctor = Doctor.Create(_userId, _specialtyId, "DOC-12345", "Cardiologist");
+        var doctor = Doctor.Create(_tenantId, _userId, _specialtyId, "DOC-12345", "Cardiologist");
 
         // Act
         doctor.AddAvailability(_clinicId, DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(13, 0));
@@ -22,6 +31,7 @@ public class DoctorAvailabilityTests
         // Assert
         Assert.Single(doctor.Availabilities);
         var availability = doctor.Availabilities.First();
+        Assert.Equal(_tenantId, availability.TenantId);
         Assert.Equal(DayOfWeek.Monday, availability.DayOfWeek);
         Assert.Equal(new TimeOnly(9, 0), availability.Shift.StartTime);
         Assert.Equal(new TimeOnly(13, 0), availability.Shift.EndTime);
@@ -32,7 +42,7 @@ public class DoctorAvailabilityTests
     public void AddAvailability_WithOverlappingShiftOnSameDay_ThrowsDomainValidationException()
     {
         // Arrange
-        var doctor = Doctor.Create(_userId, _specialtyId, "DOC-12345", "Cardiologist");
+        var doctor = Doctor.Create(_tenantId, _userId, _specialtyId, "DOC-12345", "Cardiologist");
         doctor.AddAvailability(_clinicId, DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(13, 0));
 
         // Act & Assert (11:00 to 15:00 overlaps with 9:00 to 13:00)
@@ -44,7 +54,7 @@ public class DoctorAvailabilityTests
     public void AddAvailability_WithNonOverlappingShiftOnSameDay_Succeeds()
     {
         // Arrange
-        var doctor = Doctor.Create(_userId, _specialtyId, "DOC-12345", "Cardiologist");
+        var doctor = Doctor.Create(_tenantId, _userId, _specialtyId, "DOC-12345", "Cardiologist");
         doctor.AddAvailability(_clinicId, DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(12, 0));
 
         // Act (Afternoon shift 14:00 to 18:00)
@@ -58,7 +68,7 @@ public class DoctorAvailabilityTests
     public void AddBlackoutException_AndIsBlockedAt_DetectsBlackoutCorrectly()
     {
         // Arrange
-        var doctor = Doctor.Create(_userId, _specialtyId, "DOC-12345", "Cardiologist");
+        var doctor = Doctor.Create(_tenantId, _userId, _specialtyId, "DOC-12345", "Cardiologist");
         var baseDate = new DateTime(2026, 12, 1, 0, 0, 0, DateTimeKind.Utc);
         var vacationStart = baseDate.AddHours(8);
         var vacationEnd = baseDate.AddHours(17);
@@ -81,7 +91,7 @@ public class DoctorAvailabilityTests
     public void SetSlotDuration_WithInvalidMinutes_ThrowsSlotDurationInvalidException(int minutes)
     {
         // Arrange
-        var doctor = Doctor.Create(_userId, _specialtyId, "DOC-12345", "Cardiologist");
+        var doctor = Doctor.Create(_tenantId, _userId, _specialtyId, "DOC-12345", "Cardiologist");
 
         // Act & Assert
         Assert.Throws<SlotDurationInvalidException>(() => doctor.SetSlotDuration(minutes));
@@ -95,7 +105,7 @@ public class DoctorAvailabilityTests
     public void SetSlotDuration_WithValidMinutes_UpdatesDuration(int minutes)
     {
         // Arrange
-        var doctor = Doctor.Create(_userId, _specialtyId, "DOC-12345", "Cardiologist");
+        var doctor = Doctor.Create(_tenantId, _userId, _specialtyId, "DOC-12345", "Cardiologist");
 
         // Act
         doctor.SetSlotDuration(minutes);

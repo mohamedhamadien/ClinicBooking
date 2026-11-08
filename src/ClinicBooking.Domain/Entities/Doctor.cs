@@ -4,8 +4,9 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity
+public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTenant
 {
+    public Guid TenantId { get; private set; }
     public Guid UserId { get; private set; }
     public Guid SpecialtyId { get; private set; }
     public string LicenseNumber { get; private set; } = default!;
@@ -32,6 +33,7 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity
 
     public Doctor(
         Guid id,
+        Guid tenantId,
         Guid userId,
         Guid specialtyId,
         string licenseNumber,
@@ -40,6 +42,8 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity
         bool requiresApproval = false,
         bool isActive = true) : base(id)
     {
+        if (tenantId == Guid.Empty) throw new DomainValidationException("Tenant ID cannot be empty.");
+        TenantId = tenantId;
         UserId = userId;
         SpecialtyId = specialtyId;
         SetLicenseNumber(licenseNumber);
@@ -50,6 +54,7 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity
     }
 
     public static Doctor Create(
+        Guid tenantId,
         Guid userId,
         Guid specialtyId,
         string licenseNumber,
@@ -59,6 +64,7 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity
     {
         return new Doctor(
             Guid.NewGuid(),
+            tenantId,
             userId,
             specialtyId,
             licenseNumber,
@@ -116,6 +122,7 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity
 
         _availabilities.Add(new DoctorAvailability(
             Guid.NewGuid(),
+            TenantId,
             Id,
             clinicId,
             dayOfWeek,
@@ -125,7 +132,7 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity
 
     public void AddBlackoutException(DateTime startUtc, DateTime endUtc, string reason)
     {
-        var exception = AvailabilityException.CreateBlock(Id, startUtc, endUtc, reason);
+        var exception = AvailabilityException.CreateBlock(TenantId, Id, startUtc, endUtc, reason);
         _exceptions.Add(exception);
     }
 

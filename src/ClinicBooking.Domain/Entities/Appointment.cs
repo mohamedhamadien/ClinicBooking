@@ -6,8 +6,9 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity
+public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTenant
 {
+    public Guid TenantId { get; private set; }
     public Guid DoctorId { get; private set; }
     public Guid PatientId { get; private set; }
     public Guid ClinicId { get; private set; }
@@ -33,6 +34,7 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity
 
     private Appointment(
         Guid id,
+        Guid tenantId,
         Guid doctorId,
         Guid patientId,
         Guid clinicId,
@@ -40,6 +42,7 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity
         AppointmentStatus initialStatus,
         string? notes) : base(id)
     {
+        TenantId = tenantId;
         DoctorId = doctorId;
         PatientId = patientId;
         ClinicId = clinicId;
@@ -49,6 +52,7 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity
 
         AddDomainEvent(new AppointmentBookedEvent(
             Id,
+            TenantId,
             DoctorId,
             PatientId,
             ClinicId,
@@ -57,6 +61,7 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity
     }
 
     public static Appointment Create(
+        Guid tenantId,
         Guid doctorId,
         Guid patientId,
         Guid clinicId,
@@ -65,6 +70,7 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity
         bool requiresDoctorApproval = false,
         string? notes = null)
     {
+        if (tenantId == Guid.Empty) throw new DomainValidationException("Tenant ID cannot be empty.");
         if (doctorId == Guid.Empty) throw new DomainValidationException("Doctor ID cannot be empty.");
         if (patientId == Guid.Empty) throw new DomainValidationException("Patient ID cannot be empty.");
         if (clinicId == Guid.Empty) throw new DomainValidationException("Clinic ID cannot be empty.");
@@ -83,6 +89,7 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity
 
         return new Appointment(
             Guid.NewGuid(),
+            tenantId,
             doctorId,
             patientId,
             clinicId,

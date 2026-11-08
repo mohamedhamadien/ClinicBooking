@@ -3,8 +3,9 @@ using ClinicBooking.Domain.Exceptions;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class Specialty : Entity<Guid>, IAuditableEntity
+public sealed class Specialty : Entity<Guid>, IAuditableEntity, IMayHaveTenant
 {
+    public Guid? TenantId { get; private set; }
     public string Name { get; private set; } = default!;
     public string Description { get; private set; } = default!;
     public bool IsActive { get; private set; }
@@ -16,16 +17,17 @@ public sealed class Specialty : Entity<Guid>, IAuditableEntity
 
     private Specialty() { }
 
-    public Specialty(Guid id, string name, string description, bool isActive = true) : base(id)
+    public Specialty(Guid id, string name, string description, Guid? tenantId = null, bool isActive = true) : base(id)
     {
+        TenantId = tenantId;
         SetName(name);
         Description = description?.Trim() ?? string.Empty;
         IsActive = isActive;
     }
 
-    public static Specialty Create(string name, string description)
+    public static Specialty Create(string name, string description, Guid? tenantId = null)
     {
-        return new Specialty(Guid.NewGuid(), name, description, true);
+        return new Specialty(Guid.NewGuid(), name, description, tenantId, true);
     }
 
     public void SetName(string name)

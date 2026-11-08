@@ -4,6 +4,7 @@ namespace ClinicBooking.Domain.Events;
 
 public sealed record AppointmentBookedEvent(
     Guid AppointmentId,
+    Guid TenantId,
     Guid DoctorId,
     Guid PatientId,
     Guid ClinicId,

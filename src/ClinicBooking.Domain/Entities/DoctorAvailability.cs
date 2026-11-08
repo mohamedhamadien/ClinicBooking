@@ -3,8 +3,9 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class DoctorAvailability : Entity<Guid>, IAuditableEntity
+public sealed class DoctorAvailability : Entity<Guid>, IAuditableEntity, IMustHaveTenant
 {
+    public Guid TenantId { get; private set; }
     public Guid DoctorId { get; private set; }
     public Guid ClinicId { get; private set; }
     public DayOfWeek DayOfWeek { get; private set; }
@@ -20,12 +21,14 @@ public sealed class DoctorAvailability : Entity<Guid>, IAuditableEntity
 
     public DoctorAvailability(
         Guid id,
+        Guid tenantId,
         Guid doctorId,
         Guid clinicId,
         DayOfWeek dayOfWeek,
         TimeSlot shift,
         bool isActive = true) : base(id)
     {
+        TenantId = tenantId;
         DoctorId = doctorId;
         ClinicId = clinicId;
         DayOfWeek = dayOfWeek;
@@ -34,6 +37,7 @@ public sealed class DoctorAvailability : Entity<Guid>, IAuditableEntity
     }
 
     public static DoctorAvailability Create(
+        Guid tenantId,
         Guid doctorId,
         Guid clinicId,
         DayOfWeek dayOfWeek,
@@ -42,6 +46,7 @@ public sealed class DoctorAvailability : Entity<Guid>, IAuditableEntity
     {
         return new DoctorAvailability(
             Guid.NewGuid(),
+            tenantId,
             doctorId,
             clinicId,
             dayOfWeek,

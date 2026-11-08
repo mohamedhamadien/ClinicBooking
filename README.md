@@ -179,6 +179,11 @@ ClinicBooking/
 
 ```mermaid
 erDiagram
+    TENANT ||--o{ CLINIC : "owns"
+    TENANT ||--o{ DOCTOR : "employs"
+    TENANT ||--o{ PATIENT : "registers"
+    TENANT ||--o{ APPOINTMENT : "manages"
+    TENANT ||--o{ SPECIALTY : "customizes"
     SPECIALTY ||--o{ DOCTOR : "specializes in"
     DOCTOR ||--o{ DOCTOR_CLINIC : "works at"
     CLINIC ||--o{ DOCTOR_CLINIC : "hosts"
@@ -190,8 +195,18 @@ erDiagram
     USER ||--o| PATIENT : "links profile"
     USER ||--o{ REFRESH_TOKEN : "owns"
 
+    TENANT {
+        Guid Id PK
+        string Name
+        string Identifier UK
+        bool IsActive
+        int CancellationNoticeHours
+        bool RequiresDoctorApproval
+    }
+
     USER {
         Guid Id PK
+        Guid TenantId FK
         string Email UK
         string FirstName
         string LastName
@@ -201,12 +216,14 @@ erDiagram
 
     SPECIALTY {
         Guid Id PK
+        Guid TenantId FK
         string Name UK
         string Description
     }
 
     CLINIC {
         Guid Id PK
+        Guid TenantId FK
         string Name
         string Address
         string City
@@ -216,6 +233,7 @@ erDiagram
 
     DOCTOR {
         Guid Id PK
+        Guid TenantId FK
         Guid UserId FK
         Guid SpecialtyId FK
         string LicenseNumber UK
@@ -227,6 +245,7 @@ erDiagram
 
     DOCTOR_AVAILABILITY {
         Guid Id PK
+        Guid TenantId FK
         Guid DoctorId FK
         Guid ClinicId FK
         int DayOfWeek
@@ -237,6 +256,7 @@ erDiagram
 
     AVAILABILITY_EXCEPTION {
         Guid Id PK
+        Guid TenantId FK
         Guid DoctorId FK
         datetime StartTimeUtc
         datetime EndTimeUtc
@@ -246,6 +266,7 @@ erDiagram
 
     PATIENT {
         Guid Id PK
+        Guid TenantId FK
         Guid UserId FK
         datetime DateOfBirth
         string Gender
@@ -254,6 +275,7 @@ erDiagram
 
     APPOINTMENT {
         Guid Id PK
+        Guid TenantId FK
         Guid DoctorId FK
         Guid PatientId FK
         Guid ClinicId FK
@@ -410,14 +432,14 @@ RESTful APIs with URL versioning (`/api/v1/`):
 
 ### Critical Database Indexes
 
-1. **Filtered Unique Index (Double Booking Prevention)**:
+1. **Filtered Unique Index (Multi-Tenant Double Booking Prevention)**:
    ```sql
    CREATE UNIQUE NONCLUSTERED INDEX [IX_Appointments_Doctor_Slot]
-   ON [dbo].[Appointments] ([DoctorId], [StartTimeUtc])
+   ON [dbo].[Appointments] ([TenantId], [DoctorId], [StartTimeUtc])
    WHERE [Status] NOT IN ('CancelledByPatient', 'CancelledByDoctor', 'CancelledByAdmin', 'Rejected');
 
    CREATE UNIQUE NONCLUSTERED INDEX [IX_Appointments_Patient_Slot]
-   ON [dbo].[Appointments] ([PatientId], [StartTimeUtc])
+   ON [dbo].[Appointments] ([TenantId], [PatientId], [StartTimeUtc])
    WHERE [Status] NOT IN ('CancelledByPatient', 'CancelledByDoctor', 'CancelledByAdmin', 'Rejected');
    ```
 
@@ -425,17 +447,17 @@ RESTful APIs with URL versioning (`/api/v1/`):
    ```sql
    -- Speeds up doctor schedule retrieval and slot availability calculation
    CREATE NONCLUSTERED INDEX [IX_Appointments_Doctor_Date]
-   ON [dbo].[Appointments] ([DoctorId], [StartTimeUtc])
+   ON [dbo].[Appointments] ([TenantId], [DoctorId], [StartTimeUtc])
    INCLUDE ([EndTimeUtc], [Status]);
 
    -- Speeds up patient history lookup
    CREATE NONCLUSTERED INDEX [IX_Appointments_Patient_Date]
-   ON [dbo].[Appointments] ([PatientId], [StartTimeUtc])
+   ON [dbo].[Appointments] ([TenantId], [PatientId], [StartTimeUtc])
    INCLUDE ([DoctorId], [ClinicId], [Status]);
 
    -- Speeds up weekly availability lookups
    CREATE NONCLUSTERED INDEX [IX_DoctorAvailability_Doctor_Day]
-   ON [dbo].[DoctorAvailabilities] ([DoctorId], [DayOfWeek])
+   ON [dbo].[DoctorAvailabilities] ([TenantId], [DoctorId], [DayOfWeek])
    WHERE [IsActive] = 1;
    ```
 

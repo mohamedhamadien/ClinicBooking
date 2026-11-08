@@ -8,6 +8,7 @@ namespace ClinicBooking.Domain.Tests;
 
 public class AppointmentLifecycleTests
 {
+    private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _doctorId = Guid.NewGuid();
     private readonly Guid _patientId = Guid.NewGuid();
     private readonly Guid _clinicId = Guid.NewGuid();
@@ -21,6 +22,7 @@ public class AppointmentLifecycleTests
 
         // Act
         var appointment = Appointment.Create(
+            _tenantId,
             _doctorId,
             _patientId,
             _clinicId,
@@ -31,6 +33,7 @@ public class AppointmentLifecycleTests
 
         // Assert
         Assert.NotEqual(Guid.Empty, appointment.Id);
+        Assert.Equal(_tenantId, appointment.TenantId);
         Assert.Equal(_doctorId, appointment.DoctorId);
         Assert.Equal(_patientId, appointment.PatientId);
         Assert.Equal(_clinicId, appointment.ClinicId);
@@ -48,6 +51,7 @@ public class AppointmentLifecycleTests
 
         // Act
         var appointment = Appointment.Create(
+            _tenantId,
             _doctorId,
             _patientId,
             _clinicId,
@@ -68,10 +72,27 @@ public class AppointmentLifecycleTests
 
         // Act & Assert
         Assert.Throws<PastAppointmentException>(() => Appointment.Create(
+            _tenantId,
             _doctorId,
             _patientId,
             _clinicId,
             pastRange,
+            _currentUtc));
+    }
+
+    [Fact]
+    public void Create_WithEmptyTenantId_ThrowsDomainValidationException()
+    {
+        // Arrange
+        var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
+
+        // Act & Assert
+        Assert.Throws<DomainValidationException>(() => Appointment.Create(
+            Guid.Empty,
+            _doctorId,
+            _patientId,
+            _clinicId,
+            range,
             _currentUtc));
     }
 
@@ -86,6 +107,7 @@ public class AppointmentLifecycleTests
 
         // Act & Assert
         Assert.Throws<DomainValidationException>(() => Appointment.Create(
+            _tenantId,
             Guid.Parse(docId),
             Guid.Parse(patId),
             Guid.Parse(clinId),
@@ -98,7 +120,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: true);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: true);
 
         // Act
         appointment.Confirm();
@@ -114,7 +136,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: true);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: true);
 
         // Act
         appointment.Reject("Doctor is called for emergency surgery");
@@ -132,7 +154,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: false);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: false);
 
         // Act & Assert
         Assert.Throws<InvalidAppointmentStateException>(() => appointment.Reject("Not pending"));
@@ -143,7 +165,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: false);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: false);
         appointment.Confirm();
 
         // Act
@@ -159,7 +181,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: false);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc, requiresDoctorApproval: false);
 
         // Act & Assert
         Assert.Throws<InvalidAppointmentStateException>(() => appointment.Complete());
@@ -170,7 +192,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange: appointment is in 48 hours, notice requirement is 24 hours
         var range = DateTimeRange.Create(_currentUtc.AddHours(48), _currentUtc.AddHours(48).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc);
 
         // Act
         appointment.CancelByPatient("Schedule conflict", minimumNoticeHours: 24, currentUtc: _currentUtc);
@@ -188,7 +210,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange: appointment is in 10 hours, notice requirement is 24 hours
         var range = DateTimeRange.Create(_currentUtc.AddHours(10), _currentUtc.AddHours(10).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc);
 
         // Act & Assert
         Assert.Throws<AppointmentCancellationPolicyException>(() =>
@@ -200,7 +222,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddHours(2), _currentUtc.AddHours(2).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc);
 
         // Act
         appointment.CancelByDoctor("Doctor sick leave", _currentUtc);
@@ -216,7 +238,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddHours(2), _currentUtc.AddHours(2).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc);
 
         // Act
         appointment.CancelByAdmin("Clinic maintenance", _currentUtc);
@@ -233,7 +255,7 @@ public class AppointmentLifecycleTests
         // Arrange
         var initialRange = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
         var newRange = DateTimeRange.Create(_currentUtc.AddDays(3), _currentUtc.AddDays(3).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, initialRange, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, initialRange, _currentUtc);
 
         // Act
         appointment.Reschedule(newRange, _currentUtc);
@@ -249,7 +271,7 @@ public class AppointmentLifecycleTests
         // Arrange
         var initialRange = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
         var pastRange = DateTimeRange.Create(_currentUtc.AddHours(-1), _currentUtc.AddMinutes(-30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, initialRange, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, initialRange, _currentUtc);
 
         // Act & Assert
         Assert.Throws<PastAppointmentException>(() => appointment.Reschedule(pastRange, _currentUtc));
@@ -260,7 +282,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc);
         appointment.Confirm();
 
         // Act
@@ -275,7 +297,7 @@ public class AppointmentLifecycleTests
     {
         // Arrange
         var range = DateTimeRange.Create(_currentUtc.AddDays(1), _currentUtc.AddDays(1).AddMinutes(30));
-        var appointment = Appointment.Create(_doctorId, _patientId, _clinicId, range, _currentUtc);
+        var appointment = Appointment.Create(_tenantId, _doctorId, _patientId, _clinicId, range, _currentUtc);
 
         // Act & Assert
         Assert.Throws<InvalidAppointmentStateException>(() => appointment.MarkNoShow());

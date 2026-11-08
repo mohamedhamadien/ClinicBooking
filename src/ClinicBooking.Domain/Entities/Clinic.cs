@@ -4,8 +4,9 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class Clinic : Entity<Guid>, IAuditableEntity
+public sealed class Clinic : Entity<Guid>, IAuditableEntity, IMustHaveTenant
 {
+    public Guid TenantId { get; private set; }
     public string Name { get; private set; } = default!;
     public string Address { get; private set; } = default!;
     public string City { get; private set; } = default!;
@@ -19,9 +20,17 @@ public sealed class Clinic : Entity<Guid>, IAuditableEntity
 
     private Clinic() { }
 
-    public Clinic(Guid id, string name, string address, string city, PhoneNumber phoneNumber, bool isActive = true)
-        : base(id)
+    public Clinic(
+        Guid id,
+        Guid tenantId,
+        string name,
+        string address,
+        string city,
+        PhoneNumber phoneNumber,
+        bool isActive = true) : base(id)
     {
+        if (tenantId == Guid.Empty) throw new DomainValidationException("Tenant ID cannot be empty.");
+        TenantId = tenantId;
         SetName(name);
         Address = address?.Trim() ?? string.Empty;
         City = city?.Trim() ?? string.Empty;
@@ -29,10 +38,11 @@ public sealed class Clinic : Entity<Guid>, IAuditableEntity
         IsActive = isActive;
     }
 
-    public static Clinic Create(string name, string address, string city, string phoneNumber)
+    public static Clinic Create(Guid tenantId, string name, string address, string city, string phoneNumber)
     {
         return new Clinic(
             Guid.NewGuid(),
+            tenantId,
             name,
             address,
             city,

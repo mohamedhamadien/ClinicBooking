@@ -4,8 +4,9 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class AvailabilityException : Entity<Guid>, IAuditableEntity
+public sealed class AvailabilityException : Entity<Guid>, IAuditableEntity, IMustHaveTenant
 {
+    public Guid TenantId { get; private set; }
     public Guid DoctorId { get; private set; }
     public DateTimeRange Range { get; private set; } = default!;
     public string Reason { get; private set; } = default!;
@@ -20,11 +21,13 @@ public sealed class AvailabilityException : Entity<Guid>, IAuditableEntity
 
     public AvailabilityException(
         Guid id,
+        Guid tenantId,
         Guid doctorId,
         DateTimeRange range,
         string reason,
         bool isBlocked = true) : base(id)
     {
+        TenantId = tenantId;
         DoctorId = doctorId;
         Range = range ?? throw new ArgumentNullException(nameof(range));
         Reason = reason?.Trim() ?? string.Empty;
@@ -32,6 +35,7 @@ public sealed class AvailabilityException : Entity<Guid>, IAuditableEntity
     }
 
     public static AvailabilityException CreateBlock(
+        Guid tenantId,
         Guid doctorId,
         DateTime startUtc,
         DateTime endUtc,
@@ -44,6 +48,7 @@ public sealed class AvailabilityException : Entity<Guid>, IAuditableEntity
 
         return new AvailabilityException(
             Guid.NewGuid(),
+            tenantId,
             doctorId,
             DateTimeRange.Create(startUtc, endUtc),
             reason,

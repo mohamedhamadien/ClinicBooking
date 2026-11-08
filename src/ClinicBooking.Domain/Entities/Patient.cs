@@ -5,8 +5,9 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity
+public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTenant
 {
+    public Guid TenantId { get; private set; }
     public Guid UserId { get; private set; }
     public DateOnly DateOfBirth { get; private set; }
     public Gender Gender { get; private set; }
@@ -21,11 +22,14 @@ public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity
 
     public Patient(
         Guid id,
+        Guid tenantId,
         Guid userId,
         DateOnly dateOfBirth,
         Gender gender,
         PhoneNumber? emergencyContact = null) : base(id)
     {
+        if (tenantId == Guid.Empty) throw new DomainValidationException("Tenant ID cannot be empty.");
+        TenantId = tenantId;
         UserId = userId;
         SetDateOfBirth(dateOfBirth);
         Gender = gender;
@@ -33,6 +37,7 @@ public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity
     }
 
     public static Patient Create(
+        Guid tenantId,
         Guid userId,
         DateOnly dateOfBirth,
         Gender gender,
@@ -40,6 +45,7 @@ public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity
     {
         return new Patient(
             Guid.NewGuid(),
+            tenantId,
             userId,
             dateOfBirth,
             gender,

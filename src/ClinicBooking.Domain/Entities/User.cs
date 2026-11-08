@@ -5,8 +5,9 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class User : AggregateRoot<Guid>, IAuditableEntity
+public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
 {
+    public Guid? TenantId { get; private set; }
     public EmailAddress Email { get; private set; } = default!;
     public string FirstName { get; private set; } = default!;
     public string LastName { get; private set; } = default!;
@@ -31,15 +32,17 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity
         string firstName,
         string lastName,
         UserRole role,
+        Guid? tenantId = null,
         bool isActive = true) : base(id)
     {
+        TenantId = tenantId;
         Email = email ?? throw new ArgumentNullException(nameof(email));
         SetNames(firstName, lastName);
         Role = role;
         IsActive = isActive;
     }
 
-    public static User Create(string email, string firstName, string lastName, UserRole role)
+    public static User Create(string email, string firstName, string lastName, UserRole role, Guid? tenantId = null)
     {
         return new User(
             Guid.NewGuid(),
@@ -47,6 +50,7 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity
             firstName,
             lastName,
             role,
+            tenantId,
             true);
     }
 
