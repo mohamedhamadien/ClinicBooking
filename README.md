@@ -558,20 +558,35 @@ Multi-level automated test suites:
 - [SQL Server 2022](https://www.microsoft.com/sql-server) or Docker
 - [Git](https://git-scm.com/)
 
-### Build & Run
+### Build & Run Locally
 ```powershell
 # 1. Clone repository
-git clone https://github.com/your-org/clinic-booking-system.git
-cd clinic-booking-system
+git clone https://github.com/mohamedhamadien/ClinicBooking.git
+cd ClinicBooking
 
 # 2. Restore and Build
 dotnet build ClinicBooking.slnx
 
-# 3. Run Tests
+# 3. Run All Tests (Domain, Application, Infrastructure, API - 134 Tests)
 dotnet test
 
 # 4. Start Web API
 dotnet run --project src/ClinicBooking.API/ClinicBooking.API.csproj
+```
+
+### Run with Docker Compose
+```powershell
+# Build and launch SQL Server 2022 and Web API containers
+docker compose up --build -d
+
+# Verify services status
+docker compose ps
+
+# Access Swagger UI in your browser:
+# http://localhost:5000/swagger
+
+# View container logs
+docker compose logs -f api
 ```
 
 ---
@@ -588,4 +603,4 @@ dotnet run --project src/ClinicBooking.API/ClinicBooking.API.csproj
 - [x] **Phase 6: Advanced Booking Engine** (Transactional booking, SQL Server concurrency protection, racing HTTP request integration tests)
 - [x] **Phase 7: Docker & Containerization** (Multi-stage Dockerfile, docker-compose.yml, healthchecks, networks, volumes)
 - [x] **Phase 8: CI/CD Workflows** (`ci.yml` & `cd.yml` with GHCR and Azure App Service deployment automation)
-- [ ] **Phase 9: Final Review, End-to-End Validation & Documentation**
+- [x] **Phase 9: Final Review, End-to-End Validation & Documentation**
