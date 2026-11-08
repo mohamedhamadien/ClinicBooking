@@ -587,5 +587,5 @@ dotnet run --project src/ClinicBooking.API/ClinicBooking.API.csproj
 - [x] **Phase 5: API Layer** (Controllers, Swagger/OpenAPI, RequestLocalization Middleware, TenantResolutionMiddleware, Global Exception Middleware, Serilog, Health Checks, API Integration Tests)
 - [x] **Phase 6: Advanced Booking Engine** (Transactional booking, SQL Server concurrency protection, racing HTTP request integration tests)
 - [x] **Phase 7: Docker & Containerization** (Multi-stage Dockerfile, docker-compose.yml, healthchecks, networks, volumes)
-- [ ] **Phase 8: CI/CD Workflows** (`ci.yml` & `cd.yml` with GHCR and Azure App Service)
+- [x] **Phase 8: CI/CD Workflows** (`ci.yml` & `cd.yml` with GHCR and Azure App Service deployment automation)
 - [ ] **Phase 9: Final Review, End-to-End Validation & Documentation**
