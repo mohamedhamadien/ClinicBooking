@@ -45,7 +45,7 @@ internal sealed class DoctorAvailabilityConfiguration : IEntityTypeConfiguration
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Id).ValueGeneratedNever();
 
-        builder.ComplexProperty(a => a.Shift, shift =>
+        builder.OwnsOne(a => a.Shift, shift =>
         {
             shift.Property(s => s.StartTime).HasColumnName("StartTime").HasColumnType("time(0)");
             shift.Property(s => s.EndTime).HasColumnName("EndTime").HasColumnType("time(0)");
@@ -70,7 +70,7 @@ internal sealed class AvailabilityExceptionConfiguration : IEntityTypeConfigurat
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).ValueGeneratedNever();
 
-        builder.ComplexProperty(e => e.Range, range =>
+        builder.OwnsOne(e => e.Range, range =>
         {
             range.Property(r => r.StartUtc).HasColumnName("StartTimeUtc");
             range.Property(r => r.EndUtc).HasColumnName("EndTimeUtc");

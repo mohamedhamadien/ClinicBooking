@@ -5,12 +5,14 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ClinicBooking.API.Tests;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly InMemoryDatabaseRoot _databaseRoot = new();
     private readonly string _databaseName = "ApiTestDb_" + Guid.NewGuid().ToString("N");
 
     public Guid DefaultTenantId { get; private set; }
@@ -35,10 +37,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
             }
 
-            // Register fresh isolated InMemory database for test runs
+            // Register fresh isolated InMemory database for test runs sharing the database root
             services.AddDbContext<ClinicBookingDbContext>(options =>
             {
-                options.UseInMemoryDatabase(_databaseName);
+                options.UseInMemoryDatabase(_databaseName, _databaseRoot);
                 options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
             });
 

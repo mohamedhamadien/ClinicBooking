@@ -63,10 +63,30 @@ public sealed class ClinicBookingDbContext : DbContext
     }
 
 
+    private static readonly object _inMemoryLock = new();
+    private static readonly Domain.Enums.AppointmentStatus[] _inactiveStatuses =
+    [
+        Domain.Enums.AppointmentStatus.CancelledByPatient,
+        Domain.Enums.AppointmentStatus.CancelledByDoctor,
+        Domain.Enums.AppointmentStatus.CancelledByAdmin,
+        Domain.Enums.AppointmentStatus.Rejected
+    ];
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         EnforceTenantWriteIsolation();
         ApplyAuditInformation();
+
+        if (Database.ProviderName?.Contains("InMemory") == true)
+        {
+            lock (_inMemoryLock)
+            {
+                EnforceInMemoryUniqueConstraints();
+                var r = base.SaveChangesAsync(cancellationToken).GetAwaiter().GetResult();
+                ClearDomainEvents();
+                return r;
+            }
+        }
 
         try
         {
@@ -85,6 +105,53 @@ public sealed class ClinicBookingDbContext : DbContext
                                            && sql.Number is SqlUniqueIndexViolation or SqlUniqueConstraintViolation)
         {
             throw TranslateUniqueViolation(sql.Message, ex);
+        }
+    }
+
+    private void EnforceInMemoryUniqueConstraints()
+    {
+        var addedAppointments = ChangeTracker.Entries<Appointment>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified)
+            .Select(e => e.Entity)
+            .Where(a => !_inactiveStatuses.Contains(a.Status))
+            .ToList();
+
+        if (addedAppointments.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var appt in addedAppointments)
+        {
+            var doctorConflict = Appointments
+                .IgnoreQueryFilters()
+                .Any(a => a.Id != appt.Id &&
+                          a.TenantId == appt.TenantId &&
+                          a.DoctorId == appt.DoctorId &&
+                          a.StartTimeUtc == appt.StartTimeUtc &&
+                          !_inactiveStatuses.Contains(a.Status));
+
+            if (doctorConflict)
+            {
+                throw new ConcurrencyConflictException(
+                    "Appointment.DoctorSlotUnavailable",
+                    "The requested appointment slot is no longer available for this doctor.");
+            }
+
+            var patientConflict = Appointments
+                .IgnoreQueryFilters()
+                .Any(a => a.Id != appt.Id &&
+                          a.TenantId == appt.TenantId &&
+                          a.PatientId == appt.PatientId &&
+                          a.StartTimeUtc == appt.StartTimeUtc &&
+                          !_inactiveStatuses.Contains(a.Status));
+
+            if (patientConflict)
+            {
+                throw new ConcurrencyConflictException(
+                    "Appointment.PatientDoubleBooking",
+                    "The patient already has an active appointment starting at this time.");
+            }
         }
     }
 

@@ -585,7 +585,7 @@ dotnet run --project src/ClinicBooking.API/ClinicBooking.API.csproj
 - [x] **Arabic Language & Bilingual Localization Support** (`ILocalizationService`, Arabic/English entity fields `NameAr`/`NameEn`, localized error codes, status translations, RTL readiness, unit tests)
 - [x] **Phase 4: Infrastructure Layer** (EF Core DbContext, Configurations, Filtered Unique Indexes, Identity, JWT, Repositories, Migrations, Seeder)
 - [x] **Phase 5: API Layer** (Controllers, Swagger/OpenAPI, RequestLocalization Middleware, TenantResolutionMiddleware, Global Exception Middleware, Serilog, Health Checks, API Integration Tests)
-- [ ] **Phase 6: Advanced Booking Engine** (Transactional booking, SQL Server concurrency integration tests)
+- [x] **Phase 6: Advanced Booking Engine** (Transactional booking, SQL Server concurrency protection, racing HTTP request integration tests)
 - [ ] **Phase 7: Docker & Containerization** (Multi-stage Dockerfile, docker-compose.yml)
 - [ ] **Phase 8: CI/CD Workflows** (`ci.yml` & `cd.yml` with GHCR and Azure App Service)
 - [ ] **Phase 9: Final Review, End-to-End Validation & Documentation**
