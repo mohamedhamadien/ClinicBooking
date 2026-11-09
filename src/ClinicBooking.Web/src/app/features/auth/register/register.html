@@ -1,0 +1,67 @@
+<div class="container auth-container">
+  <div class="card auth-card" style="max-width: 540px;">
+    <div class="auth-header">
+      <span class="auth-icon">📝</span>
+      <h2>{{ 'auth.register.title' | translate }}</h2>
+      <p class="text-muted">{{ 'auth.register.subtitle' | translate }}</p>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="alert alert-danger">
+        ⚠️ {{ errorMessage() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">{{ 'auth.register.first_name' | translate }}</label>
+          <input type="text" formControlName="firstName" class="form-control" placeholder="Ahmed" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ 'auth.register.last_name' | translate }}</label>
+          <input type="text" formControlName="lastName" class="form-control" placeholder="Ali" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">{{ 'auth.login.email' | translate }}</label>
+        <input type="email" formControlName="email" class="form-control" placeholder="ahmed@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">{{ 'auth.login.password' | translate }}</label>
+        <input type="password" formControlName="password" class="form-control" placeholder="At least 8 chars with uppercase, number" />
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">{{ 'auth.register.dob' | translate }}</label>
+          <input type="date" formControlName="dateOfBirth" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ 'auth.register.gender' | translate }}</label>
+          <select formControlName="gender" class="form-select">
+            <option [value]="1">{{ 'auth.register.gender_male' | translate }}</option>
+            <option [value]="2">{{ 'auth.register.gender_female' | translate }}</option>
+            <option [value]="3">{{ 'auth.register.gender_other' | translate }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">{{ 'auth.register.emergency' | translate }}</label>
+        <input type="tel" formControlName="emergencyContact" class="form-control" placeholder="+201011112222" />
+      </div>
+
+      <button type="submit" [disabled]="form.invalid || isSubmitting()" class="btn btn-primary w-100">
+        {{ isSubmitting() ? 'Creating account...' : ('auth.register.submit' | translate) }}
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>{{ 'auth.register.has_account' | translate }}</span>
+      <a routerLink="/auth/login">{{ 'auth.login.submit' | translate }}</a>
+    </div>
+  </div>
+</div>

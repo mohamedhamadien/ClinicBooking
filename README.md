@@ -570,19 +570,27 @@ dotnet build ClinicBooking.slnx
 # 3. Run All Tests (Domain, Application, Infrastructure, API - 134 Tests)
 dotnet test
 
-# 4. Start Web API
+# 4. Start Web API (Backend)
 dotnet run --project src/ClinicBooking.API/ClinicBooking.API.csproj
+
+# 5. Start Angular Frontend (in a new terminal)
+cd src/ClinicBooking.Web
+npm install
+npm start
+# Web app will be accessible at: http://localhost:4200
 ```
 
 ### Run with Docker Compose
 ```powershell
-# Build and launch SQL Server 2022 and Web API containers
+# Build and launch SQL Server 2022, Web API, and Angular Web containers
 docker compose up --build -d
 
 # Verify services status
 docker compose ps
 
-# Access Swagger UI in your browser:
+# Access Services in your browser:
+# - Angular Web App: http://localhost:4200
+# - Web API Swagger UI: http://localhost:5000/swagger
 # http://localhost:5000/swagger
 
 # View container logs
@@ -604,3 +612,4 @@ docker compose logs -f api
 - [x] **Phase 7: Docker & Containerization** (Multi-stage Dockerfile, docker-compose.yml, healthchecks, networks, volumes)
 - [x] **Phase 8: CI/CD Workflows** (`ci.yml` & `cd.yml` with GHCR and Azure App Service deployment automation)
 - [x] **Phase 9: Final Review, End-to-End Validation & Documentation**
+- [x] **Phase 10: Angular Web Frontend** (Standalone components, Signals, Bilingual Arabic/English with native RTL/LTR, JWT auth interceptor, doctor discovery, dynamic slot booking, patient portal, admin dashboard, Docker & Nginx)

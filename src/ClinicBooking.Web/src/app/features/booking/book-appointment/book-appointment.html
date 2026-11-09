@@ -1,0 +1,131 @@
+<div class="container booking-container">
+  @if (loadingDoctor()) {
+    <div class="loading-state card">
+      <p>Loading doctor profile...</p>
+    </div>
+  } @else if (doctor(); as doc) {
+    <!-- Doctor Summary Banner -->
+    <div class="card doctor-header-card">
+      <div class="doctor-badge-info">
+        <div class="avatar">👨‍⚕️</div>
+        <div>
+          <span class="specialty-badge">{{ doc.specialtyName }}</span>
+          <h2>{{ doc.fullName }}</h2>
+          <p class="license">License: {{ doc.licenseNumber }}</p>
+          <p class="bio">{{ translation.isArabic() && doc.bioAr ? doc.bioAr : doc.bio }}</p>
+        </div>
+      </div>
+      <div class="doctor-duration-info">
+        <span class="label">{{ 'doctors.slot_duration' | translate }}</span>
+        <span class="value">{{ doc.defaultSlotDurationMinutes }} {{ 'doctors.minutes' | translate }}</span>
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="alert alert-danger">
+        ⚠️ {{ errorMessage() }}
+      </div>
+    }
+
+    @if (successMessage()) {
+      <div class="alert alert-success">
+        ✅ {{ successMessage() }}
+      </div>
+    }
+
+    <!-- Booking Form & Slot Picker -->
+    <div class="grid-2 booking-grid">
+      <!-- Left: Clinic & Date Selectors -->
+      <div class="card selector-card">
+        <h3>1. {{ 'booking.select_clinic' | translate }}</h3>
+        <div class="form-group">
+          <select
+            [(ngModel)]="selectedClinicId"
+            (change)="onDateOrClinicChange()"
+            class="form-select"
+          >
+            @for (c of clinics(); track c.id) {
+              <option [value]="c.id">
+                {{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }} ({{ c.city }})
+              </option>
+            }
+          </select>
+        </div>
+
+        <h3 class="mt-4">2. {{ 'booking.select_date' | translate }}</h3>
+        <div class="form-group">
+          <input
+            type="date"
+            [(ngModel)]="selectedDate"
+            (change)="onDateOrClinicChange()"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group mt-4">
+          <label class="form-label">{{ 'booking.notes' | translate }}</label>
+          <textarea
+            [(ngModel)]="notes"
+            rows="3"
+            class="form-control"
+            placeholder="Describe reason for visit..."
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Right: Dynamic Slots Grid -->
+      <div class="card slots-card">
+        <div class="slots-header">
+          <h3>3. {{ 'booking.available_slots' | translate }}</h3>
+          <span class="slots-date">{{ selectedDate | date:'fullDate' }}</span>
+        </div>
+
+        @if (loadingSlots()) {
+          <div class="slots-loading">
+            <p>Computing real-time doctor availability...</p>
+          </div>
+        } @else if (availableSlots().length === 0) {
+          <div class="slots-empty">
+            <span class="icon">📅</span>
+            <p>{{ 'booking.no_slots' | translate }}</p>
+          </div>
+        } @else {
+          <div class="slots-grid">
+            @for (slot of availableSlots(); track slot.startTimeUtc) {
+              <button
+                type="button"
+                [disabled]="!slot.isAvailable"
+                [class.selected]="selectedSlot?.startTimeUtc === slot.startTimeUtc"
+                [class.unavailable]="!slot.isAvailable"
+                (click)="selectSlot(slot)"
+                class="slot-btn"
+              >
+                <span class="slot-time">{{ slot.startLocal }} - {{ slot.endLocal }}</span>
+                <span class="slot-status">
+                  {{ slot.isAvailable ? 'Available' : 'Booked' }}
+                </span>
+              </button>
+            }
+          </div>
+        }
+
+        <!-- Booking Confirmation Section -->
+        <div class="booking-confirm-footer">
+          @if (selectedSlot) {
+            <div class="selected-summary">
+              Selected: <strong>{{ selectedSlot.startLocal }} - {{ selectedSlot.endLocal }}</strong>
+            </div>
+          }
+
+          <button
+            (click)="confirmBooking()"
+            [disabled]="!selectedSlot || bookingInProgress()"
+            class="btn btn-primary w-100"
+          >
+            {{ bookingInProgress() ? 'Securing slot...' : ('booking.confirm_btn' | translate) }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

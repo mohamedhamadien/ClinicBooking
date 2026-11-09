@@ -24,3 +24,11 @@ infra_err.txt
 .DS_Store
 Thumbs.db
 desktop.ini
+
+## Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+**/.npm/
+npm-debug.log*
+

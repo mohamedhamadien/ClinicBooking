@@ -1,0 +1,99 @@
+<div class="container doctor-list-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>{{ 'doctors.title' | translate }}</h1>
+    <p class="text-muted">{{ 'doctors.subtitle' | translate }}</p>
+  </div>
+
+  <!-- Filters Row -->
+  <div class="card filter-card">
+    <div class="filter-grid">
+      <!-- Search input -->
+      <div class="form-group mb-0">
+        <label class="form-label">Search</label>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (keyup.enter)="applyFilters()"
+          class="form-control"
+          placeholder="{{ 'doctors.search_placeholder' | translate }}"
+        />
+      </div>
+
+      <!-- Specialty select -->
+      <div class="form-group mb-0">
+        <label class="form-label">{{ 'nav.specialties' | translate }}</label>
+        <select [(ngModel)]="selectedSpecialty" (change)="applyFilters()" class="form-select">
+          <option value="">{{ 'doctors.filter_specialty' | translate }}</option>
+          @for (s of specialties(); track s.id) {
+            <option [value]="s.id">
+              {{ translation.isArabic() && s.nameAr ? s.nameAr : s.name }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <!-- Clinic select -->
+      <div class="form-group mb-0">
+        <label class="form-label">Clinic</label>
+        <select [(ngModel)]="selectedClinic" (change)="applyFilters()" class="form-select">
+          <option value="">{{ 'doctors.filter_clinic' | translate }}</option>
+          @for (c of clinics(); track c.id) {
+            <option [value]="c.id">
+              {{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }} ({{ c.city }})
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctor Cards Grid -->
+  @if (loading()) {
+    <div class="loading-state">
+      <p>Loading doctors...</p>
+    </div>
+  } @else if (doctors().length === 0) {
+    <div class="empty-state card">
+      <span class="empty-icon">🔍</span>
+      <h3>{{ 'doctors.no_doctors' | translate }}</h3>
+      <p class="text-muted">Try adjusting your filters or search keywords.</p>
+    </div>
+  } @else {
+    <div class="grid-3 doctor-grid">
+      @for (doc of doctors(); track doc.id) {
+        <div class="card card-hover doctor-card">
+          <div class="doctor-avatar">
+            <span>👨‍⚕️</span>
+          </div>
+
+          <div class="doctor-info">
+            <span class="specialty-badge">{{ doc.specialtyName }}</span>
+            <h3 class="doctor-name">{{ doc.fullName }}</h3>
+            <p class="doctor-license">Lic: {{ doc.licenseNumber }}</p>
+            <p class="doctor-bio">
+              {{ translation.isArabic() && doc.bioAr ? doc.bioAr : doc.bio }}
+            </p>
+          </div>
+
+          <div class="doctor-meta">
+            <div class="meta-item">
+              <span class="meta-label">{{ 'doctors.slot_duration' | translate }}</span>
+              <span class="meta-val">{{ doc.defaultSlotDurationMinutes }} {{ 'doctors.minutes' | translate }}</span>
+            </div>
+            @if (doc.doctorClinics.length > 0 && doc.doctorClinics[0].consultationFee) {
+              <div class="meta-item">
+                <span class="meta-label">{{ 'doctors.fee' | translate }}</span>
+                <span class="meta-val fee">{{ doc.doctorClinics[0].consultationFee }} EGP</span>
+              </div>
+            }
+          </div>
+
+          <a [routerLink]="['/booking', doc.id]" class="btn btn-primary w-100">
+            📅 {{ 'doctors.book_btn' | translate }}
+          </a>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,97 @@
+<div class="container my-appointments-container">
+  <div class="page-header">
+    <h1>{{ 'appointments.title' | translate }}</h1>
+    <p class="text-muted">{{ 'appointments.subtitle' | translate }}</p>
+  </div>
+
+  @if (actionMessage()) {
+    <div class="alert alert-success">
+      ✅ {{ actionMessage() }}
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger">
+      ⚠️ {{ errorMessage() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state card">
+      <p>Loading your appointments...</p>
+    </div>
+  } @else if (appointments().length === 0) {
+    <div class="empty-state card">
+      <span class="empty-icon">🗓️</span>
+      <h3>{{ 'appointments.no_appointments' | translate }}</h3>
+      <p class="text-muted">Book your first doctor appointment now.</p>
+      <a routerLink="/doctors" class="btn btn-primary mt-3">
+        {{ 'home.hero.cta_book' | translate }}
+      </a>
+    </div>
+  } @else {
+    <div class="card table-card">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ 'appointments.doctor' | translate }}</th>
+              <th>{{ 'appointments.clinic' | translate }}</th>
+              <th>{{ 'appointments.datetime' | translate }}</th>
+              <th>{{ 'appointments.status' | translate }}</th>
+              <th>{{ 'appointments.actions' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (appt of appointments(); track appt.id) {
+              <tr>
+                <td>
+                  <strong>{{ appt.doctorName || 'Doctor' }}</strong>
+                </td>
+                <td>{{ appt.clinicName || 'Clinic Branch' }}</td>
+                <td>
+                  <div>{{ appt.startTimeUtc | date:'mediumDate' }}</div>
+                  <small class="text-muted">{{ appt.startTimeUtc | date:'shortTime' }} - {{ appt.endTimeUtc | date:'shortTime' }}</small>
+                </td>
+                <td>
+                  <span class="badge" [class]="getBadgeClass(appt.status)">
+                    {{ 'status.' + appt.status | translate }}
+                  </span>
+                </td>
+                <td>
+                  @if (canCancel(appt.status)) {
+                    <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
+                      {{ 'appointments.cancel_btn' | translate }}
+                    </button>
+                  } @else {
+                    <span class="text-muted">-</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- Cancellation Modal -->
+  @if (cancelingAppointmentId) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>Confirm Appointment Cancellation</h3>
+        <p class="text-muted">Are you sure you want to cancel this booking?</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Cancellation Reason</label>
+          <input type="text" [(ngModel)]="cancelReason" class="form-control" />
+        </div>
+
+        <div class="modal-actions">
+          <button (click)="closeCancelModal()" class="btn btn-outline">Keep Booking</button>
+          <button (click)="confirmCancel()" class="btn btn-danger">Confirm Cancellation</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

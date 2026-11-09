@@ -1,0 +1,46 @@
+export type AppointmentStatus =
+  | 'Scheduled'
+  | 'Confirmed'
+  | 'Completed'
+  | 'CancelledByPatient'
+  | 'CancelledByDoctor'
+  | 'CancelledByAdmin'
+  | 'Rejected'
+  | 'NoShow';
+
+export interface AppointmentDto {
+  id: string;
+  tenantId: string;
+  doctorId: string;
+  doctorName?: string;
+  patientId: string;
+  patientName?: string;
+  clinicId: string;
+  clinicName?: string;
+  startTimeUtc: string;
+  endTimeUtc: string;
+  status: AppointmentStatus;
+  statusLocalized?: string;
+  notes?: string;
+  cancellationReason?: string;
+  createdAtUtc: string;
+}
+
+export interface BookAppointmentRequest {
+  tenantId: string;
+  doctorId: string;
+  patientId: string;
+  clinicId: string;
+  startTimeUtc: string;
+  endTimeUtc: string;
+  notes?: string;
+}
+
+export interface CancelAppointmentRequest {
+  reason: string;
+}
+
+export interface RescheduleAppointmentRequest {
+  newStartTimeUtc: string;
+  newEndTimeUtc: string;
+}

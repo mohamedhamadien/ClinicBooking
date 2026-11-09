@@ -48,6 +48,19 @@ services:
     networks:
       - clinicbooking-network
 
+  web:
+    build:
+      context: ./src/ClinicBooking.Web
+      dockerfile: Dockerfile
+    container_name: clinicbooking-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "4200:80"
+    networks:
+      - clinicbooking-network
+
 volumes:
   sqlserver_data:
     driver: local

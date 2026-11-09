@@ -1,0 +1,51 @@
+.my-appointments-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.mt-3 { margin-top: 1rem; }
+
+.btn-cancel {
+  color: var(--danger);
+  border-color: #fecaca;
+  &:hover {
+    background-color: var(--danger-light);
+    border-color: var(--danger);
+  }
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 2rem;
+  background-color: var(--bg-card);
+
+  h3 { font-size: 1.35rem; }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+}

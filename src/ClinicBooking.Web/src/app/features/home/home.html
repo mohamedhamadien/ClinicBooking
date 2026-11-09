@@ -1,0 +1,70 @@
+<div class="container home-container">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <span class="hero-badge">✨ {{ 'home.features.f1_title' | translate }}</span>
+      <h1 class="hero-title">{{ 'home.hero.title' | translate }}</h1>
+      <p class="hero-subtitle">{{ 'home.hero.subtitle' | translate }}</p>
+      <div class="hero-actions">
+        <a routerLink="/doctors" class="btn btn-primary">
+          📅 {{ 'home.hero.cta_book' | translate }}
+        </a>
+        <a routerLink="/doctors" class="btn btn-outline">
+          🩺 {{ 'home.hero.cta_doctors' | translate }}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Specialties Grid -->
+  <section class="specialties-section">
+    <div class="section-header">
+      <h2>{{ 'home.hero.cta_doctors' | translate }}</h2>
+      <p class="text-muted">Explore medical departments available at our clinics</p>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-state">
+        <p>Loading specialties...</p>
+      </div>
+    } @else {
+      <div class="grid-4 specialties-grid">
+        @for (spec of specialties(); track spec.id) {
+          <a [routerLink]="['/doctors']" [queryParams]="{ specialtyId: spec.id }" class="card card-hover specialty-card">
+            <div class="specialty-icon">🩺</div>
+            <h3 class="specialty-title">
+              {{ translation.isArabic() && spec.nameAr ? spec.nameAr : spec.name }}
+            </h3>
+            <p class="specialty-desc">
+              {{ translation.isArabic() && spec.descriptionAr ? spec.descriptionAr : spec.description }}
+            </p>
+          </a>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Features Banner -->
+  <section class="features-section">
+    <div class="section-header">
+      <h2>{{ 'home.features.title' | translate }}</h2>
+    </div>
+    <div class="grid-3 features-grid">
+      <div class="card feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>{{ 'home.features.f1_title' | translate }}</h3>
+        <p>{{ 'home.features.f1_desc' | translate }}</p>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>{{ 'home.features.f2_title' | translate }}</h3>
+        <p>{{ 'home.features.f2_desc' | translate }}</p>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon">🏥</div>
+        <h3>{{ 'home.features.f3_title' | translate }}</h3>
+        <p>{{ 'home.features.f3_desc' | translate }}</p>
+      </div>
+    </div>
+  </section>
+</div>

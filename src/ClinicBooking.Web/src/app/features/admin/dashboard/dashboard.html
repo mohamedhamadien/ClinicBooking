@@ -1,0 +1,140 @@
+<div class="container dashboard-container">
+  <div class="dashboard-header">
+    <div>
+      <h1>{{ 'admin.dashboard.title' | translate }}</h1>
+      <p class="text-muted">Real-time occupancy, appointment analytics, and clinical operations</p>
+    </div>
+    <div class="header-actions">
+      <button (click)="openSpecialtyModal()" class="btn btn-primary btn-sm">
+        ➕ Add Bilingual Specialty
+      </button>
+    </div>
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      ✅ {{ successMessage() }}
+    </div>
+  }
+
+  <!-- Stats Grid -->
+  @if (stats(); as s) {
+    <div class="grid-4 stats-grid">
+      <div class="card stat-card">
+        <span class="stat-icon">📊</span>
+        <div>
+          <span class="stat-label">{{ 'admin.dashboard.stats_total' | translate }}</span>
+          <span class="stat-val">{{ s.totalAppointments }}</span>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <span class="stat-icon">⏳</span>
+        <div>
+          <span class="stat-label">{{ 'admin.dashboard.stats_scheduled' | translate }}</span>
+          <span class="stat-val">{{ s.scheduledAppointments }}</span>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <span class="stat-icon">✅</span>
+        <div>
+          <span class="stat-label">{{ 'admin.dashboard.stats_completed' | translate }}</span>
+          <span class="stat-val">{{ s.completedAppointments }}</span>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <span class="stat-icon">👥</span>
+        <div>
+          <span class="stat-label">{{ 'admin.dashboard.stats_patients' | translate }}</span>
+          <span class="stat-val">{{ s.uniquePatients }}</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Recent Appointments Table -->
+  <div class="card table-card mt-4">
+    <div class="table-card-header">
+      <h3>{{ 'admin.dashboard.recent_bookings' | translate }}</h3>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-state">
+        <p>Loading appointments across clinics...</p>
+      </div>
+    } @else if (appointments().length === 0) {
+      <div class="empty-state">
+        <p class="text-muted">No appointments recorded yet.</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Doctor</th>
+              <th>Clinic</th>
+              <th>Date & Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (appt of appointments(); track appt.id) {
+              <tr>
+                <td><strong>{{ appt.patientName || appt.patientId.slice(0, 8) }}</strong></td>
+                <td>{{ appt.doctorName || appt.doctorId.slice(0, 8) }}</td>
+                <td>{{ appt.clinicName || 'Clinic Branch' }}</td>
+                <td>
+                  <div>{{ appt.startTimeUtc | date:'mediumDate' }}</div>
+                  <small class="text-muted">{{ appt.startTimeUtc | date:'shortTime' }} - {{ appt.endTimeUtc | date:'shortTime' }}</small>
+                </td>
+                <td>
+                  <span class="badge" [class]="getBadgeClass(appt.status)">
+                    {{ 'status.' + appt.status | translate }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Create Specialty Modal -->
+  @if (isSpecialtyModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>Add New Medical Specialty</h3>
+        <p class="text-muted">Register a bilingual department available across all clinic branches.</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Specialty Name (English) *</label>
+          <input type="text" [(ngModel)]="specialtyNameEn" class="form-control" placeholder="e.g. Pulmonology" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Specialty Name (Arabic)</label>
+          <input type="text" [(ngModel)]="specialtyNameAr" class="form-control" placeholder="مثال: أمراض الصدر والجهاز التنفسي" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description (English)</label>
+          <input type="text" [(ngModel)]="specialtyDescEn" class="form-control" placeholder="Respiratory system care" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description (Arabic)</label>
+          <input type="text" [(ngModel)]="specialtyDescAr" class="form-control" placeholder="تشخيص وعلاج أمراض الرئتين" />
+        </div>
+
+        <div class="modal-actions">
+          <button (click)="closeSpecialtyModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="submitSpecialty()" [disabled]="!specialtyNameEn" class="btn btn-primary">Save Specialty</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

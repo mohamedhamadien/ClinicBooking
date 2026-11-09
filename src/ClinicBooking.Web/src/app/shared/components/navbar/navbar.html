@@ -1,0 +1,57 @@
+<header class="navbar-wrapper">
+  <div class="container navbar-container">
+    <!-- Brand -->
+    <a routerLink="/" class="navbar-brand">
+      <span class="brand-icon">🏥</span>
+      <span class="brand-name">{{ 'nav.brand' | translate }}</span>
+    </a>
+
+    <!-- Nav Links -->
+    <nav class="nav-links">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">
+        {{ 'nav.home' | translate }}
+      </a>
+      <a routerLink="/doctors" routerLinkActive="active" class="nav-link">
+        {{ 'nav.doctors' | translate }}
+      </a>
+
+      @if (auth.isAuthenticated()) {
+        @if (auth.isPatient()) {
+          <a routerLink="/my-appointments" routerLinkActive="active" class="nav-link">
+            {{ 'nav.my_appointments' | translate }}
+          </a>
+        }
+        @if (auth.isAdmin()) {
+          <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-link">
+            {{ 'nav.dashboard' | translate }}
+          </a>
+        }
+      }
+    </nav>
+
+    <!-- Actions / Auth -->
+    <div class="navbar-actions">
+      <!-- Language Switcher Button -->
+      <button (click)="translation.toggleLanguage()" class="btn btn-outline btn-sm lang-toggle">
+        🌐 {{ translation.isArabic() ? 'English' : 'العربية' }}
+      </button>
+
+      @if (auth.isAuthenticated()) {
+        <div class="user-greeting">
+          <span class="user-name">{{ auth.currentUser()?.firstName }}</span>
+          <span class="badge badge-scheduled">{{ auth.currentUser()?.role }}</span>
+        </div>
+        <button (click)="auth.logout()" class="btn btn-outline btn-sm">
+          {{ 'nav.logout' | translate }}
+        </button>
+      } @else {
+        <a routerLink="/auth/login" class="btn btn-outline btn-sm">
+          {{ 'nav.login' | translate }}
+        </a>
+        <a routerLink="/auth/register" class="btn btn-primary btn-sm">
+          {{ 'nav.register' | translate }}
+        </a>
+      }
+    </div>
+  </div>
+</header>

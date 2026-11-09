@@ -9,4 +9,7 @@
 **/*.suo
 **/*.userosscache
 **/*.sln.docstates
+**/node_modules
+**/dist
+**/.angular
 .system_generated

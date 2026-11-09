@@ -1,0 +1,138 @@
+.booking-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.doctor-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+
+  .doctor-badge-info {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+
+    .avatar {
+      font-size: 3rem;
+      width: 72px;
+      height: 72px;
+      border-radius: var(--radius-full);
+      background-color: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .specialty-badge {
+      display: inline-block;
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: var(--radius-full);
+    }
+
+    h2 { font-size: 1.5rem; margin-top: 0.25rem; }
+    .license { font-size: 0.85rem; color: var(--text-muted); }
+    .bio { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem; }
+  }
+
+  .doctor-duration-info {
+    text-align: center;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--bg-alt);
+    border-radius: var(--radius-md);
+
+    .label { display: block; font-size: 0.75rem; color: var(--text-muted); }
+    .value { font-size: 1.15rem; font-weight: 700; color: var(--primary-dark); }
+  }
+}
+
+.selector-card, .slots-card {
+  padding: 1.75rem;
+  h3 { font-size: 1.15rem; margin-bottom: 0.75rem; }
+}
+
+.mt-4 { margin-top: 1.25rem; }
+
+.slots-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+
+  .slots-date {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+}
+
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.slot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  .slot-time { font-weight: 700; font-size: 0.85rem; }
+  .slot-status { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+  &:hover:not(:disabled) {
+    border-color: var(--primary);
+    background-color: var(--primary-light);
+  }
+
+  &.selected {
+    border-color: var(--primary);
+    background-color: var(--primary);
+    color: #ffffff;
+    .slot-status { color: rgba(255, 255, 255, 0.8); }
+  }
+
+  &.unavailable {
+    background-color: var(--bg-alt);
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: line-through;
+  }
+}
+
+.booking-confirm-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+
+  .selected-summary {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    color: var(--text-main);
+  }
+}
+
+.slots-loading, .slots-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+  .icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+}
