@@ -89,6 +89,7 @@ public sealed class AppointmentsController : ApiControllerBase
     /// Cancel an appointment in accordance with cancellation policy rules.
     /// </summary>
     [HttpPut("{id:guid}/cancel")]
+    [HttpPost("{id:guid}/cancel")]
     [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -107,6 +108,7 @@ public sealed class AppointmentsController : ApiControllerBase
     /// Reschedule an appointment to a new time window.
     /// </summary>
     [HttpPut("{id:guid}/reschedule")]
+    [HttpPost("{id:guid}/reschedule")]
     [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]

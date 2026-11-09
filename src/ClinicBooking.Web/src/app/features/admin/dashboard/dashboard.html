@@ -1,74 +1,182 @@
 <div class="container dashboard-container">
-  <div class="dashboard-header">
-    <div>
-      <h1>{{ 'admin.dashboard.title' | translate }}</h1>
-      <p class="text-muted">Real-time occupancy, appointment analytics, and clinical operations</p>
+  <!-- Top Admin Bar -->
+  <div class="card admin-identity-card">
+    <div class="identity-info">
+      <div class="admin-shield">🛡️</div>
+      <div>
+        <div class="badge-role">
+          <span class="badge badge-confirmed">System Administrator</span>
+          <span class="tenant-tag">Tenant: {{ auth.currentUser()?.tenantId ? 'apex-health' : 'apex-health' }}</span>
+        </div>
+        <h2>Clinic Management Console</h2>
+        <p class="admin-email">Logged in as: <strong>{{ auth.currentUser()?.email }}</strong></p>
+      </div>
     </div>
-    <div class="header-actions">
+
+    <div class="identity-actions">
+      <button (click)="openClinicModal()" class="btn btn-outline btn-sm">
+        🏥 + New Branch
+      </button>
       <button (click)="openSpecialtyModal()" class="btn btn-primary btn-sm">
-        ➕ Add Bilingual Specialty
+        🩺 + New Specialty
       </button>
     </div>
   </div>
 
-  @if (successMessage()) {
+  @if (actionMessage()) {
     <div class="alert alert-success">
-      ✅ {{ successMessage() }}
+      ✅ {{ actionMessage() }}
     </div>
   }
 
-  <!-- Stats Grid -->
-  @if (stats(); as s) {
-    <div class="grid-4 stats-grid">
-      <div class="card stat-card">
-        <span class="stat-icon">📊</span>
-        <div>
-          <span class="stat-label">{{ 'admin.dashboard.stats_total' | translate }}</span>
-          <span class="stat-val">{{ s.totalAppointments }}</span>
+  @if (errorMessage()) {
+    <div class="alert alert-danger">
+      ⚠️ {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Admin Tab Bar -->
+  <div class="admin-tabs">
+    <button
+      (click)="setTab('overview')"
+      [class.active]="activeTab() === 'overview'"
+      class="tab-btn"
+    >
+      📊 Overview
+    </button>
+    <button
+      (click)="setTab('appointments')"
+      [class.active]="activeTab() === 'appointments'"
+      class="tab-btn"
+    >
+      📅 Appointments ({{ appointments().length }})
+    </button>
+    <button
+      (click)="setTab('clinics')"
+      [class.active]="activeTab() === 'clinics'"
+      class="tab-btn"
+    >
+      🏥 Clinics ({{ clinics().length }})
+    </button>
+    <button
+      (click)="setTab('specialties')"
+      [class.active]="activeTab() === 'specialties'"
+      class="tab-btn"
+    >
+      🩺 Specialties ({{ specialties().length }})
+    </button>
+    <button
+      (click)="setTab('doctors')"
+      [class.active]="activeTab() === 'doctors'"
+      class="tab-btn"
+    >
+      👨‍⚕️ Doctors ({{ doctors().length }})
+    </button>
+  </div>
+
+  <!-- TAB 1: OVERVIEW -->
+  @if (activeTab() === 'overview') {
+    @if (stats(); as s) {
+      <div class="grid-4 stats-grid">
+        <div class="card stat-card">
+          <span class="stat-icon">📊</span>
+          <div>
+            <span class="stat-label">{{ 'admin.dashboard.stats_total' | translate }}</span>
+            <span class="stat-val">{{ s.totalAppointments }}</span>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <span class="stat-icon">⏳</span>
+          <div>
+            <span class="stat-label">{{ 'admin.dashboard.stats_scheduled' | translate }}</span>
+            <span class="stat-val">{{ s.scheduledAppointments }}</span>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <span class="stat-icon">✅</span>
+          <div>
+            <span class="stat-label">{{ 'admin.dashboard.stats_completed' | translate }}</span>
+            <span class="stat-val">{{ s.completedAppointments }}</span>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <span class="stat-icon">👥</span>
+          <div>
+            <span class="stat-label">{{ 'admin.dashboard.stats_patients' | translate }}</span>
+            <span class="stat-val">{{ s.uniquePatients }}</span>
+          </div>
         </div>
       </div>
+    }
 
-      <div class="card stat-card">
-        <span class="stat-icon">⏳</span>
-        <div>
-          <span class="stat-label">{{ 'admin.dashboard.stats_scheduled' | translate }}</span>
-          <span class="stat-val">{{ s.scheduledAppointments }}</span>
-        </div>
+    <!-- Quick Management Cards -->
+    <div class="grid-3 mt-4">
+      <div class="card quick-action-card">
+        <span class="icon">🏥</span>
+        <h3>Clinic Branches</h3>
+        <p>{{ clinics().length }} Active clinic locations operating in the network.</p>
+        <button (click)="setTab('clinics')" class="btn btn-outline btn-sm">Manage Clinics</button>
       </div>
 
-      <div class="card stat-card">
-        <span class="stat-icon">✅</span>
-        <div>
-          <span class="stat-label">{{ 'admin.dashboard.stats_completed' | translate }}</span>
-          <span class="stat-val">{{ s.completedAppointments }}</span>
-        </div>
+      <div class="card quick-action-card">
+        <span class="icon">🩺</span>
+        <h3>Medical Specialties</h3>
+        <p>{{ specialties().length }} Bilingual medical departments available.</p>
+        <button (click)="setTab('specialties')" class="btn btn-outline btn-sm">Manage Specialties</button>
       </div>
 
-      <div class="card stat-card">
-        <span class="stat-icon">👥</span>
-        <div>
-          <span class="stat-label">{{ 'admin.dashboard.stats_patients' | translate }}</span>
-          <span class="stat-val">{{ s.uniquePatients }}</span>
-        </div>
+      <div class="card quick-action-card">
+        <span class="icon">👨‍⚕️</span>
+        <h3>Medical Staff</h3>
+        <p>{{ doctors().length }} Registered practicing physicians.</p>
+        <button (click)="setTab('doctors')" class="btn btn-outline btn-sm">View Doctors</button>
       </div>
     </div>
   }
 
-  <!-- Recent Appointments Table -->
-  <div class="card table-card mt-4">
-    <div class="table-card-header">
-      <h3>{{ 'admin.dashboard.recent_bookings' | translate }}</h3>
+  <!-- TAB 2: APPOINTMENTS MASTER ROSTER -->
+  @if (activeTab() === 'appointments') {
+    <div class="card filter-card">
+      <div class="filter-grid">
+        <div class="form-group mb-0">
+          <label class="form-label">Search Patient / Doctor</label>
+          <input
+            type="text"
+            [(ngModel)]="filterSearchPatient"
+            class="form-control"
+            placeholder="Type name or ID..."
+          />
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="form-label">Filter by Status</label>
+          <select [(ngModel)]="filterStatus" class="form-select">
+            <option value="">All Statuses</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Completed">Completed</option>
+            <option value="CancelledByPatient">Cancelled By Patient</option>
+            <option value="CancelledByDoctor">Cancelled By Doctor</option>
+            <option value="CancelledByAdmin">Cancelled By Admin</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="form-label">Filter by Doctor</label>
+          <select [(ngModel)]="filterDoctorId" class="form-select">
+            <option value="">All Doctors</option>
+            @for (d of doctors(); track d.id) {
+              <option [value]="d.id">{{ d.fullName }} ({{ d.specialtyName }})</option>
+            }
+          </select>
+        </div>
+      </div>
     </div>
 
-    @if (loading()) {
-      <div class="loading-state">
-        <p>Loading appointments across clinics...</p>
-      </div>
-    } @else if (appointments().length === 0) {
-      <div class="empty-state">
-        <p class="text-muted">No appointments recorded yet.</p>
-      </div>
-    } @else {
+    <div class="card table-card mt-3">
       <div class="table-responsive">
         <table class="table">
           <thead>
@@ -78,10 +186,11 @@
               <th>Clinic</th>
               <th>Date & Time</th>
               <th>Status</th>
+              <th>Admin Action</th>
             </tr>
           </thead>
           <tbody>
-            @for (appt of appointments(); track appt.id) {
+            @for (appt of filteredAppointments(); track appt.id) {
               <tr>
                 <td><strong>{{ appt.patientName || appt.patientId.slice(0, 8) }}</strong></td>
                 <td>{{ appt.doctorName || appt.doctorId.slice(0, 8) }}</td>
@@ -95,15 +204,170 @@
                     {{ 'status.' + appt.status | translate }}
                   </span>
                 </td>
+                <td>
+                  @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
+                    <button
+                      (click)="openCancelModal(appt.id)"
+                      class="btn btn-outline btn-sm btn-cancel"
+                    >
+                      Cancel Booking
+                    </button>
+                  } @else {
+                    <span class="text-muted">-</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center py-4">No appointments match the selected filters.</td>
               </tr>
             }
           </tbody>
         </table>
       </div>
-    }
-  </div>
+    </div>
+  }
 
-  <!-- Create Specialty Modal -->
+  <!-- TAB 3: CLINICS -->
+  @if (activeTab() === 'clinics') {
+    <div class="tab-header">
+      <h3>Active Clinic Branches</h3>
+      <button (click)="openClinicModal()" class="btn btn-primary btn-sm">+ Add Clinic Branch</button>
+    </div>
+
+    <div class="grid-3 mt-3">
+      @for (c of clinics(); track c.id) {
+        <div class="card clinic-card">
+          <div class="card-icon">🏥</div>
+          <h4>{{ c.name }}</h4>
+          @if (c.nameAr) {
+            <p class="arabic-text">{{ c.nameAr }}</p>
+          }
+          <div class="clinic-details">
+            <p>📍 {{ c.address }}, {{ c.city }}</p>
+            @if (c.addressAr) {
+              <p class="arabic-text">📍 {{ c.addressAr }}، {{ c.cityAr }}</p>
+            }
+            <p>📞 {{ c.phoneNumber }}</p>
+          </div>
+          <span class="badge badge-confirmed mt-2">Active Branch</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 4: SPECIALTIES -->
+  @if (activeTab() === 'specialties') {
+    <div class="tab-header">
+      <h3>Bilingual Medical Specialties</h3>
+      <button (click)="openSpecialtyModal()" class="btn btn-primary btn-sm">+ Add Specialty</button>
+    </div>
+
+    <div class="grid-3 mt-3">
+      @for (sp of specialties(); track sp.id) {
+        <div class="card specialty-card-admin">
+          <div class="spec-header">
+            <h4>{{ sp.name }}</h4>
+            @if (sp.nameAr) {
+              <span class="arabic-badge">{{ sp.nameAr }}</span>
+            }
+          </div>
+          <p class="desc">{{ sp.description }}</p>
+          @if (sp.descriptionAr) {
+            <p class="desc arabic-text">{{ sp.descriptionAr }}</p>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 5: DOCTORS -->
+  @if (activeTab() === 'doctors') {
+    <div class="tab-header">
+      <h3>Medical Staff & Practicing Doctors</h3>
+    </div>
+
+    <div class="grid-3 mt-3">
+      @for (doc of doctors(); track doc.id) {
+        <div class="card doctor-admin-card">
+          <div class="doctor-admin-top">
+            <span class="avatar">👨‍⚕️</span>
+            <div>
+              <h4>{{ doc.fullName }}</h4>
+              <span class="specialty-badge">{{ doc.specialtyName }}</span>
+              <p class="license">Lic: {{ doc.licenseNumber }}</p>
+            </div>
+          </div>
+          <p class="bio">{{ doc.bio }}</p>
+          <div class="meta-row">
+            <span>Duration: <strong>{{ doc.defaultSlotDurationMinutes }} mins</strong></span>
+            <span>Branches: <strong>{{ doc.doctorClinics.length }}</strong></span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- MODAL: CREATE CLINIC BRANCH -->
+  @if (isClinicModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>Create New Clinic Branch</h3>
+        <p class="text-muted">Register a clinical facility for patient consultations.</p>
+
+        <div class="grid-2 mt-3">
+          <div class="form-group">
+            <label class="form-label">Clinic Name (English) *</label>
+            <input type="text" [(ngModel)]="clinicNameEn" class="form-control" placeholder="e.g. Apex West Clinic" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Clinic Name (Arabic)</label>
+            <input type="text" [(ngModel)]="clinicNameAr" class="form-control" placeholder="مثال: عيادة أبيكس الغربية" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">City (English) *</label>
+            <input type="text" [(ngModel)]="clinicCityEn" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">City (Arabic)</label>
+            <input type="text" [(ngModel)]="clinicCityAr" class="form-control" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Street Address (English) *</label>
+            <input type="text" [(ngModel)]="clinicAddressEn" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Street Address (Arabic)</label>
+            <input type="text" [(ngModel)]="clinicAddressAr" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phone Number *</label>
+          <input type="tel" [(ngModel)]="clinicPhone" class="form-control" />
+        </div>
+
+        <div class="modal-actions">
+          <button (click)="closeClinicModal()" class="btn btn-outline">Cancel</button>
+          <button
+            (click)="submitClinic()"
+            [disabled]="!clinicNameEn || !clinicCityEn || !clinicAddressEn"
+            class="btn btn-primary"
+          >
+            Create Branch
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: CREATE SPECIALTY -->
   @if (isSpecialtyModalOpen) {
     <div class="modal-backdrop">
       <div class="card modal-card">
@@ -133,6 +397,26 @@
         <div class="modal-actions">
           <button (click)="closeSpecialtyModal()" class="btn btn-outline">Cancel</button>
           <button (click)="submitSpecialty()" [disabled]="!specialtyNameEn" class="btn btn-primary">Save Specialty</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: CANCEL APPOINTMENT -->
+  @if (cancelingAppointmentId) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>Admin Appointment Cancellation</h3>
+        <p class="text-muted">Cancel this booking as an administrator with an audit reason.</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Cancellation Reason</label>
+          <input type="text" [(ngModel)]="cancelReason" class="form-control" />
+        </div>
+
+        <div class="modal-actions">
+          <button (click)="closeCancelModal()" class="btn btn-outline">Dismiss</button>
+          <button (click)="confirmAdminCancel()" class="btn btn-danger">Confirm Cancellation</button>
         </div>
       </div>
     </div>

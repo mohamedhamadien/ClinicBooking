@@ -39,6 +39,7 @@ public sealed class AdminController : ApiControllerBase
     /// Retrieve operational dashboard metrics and counts (Admin only).
     /// </summary>
     [HttpGet("dashboard")]
+    [HttpGet("dashboard-stats")]
     [ProducesResponseType(typeof(DashboardStatsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats(CancellationToken cancellationToken)
     {

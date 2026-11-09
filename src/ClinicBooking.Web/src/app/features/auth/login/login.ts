@@ -24,6 +24,14 @@ export class LoginComponent {
     password: ['Admin@Secure123!', [Validators.required]]
   });
 
+  protected quickAdminLogin(): void {
+    this.form.patchValue({
+      email: 'admin@clinicbooking.com',
+      password: 'Admin@Secure123!'
+    });
+    this.onSubmit();
+  }
+
   protected onSubmit(): void {
     if (this.form.invalid) return;
 

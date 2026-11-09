@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DashboardStatsDto } from '../models/dashboard.models';
-import { AppointmentDto } from '../models/appointment.models';
+import { AppointmentDto, CancelAppointmentRequest } from '../models/appointment.models';
 import { ClinicDto, SpecialtyDto } from '../models/doctor.models';
 
 @Injectable({
@@ -13,7 +13,7 @@ export class AdminService {
   private readonly http = inject(HttpClient);
 
   public getDashboardStats(): Observable<DashboardStatsDto> {
-    return this.http.get<DashboardStatsDto>(`${environment.apiUrl}/admin/dashboard-stats`);
+    return this.http.get<DashboardStatsDto>(`${environment.apiUrl}/admin/dashboard`);
   }
 
   public getAllAppointments(
@@ -39,14 +39,20 @@ export class AdminService {
   }
 
   public createClinic(command: {
-    nameEn: string;
-    addressEn: string;
-    cityEn: string;
+    tenantId: string;
+    name: string;
+    address: string;
+    city: string;
     phoneNumber: string;
     nameAr?: string;
     addressAr?: string;
     cityAr?: string;
   }): Observable<ClinicDto> {
     return this.http.post<ClinicDto>(`${environment.apiUrl}/clinics`, command);
+  }
+
+  public cancelAppointment(id: string, reason: string): Observable<AppointmentDto> {
+    const payload: CancelAppointmentRequest = { reason };
+    return this.http.put<AppointmentDto>(`${environment.apiUrl}/appointments/${id}/cancel`, payload);
   }
 }
