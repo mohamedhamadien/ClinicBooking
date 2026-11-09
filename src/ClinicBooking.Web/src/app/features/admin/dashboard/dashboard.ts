@@ -3,14 +3,31 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, RegisterDoctorRequest, UpdateClinicRequest } from '../../../core/services/admin.service';
 import { DoctorService } from '../../../core/services/doctor.service';
+import { ClinicalService } from '../../../core/services/clinical.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService } from '../../../core/services/translation.service';
 import { TranslatePipe } from '../../../core/pipes/translate.pipe';
 import { DashboardStatsDto } from '../../../core/models/dashboard.models';
 import { AppointmentDto, AppointmentStatus } from '../../../core/models/appointment.models';
 import { ClinicDto, DoctorDto, SpecialtyDto } from '../../../core/models/doctor.models';
+import {
+  ConsultationDto,
+  InvoiceDto,
+  PatientMedicalRecordDto,
+  PrescriptionDto,
+  QueueItemDto
+} from '../../../core/models/clinical.models';
 
-export type AdminTab = 'overview' | 'appointments' | 'clinics' | 'specialties' | 'doctors';
+export type AdminTab =
+  | 'overview'
+  | 'queue'
+  | 'consultation'
+  | 'records'
+  | 'billing'
+  | 'appointments'
+  | 'doctors'
+  | 'clinics'
+  | 'specialties';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,6 +39,7 @@ export type AdminTab = 'overview' | 'appointments' | 'clinics' | 'specialties' |
 export class DashboardComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly doctorService = inject(DoctorService);
+  private readonly clinicalService = inject(ClinicalService);
   protected readonly auth = inject(AuthService);
   protected readonly translation = inject(TranslationService);
 
@@ -35,6 +53,11 @@ export class DashboardComponent implements OnInit {
   protected readonly specialties = signal<SpecialtyDto[]>([]);
   protected readonly doctors = signal<DoctorDto[]>([]);
 
+  // Clinical & Billing Data Signals
+  protected readonly queueItems = signal<QueueItemDto[]>([]);
+  protected readonly invoices = signal<InvoiceDto[]>([]);
+  protected readonly patientRecord = signal<PatientMedicalRecordDto | null>(null);
+
   protected readonly loading = signal(true);
   protected readonly actionMessage = signal<string | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
@@ -45,6 +68,9 @@ export class DashboardComponent implements OnInit {
     const id = this.assignedClinicId();
     return id ? this.clinics().find((c) => c.id === id) || null : null;
   });
+
+  // Selected Clinic for Queue / Finance filters
+  protected selectedClinicId = '';
 
   // Appointment Filters
   protected filterDoctorId = '';
@@ -76,7 +102,52 @@ export class DashboardComponent implements OnInit {
     return list;
   });
 
-  // Modal: Register New Doctor
+  // --- Clinical Consultation Form State ---
+  protected consultAppointmentId = '';
+  protected consultChiefComplaint = '';
+  protected consultExamination = '';
+  protected consultDiagnosis = '';
+  protected consultTreatmentPlan = '';
+  // Vitals
+  protected vitalsSystolic: number | null = 120;
+  protected vitalsDiastolic: number | null = 80;
+  protected vitalsHeartRate: number | null = 72;
+  protected vitalsTemp: number | null = 37.0;
+  protected vitalsWeight: number | null = 75;
+  protected vitalsHeight: number | null = 175;
+  protected vitalsGlucose: number | null = null;
+  // Prescription Items
+  protected rxMedications: {
+    medicationName: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    instructions: string;
+  }[] = [
+    { medicationName: 'Amoxicillin 500mg', dosage: '1 capsule', frequency: '3 times daily after meals', duration: '7 days', instructions: 'Take with full glass of water' }
+  ];
+  protected lastIssuedPrescription: PrescriptionDto | null = null;
+
+  // --- Medical History Modal ---
+  protected isHistoryModalOpen = false;
+  protected historyBloodGroup = '';
+  protected historyAllergies = '';
+  protected historyChronic = '';
+  protected historyNotes = '';
+  protected historyPatientId = '';
+
+  // --- Invoice Modal ---
+  protected isInvoiceModalOpen = false;
+  protected invPatientId = '';
+  protected invClinicId = '';
+  protected invDiscount = 0;
+  protected invTax = 0;
+  protected invMethod = 1; // 1 = Cash, 2 = Card, 3 = Insurance
+  protected invItems: { description: string; quantity: number; unitPrice: number }[] = [
+    { description: 'Specialist Consultation Fee', quantity: 1, unitPrice: 350 }
+  ];
+
+  // --- Existing Modals ---
   protected isDoctorModalOpen = false;
   protected docFirstName = '';
   protected docLastName = '';
@@ -89,11 +160,10 @@ export class DashboardComponent implements OnInit {
   protected docSlotDuration = 30;
   protected docBioEn = '';
   protected docBioAr = '';
-  protected docInitialShiftDay = 0; // Sunday
+  protected docInitialShiftDay = 0;
   protected docInitialShiftStart = '09:00:00';
   protected docInitialShiftEnd = '17:00:00';
 
-  // Modal: Edit Clinic Branch
   protected isEditClinicModalOpen = false;
   protected editingClinicId = '';
   protected editClinicNameEn = '';
@@ -105,14 +175,12 @@ export class DashboardComponent implements OnInit {
   protected editClinicPhone = '';
   protected editClinicIsActive = true;
 
-  // Modal: New Specialty
   protected isSpecialtyModalOpen = false;
   protected specialtyNameEn = '';
   protected specialtyNameAr = '';
   protected specialtyDescEn = '';
   protected specialtyDescAr = '';
 
-  // Modal: New Clinic Branch
   protected isClinicModalOpen = false;
   protected clinicNameEn = '';
   protected clinicNameAr = '';
@@ -122,7 +190,6 @@ export class DashboardComponent implements OnInit {
   protected clinicCityAr = 'القاهرة';
   protected clinicPhone = '+201012345678';
 
-  // Modal: Cancel Appointment
   protected cancelingAppointmentId: string | null = null;
   protected cancelReason = 'Administrative schedule adjustment';
 
@@ -132,6 +199,11 @@ export class DashboardComponent implements OnInit {
 
   protected setTab(tab: AdminTab): void {
     this.activeTab.set(tab);
+    if (tab === 'queue') {
+      this.loadQueue();
+    } else if (tab === 'billing') {
+      this.loadInvoices();
+    }
   }
 
   protected loadAllData(): void {
@@ -151,9 +223,253 @@ export class DashboardComponent implements OnInit {
       error: () => this.loading.set(false)
     });
 
-    this.doctorService.getClinics().subscribe((c) => this.clinics.set(c));
+    this.doctorService.getClinics().subscribe((c) => {
+      this.clinics.set(c);
+      if (c.length > 0 && !this.selectedClinicId) {
+        this.selectedClinicId = this.assignedClinicId() || c[0].id;
+        this.loadQueue();
+        this.loadInvoices();
+      }
+    });
+
     this.doctorService.getSpecialties().subscribe((sp) => this.specialties.set(sp));
     this.doctorService.getDoctors(undefined, clinicId).subscribe((d) => this.doctors.set(d));
+  }
+
+  // --- Queue Actions ---
+  protected loadQueue(): void {
+    const clinicId = this.assignedClinicId() || this.selectedClinicId;
+    if (!clinicId) return;
+
+    this.clinicalService.getClinicQueue(clinicId).subscribe({
+      next: (items) => this.queueItems.set(items),
+      error: () => {}
+    });
+  }
+
+  protected checkInPatient(appointmentId: string): void {
+    this.clinicalService.checkIn(appointmentId).subscribe({
+      next: (item) => {
+        this.showMessage(`Patient checked in! Assigned Queue Token #${item.queueNumber}`);
+        this.loadQueue();
+        this.loadAllData();
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to check in patient.')
+    });
+  }
+
+  protected callPatient(appointmentId: string): void {
+    this.clinicalService.callPatient(appointmentId).subscribe({
+      next: (item) => {
+        this.showMessage(`Patient called into examination room! Status updated to In-Consultation.`);
+        this.loadQueue();
+        this.loadAllData();
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to call patient.')
+    });
+  }
+
+  protected openConsultationForAppt(appt: AppointmentDto | QueueItemDto): void {
+    this.consultAppointmentId = 'appointmentId' in appt ? appt.appointmentId : appt.id;
+    this.setTab('consultation');
+  }
+
+  // --- Consultation & Prescription Actions ---
+  protected addMedicationRow(): void {
+    this.rxMedications.push({
+      medicationName: '',
+      dosage: '',
+      frequency: 'Once daily',
+      duration: '5 days',
+      instructions: ''
+    });
+  }
+
+  protected removeMedicationRow(index: number): void {
+    if (this.rxMedications.length > 1) {
+      this.rxMedications.splice(index, 1);
+    }
+  }
+
+  protected submitConsultation(): void {
+    if (!this.consultAppointmentId || !this.consultDiagnosis) {
+      this.errorMessage.set('Please select an appointment and provide a clinical diagnosis.');
+      return;
+    }
+
+    const appt = this.appointments().find((a) => a.id === this.consultAppointmentId);
+    if (!appt) {
+      this.errorMessage.set('Appointment not found.');
+      return;
+    }
+
+    const tenantId = this.auth.currentUser()?.tenantId || '1f2aa19b-f5dc-4166-abe6-dc93a2f3aaff';
+
+    const command = {
+      tenantId,
+      appointmentId: appt.id,
+      patientId: appt.patientId,
+      doctorId: appt.doctorId,
+      clinicId: appt.clinicId,
+      chiefComplaint: this.consultChiefComplaint,
+      examinationNotes: this.consultExamination,
+      diagnosis: this.consultDiagnosis,
+      treatmentPlan: this.consultTreatmentPlan,
+      vitalSigns: {
+        systolicBp: this.vitalsSystolic ?? undefined,
+        diastolicBp: this.vitalsDiastolic ?? undefined,
+        heartRate: this.vitalsHeartRate ?? undefined,
+        temperatureCelsius: this.vitalsTemp ?? undefined,
+        weightKg: this.vitalsWeight ?? undefined,
+        heightCm: this.vitalsHeight ?? undefined,
+        bloodGlucoseMgDl: this.vitalsGlucose ?? undefined
+      }
+    };
+
+    this.clinicalService.createConsultation(command).subscribe({
+      next: (consult) => {
+        // If medications entered, generate official prescription
+        const validMeds = this.rxMedications.filter((m) => m.medicationName.trim().length > 0);
+        if (validMeds.length > 0) {
+          this.clinicalService
+            .createPrescription({
+              tenantId,
+              consultationId: consult.id,
+              patientId: appt.patientId,
+              doctorId: appt.doctorId,
+              clinicId: appt.clinicId,
+              diagnosis: this.consultDiagnosis,
+              generalInstructions: this.consultTreatmentPlan,
+              items: validMeds
+            })
+            .subscribe({
+              next: (rx) => {
+                this.lastIssuedPrescription = rx;
+                this.showMessage('Clinical consultation and Electronic Prescription (Rx) created successfully!');
+                this.loadAllData();
+                this.loadQueue();
+              }
+            });
+        } else {
+          this.showMessage('Clinical consultation recorded and visit completed successfully!');
+          this.loadAllData();
+          this.loadQueue();
+        }
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to record consultation.')
+    });
+  }
+
+  // --- Patient Medical Records (EMR) Actions ---
+  protected viewPatientRecord(patientId: string): void {
+    this.clinicalService.getPatientMedicalRecord(patientId).subscribe({
+      next: (rec) => {
+        this.patientRecord.set(rec);
+        this.setTab('records');
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to load patient medical record.')
+    });
+  }
+
+  protected openEditHistoryModal(rec: PatientMedicalRecordDto): void {
+    this.isHistoryModalOpen = true;
+    this.historyPatientId = rec.patientId;
+    this.historyBloodGroup = rec.bloodGroup || 'O+';
+    this.historyAllergies = rec.allergies || '';
+    this.historyChronic = rec.chronicConditions || '';
+    this.historyNotes = rec.medicalNotes || '';
+  }
+
+  protected closeHistoryModal(): void {
+    this.isHistoryModalOpen = false;
+  }
+
+  protected submitMedicalHistory(): void {
+    if (!this.historyPatientId) return;
+
+    this.clinicalService
+      .updateMedicalHistory(this.historyPatientId, {
+        bloodGroup: this.historyBloodGroup,
+        allergies: this.historyAllergies,
+        chronicConditions: this.historyChronic,
+        medicalNotes: this.historyNotes
+      })
+      .subscribe({
+        next: () => {
+          this.closeHistoryModal();
+          this.viewPatientRecord(this.historyPatientId);
+          this.showMessage('Patient medical background updated successfully!');
+        },
+        error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to update medical history.')
+      });
+  }
+
+  // --- Billing & Invoicing Actions ---
+  protected loadInvoices(): void {
+    const clinicId = this.assignedClinicId() || this.selectedClinicId;
+    this.clinicalService.getInvoices(clinicId).subscribe({
+      next: (invs) => this.invoices.set(invs),
+      error: () => {}
+    });
+  }
+
+  protected openInvoiceModal(): void {
+    this.isInvoiceModalOpen = true;
+    this.invPatientId = this.appointments().length > 0 ? this.appointments()[0].patientId : '';
+    this.invClinicId = this.assignedClinicId() || (this.clinics().length > 0 ? this.clinics()[0].id : '');
+    this.invDiscount = 0;
+    this.invTax = 0;
+    this.invMethod = 1; // Cash
+    this.invItems = [{ description: 'Specialist Consultation Fee', quantity: 1, unitPrice: 350 }];
+  }
+
+  protected closeInvoiceModal(): void {
+    this.isInvoiceModalOpen = false;
+  }
+
+  protected addInvoiceItemRow(): void {
+    this.invItems.push({ description: '', quantity: 1, unitPrice: 100 });
+  }
+
+  protected removeInvoiceItemRow(index: number): void {
+    if (this.invItems.length > 1) {
+      this.invItems.splice(index, 1);
+    }
+  }
+
+  protected submitInvoice(): void {
+    if (!this.invPatientId || !this.invClinicId || this.invItems.length === 0) return;
+
+    const tenantId = this.auth.currentUser()?.tenantId || '1f2aa19b-f5dc-4166-abe6-dc93a2f3aaff';
+
+    this.clinicalService
+      .createInvoice({
+        tenantId,
+        patientId: this.invPatientId,
+        clinicId: this.invClinicId,
+        discountAmount: this.invDiscount,
+        taxAmount: this.invTax,
+        paymentMethod: Number(this.invMethod),
+        items: this.invItems
+      })
+      .subscribe({
+        next: (inv) => {
+          this.closeInvoiceModal();
+          this.invoices.update((prev) => [inv, ...prev]);
+          this.showMessage(`Invoice #${inv.invoiceNumber} generated successfully!`);
+        },
+        error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to create invoice.')
+      });
+  }
+
+  protected payInvoice(invoiceId: string, method: number = 1): void {
+    this.clinicalService.payInvoice(invoiceId, method).subscribe({
+      next: (updated) => {
+        this.invoices.update((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+        this.showMessage(`Invoice #${updated.invoiceNumber} marked as Paid!`);
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to pay invoice.')
+    });
   }
 
   // --- Doctor Actions ---
@@ -373,6 +689,8 @@ export class DashboardComponent implements OnInit {
     switch (status) {
       case 'Scheduled': return 'badge-scheduled';
       case 'Confirmed': return 'badge-confirmed';
+      case 'CheckedIn': return 'badge-scheduled';
+      case 'InConsultation': return 'badge-confirmed';
       case 'Completed': return 'badge-completed';
       default: return 'badge-cancelled';
     }
@@ -380,6 +698,6 @@ export class DashboardComponent implements OnInit {
 
   private showMessage(msg: string): void {
     this.actionMessage.set(msg);
-    setTimeout(() => this.actionMessage.set(null), 3500);
+    setTimeout(() => this.actionMessage.set(null), 4000);
   }
 }

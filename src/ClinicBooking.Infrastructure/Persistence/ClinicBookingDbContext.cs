@@ -42,6 +42,12 @@ public sealed class ClinicBookingDbContext : DbContext
     public DbSet<AvailabilityException> AvailabilityExceptions => Set<AvailabilityException>();
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<ConsultationNote> ConsultationNotes => Set<ConsultationNote>();
+    public DbSet<PatientVitalSigns> PatientVitalSigns => Set<PatientVitalSigns>();
+    public DbSet<Prescription> Prescriptions => Set<Prescription>();
+    public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
 
     // Referenced from the global query filters. EF Core evaluates context members per query,
     // so each request sees only its own tenant even though the model is cached.
@@ -330,5 +336,5 @@ public static class AppointmentIndexNames
     /// Statuses that release a slot. Must stay in sync with <see cref="Appointment.IsSlotOccupied"/>.
     /// </summary>
     public const string ActiveSlotFilter =
-        "[Status] IN ('Scheduled', 'Confirmed', 'Completed', 'NoShow')";
+        "[Status] IN ('Scheduled', 'Confirmed', 'CheckedIn', 'InConsultation', 'Completed', 'NoShow')";
 }

@@ -27,16 +27,14 @@
     </div>
 
     <div class="identity-actions">
-      <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">
-        👨‍⚕️ + Add Doctor
+      <button (click)="setTab('consultation')" class="btn btn-primary btn-sm">
+        🩺 Start Consultation
       </button>
-      @if (auth.isAdmin()) {
-        <button (click)="openClinicModal()" class="btn btn-outline btn-sm">
-          🏥 + New Branch
-        </button>
-      }
-      <button (click)="openSpecialtyModal()" class="btn btn-outline btn-sm">
-        🩺 + New Specialty
+      <button (click)="openInvoiceModal()" class="btn btn-outline btn-sm">
+        💳 Issue Invoice
+      </button>
+      <button (click)="openDoctorModal()" class="btn btn-outline btn-sm">
+        👨‍⚕️ + Add Doctor
       </button>
     </div>
   </div>
@@ -61,6 +59,34 @@
       class="tab-btn"
     >
       📊 Overview
+    </button>
+    <button
+      (click)="setTab('queue')"
+      [class.active]="activeTab() === 'queue'"
+      class="tab-btn"
+    >
+      🛎️ Waiting Queue ({{ queueItems().length }})
+    </button>
+    <button
+      (click)="setTab('consultation')"
+      [class.active]="activeTab() === 'consultation'"
+      class="tab-btn"
+    >
+      📋 Consultation & Rx
+    </button>
+    <button
+      (click)="setTab('records')"
+      [class.active]="activeTab() === 'records'"
+      class="tab-btn"
+    >
+      🗂️ Patient EMR Charts
+    </button>
+    <button
+      (click)="setTab('billing')"
+      [class.active]="activeTab() === 'billing'"
+      class="tab-btn"
+    >
+      💳 Billing & Finance ({{ invoices().length }})
     </button>
     <button
       (click)="setTab('appointments')"
@@ -131,34 +157,433 @@
     }
 
     <!-- Quick Management Cards -->
-    <div class="grid-3 mt-4">
+    <div class="grid-4 mt-4">
       <div class="card quick-action-card">
-        <span class="icon">👨‍⚕️</span>
-        <h3>Medical Doctors</h3>
-        <p>{{ doctors().length }} Doctors registered and available for consultations.</p>
-        <div class="d-flex gap-2 justify-content-center">
-          <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">+ Add Doctor</button>
-          <button (click)="setTab('doctors')" class="btn btn-outline btn-sm">View Directory</button>
-        </div>
+        <span class="icon">🛎️</span>
+        <h3>Reception Queue</h3>
+        <p>Live patient check-in, token assignment & waiting room flow.</p>
+        <button (click)="setTab('queue')" class="btn btn-primary btn-sm">Open Waiting Room</button>
       </div>
 
       <div class="card quick-action-card">
-        <span class="icon">🏥</span>
-        <h3>Clinic Branches</h3>
-        <p>{{ clinics().length }} Active clinic locations operating in the network.</p>
-        <button (click)="setTab('clinics')" class="btn btn-outline btn-sm">Manage Clinics</button>
+        <span class="icon">📋</span>
+        <h3>Doctor Consultation</h3>
+        <p>Record SOAP notes, vitals, and issue official e-prescriptions.</p>
+        <button (click)="setTab('consultation')" class="btn btn-outline btn-sm">Start Consultation</button>
       </div>
 
       <div class="card quick-action-card">
-        <span class="icon">🩺</span>
-        <h3>Medical Specialties</h3>
-        <p>{{ specialties().length }} Bilingual medical departments available.</p>
-        <button (click)="setTab('specialties')" class="btn btn-outline btn-sm">Manage Specialties</button>
+        <span class="icon">💳</span>
+        <h3>Clinic Billing</h3>
+        <p>Generate invoices, record payments, and track daily revenue.</p>
+        <button (click)="setTab('billing')" class="btn btn-outline btn-sm">View Invoices</button>
+      </div>
+
+      <div class="card quick-action-card">
+        <span class="icon">🗂️</span>
+        <h3>Patient EMR Records</h3>
+        <p>Clinical charts, past visit histories, allergies & vitals timeline.</p>
+        <button (click)="setTab('records')" class="btn btn-outline btn-sm">Patient Charts</button>
       </div>
     </div>
   }
 
-  <!-- TAB 2: APPOINTMENTS MASTER ROSTER -->
+  <!-- TAB 2: RECEPTION & QUEUE MANAGEMENT -->
+  @if (activeTab() === 'queue') {
+    <div class="tab-header">
+      <div>
+        <h3>🛎️ Reception & Waiting Room Queue</h3>
+        <p class="text-muted m-0">Live token numbers, patient check-in, and examination room call system.</p>
+      </div>
+      <div class="d-flex gap-2">
+        @if (auth.isAdmin()) {
+          <select [(ngModel)]="selectedClinicId" (change)="loadQueue()" class="form-select form-select-sm">
+            @for (c of clinics(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        }
+        <button (click)="loadQueue()" class="btn btn-outline btn-sm">🔄 Refresh Queue</button>
+      </div>
+    </div>
+
+    <div class="card table-card mt-3">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Token #</th>
+              <th>Patient</th>
+              <th>Doctor</th>
+              <th>Clinic Branch</th>
+              <th>Scheduled Time</th>
+              <th>Queue Status</th>
+              <th>Reception Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (q of queueItems(); track q.appointmentId) {
+              <tr>
+                <td>
+                  @if (q.queueNumber) {
+                    <span class="badge badge-scheduled" style="font-size: 1.1rem; font-weight: 800;">
+                      #{{ q.queueNumber < 10 ? '0' + q.queueNumber : q.queueNumber }}
+                    </span>
+                  } @else {
+                    <span class="text-muted">Not Checked In</span>
+                  }
+                </td>
+                <td><strong>{{ q.patientName }}</strong></td>
+                <td>{{ q.doctorName }}</td>
+                <td>{{ q.clinicName }}</td>
+                <td>{{ q.startTimeUtc | date:'shortTime' }}</td>
+                <td>
+                  <span class="badge" [class]="getBadgeClass(q.status)">
+                    {{ q.status === 'CheckedIn' ? 'In Waiting Room' : q.status === 'InConsultation' ? 'In Examination' : q.status }}
+                  </span>
+                </td>
+                <td>
+                  @if (q.status === 'Scheduled' || q.status === 'Confirmed') {
+                    <button (click)="checkInPatient(q.appointmentId)" class="btn btn-primary btn-sm">
+                      🛎️ Check-in (Assign Token)
+                    </button>
+                  } @else if (q.status === 'CheckedIn') {
+                    <button (click)="callPatient(q.appointmentId)" class="btn btn-outline btn-sm">
+                      📢 Call into Room
+                    </button>
+                  } @else if (q.status === 'InConsultation') {
+                    <button (click)="openConsultationForAppt(q)" class="btn btn-confirmed btn-sm">
+                      🩺 Open Consultation
+                    </button>
+                  } @else {
+                    <span class="text-muted">Done</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="text-center py-5">No patients currently in the clinic waiting queue for today.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 3: CLINICAL CONSULTATION & E-PRESCRIPTION (Rx) -->
+  @if (activeTab() === 'consultation') {
+    <div class="tab-header">
+      <div>
+        <h3>📋 Clinical Consultation & Electronic Prescription (Rx)</h3>
+        <p class="text-muted m-0">Document SOAP clinical notes, vital signs, and issue verified electronic prescriptions.</p>
+      </div>
+    </div>
+
+    <div class="grid-2 mt-3">
+      <!-- Left: Consultation Form -->
+      <div class="card p-4">
+        <h4>1. Consultation Details (SOAP Notes)</h4>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Select Active Appointment *</label>
+          <select [(ngModel)]="consultAppointmentId" class="form-select">
+            <option value="">-- Choose appointment to examine --</option>
+            @for (a of appointments(); track a.id) {
+              <option [value]="a.id">
+                {{ a.patientName || a.patientId.slice(0, 8) }} with {{ a.doctorName || 'Doctor' }} ({{ a.startTimeUtc | date:'shortTime' }}) - {{ a.status }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Chief Complaint (شكوى المريض) *</label>
+          <input type="text" [(ngModel)]="consultChiefComplaint" class="form-control" placeholder="e.g. Persistent cough, chest discomfort for 4 days" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Clinical Examination Notes (الفحص السريري)</label>
+          <textarea [(ngModel)]="consultExamination" rows="2" class="form-control" placeholder="Physical signs, heart sounds, chest auscultation..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Clinical Diagnosis (التشخيص الطبي) *</label>
+          <input type="text" [(ngModel)]="consultDiagnosis" class="form-control" placeholder="e.g. Acute Bronchitis / Hypertension Stage 1" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Treatment Plan & Doctor Instructions (خطة العلاج)</label>
+          <textarea [(ngModel)]="consultTreatmentPlan" rows="2" class="form-control" placeholder="Rest, diet recommendations, follow-up in 1 week..."></textarea>
+        </div>
+
+        <h4 class="mt-4">2. Patient Vital Signs (العلامات الحيوية)</h4>
+        <div class="grid-3 mt-2">
+          <div class="form-group mb-2">
+            <label class="form-label">BP (Systolic / Diastolic)</label>
+            <div class="d-flex gap-1 align-items-center">
+              <input type="number" [(ngModel)]="vitalsSystolic" placeholder="120" class="form-control" />
+              <span>/</span>
+              <input type="number" [(ngModel)]="vitalsDiastolic" placeholder="80" class="form-control" />
+            </div>
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label">Heart Rate (bpm)</label>
+            <input type="number" [(ngModel)]="vitalsHeartRate" placeholder="72" class="form-control" />
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label">Temperature (°C)</label>
+            <input type="number" step="0.1" [(ngModel)]="vitalsTemp" placeholder="37.0" class="form-control" />
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Weight (Kg)</label>
+            <input type="number" step="0.5" [(ngModel)]="vitalsWeight" placeholder="75" class="form-control" />
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Height (Cm)</label>
+            <input type="number" [(ngModel)]="vitalsHeight" placeholder="175" class="form-control" />
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Blood Glucose (mg/dL)</label>
+            <input type="number" [(ngModel)]="vitalsGlucose" placeholder="105" class="form-control" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: E-Prescription (Rx) & Medications -->
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h4>3. Electronic Prescription (الروشتة - Rx)</h4>
+          <button (click)="addMedicationRow()" class="btn btn-outline btn-sm">+ Add Drug</button>
+        </div>
+
+        <div class="medications-container">
+          @for (med of rxMedications; track $index) {
+            <div class="p-3 bg-light rounded mb-3 border">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>💊 Medication #{{ $index + 1 }}</strong>
+                @if (rxMedications.length > 1) {
+                  <button (click)="removeMedicationRow($index)" class="btn btn-outline btn-sm text-danger">✕</button>
+                }
+              </div>
+              <div class="form-group mb-2">
+                <input type="text" [(ngModel)]="med.medicationName" class="form-control" placeholder="Medication Name (e.g. Augmentin 1g)" />
+              </div>
+              <div class="grid-3">
+                <input type="text" [(ngModel)]="med.dosage" class="form-control" placeholder="Dosage (1 tab)" />
+                <input type="text" [(ngModel)]="med.frequency" class="form-control" placeholder="Frequency (Every 12 hrs)" />
+                <input type="text" [(ngModel)]="med.duration" class="form-control" placeholder="Duration (7 days)" />
+              </div>
+              <input type="text" [(ngModel)]="med.instructions" class="form-control mt-2" placeholder="Special instructions (e.g. after lunch)" />
+            </div>
+          }
+        </div>
+
+        <button (click)="submitConsultation()" [disabled]="!consultAppointmentId || !consultDiagnosis" class="btn btn-primary w-100 mt-3" style="padding: 0.85rem; font-size: 1rem;">
+          💾 Save Consultation & Issue Prescription
+        </button>
+
+        @if (lastIssuedPrescription; as rx) {
+          <div class="prescription-preview card mt-4 p-3 border-primary">
+            <div class="d-flex justify-content-between border-bottom pb-2">
+              <div>
+                <h4 class="text-primary m-0">🏥 {{ rx.clinicName || 'Apex Healthcare' }}</h4>
+                <small class="text-muted">Prescription #: <strong>{{ rx.prescriptionNumber }}</strong></small>
+              </div>
+              <div class="text-end">
+                <span class="badge badge-confirmed">Issued</span>
+                <div><small>{{ rx.issuedAtUtc | date:'mediumDate' }}</small></div>
+              </div>
+            </div>
+            <div class="mt-2">
+              <p class="m-0"><strong>Patient:</strong> {{ rx.patientName || 'Patient' }}</p>
+              <p class="m-0"><strong>Diagnosis:</strong> {{ rx.diagnosis }}</p>
+            </div>
+            <div class="mt-2">
+              <strong>Prescribed Drugs (Rx):</strong>
+              <ul class="mb-0 mt-1">
+                @for (item of rx.items; track item.id) {
+                  <li>
+                    <strong>{{ item.medicationName }}</strong> &mdash; {{ item.dosage }}, {{ item.frequency }} for {{ item.duration }}
+                    @if (item.instructions) {
+                      <span class="text-muted">({{ item.instructions }})</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- TAB 4: PATIENT EMR MEDICAL RECORDS -->
+  @if (activeTab() === 'records') {
+    <div class="tab-header">
+      <div>
+        <h3>🗂️ Patient Medical Records & Clinical Chart (EMR)</h3>
+        <p class="text-muted m-0">Centralized electronic health record with past visit histories, prescriptions, and allergies.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <select #patientSelect (change)="viewPatientRecord(patientSelect.value)" class="form-select form-select-sm">
+          <option value="">-- Select Patient to View EMR --</option>
+          @for (a of appointments(); track a.id) {
+            <option [value]="a.patientId">{{ a.patientName || a.patientId.slice(0, 8) }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (patientRecord(); as rec) {
+      <div class="card p-4 mt-3">
+        <!-- Patient Header Card -->
+        <div class="d-flex justify-content-between align-items-start border-bottom pb-3">
+          <div>
+            <h2>👤 {{ rec.patientName }}</h2>
+            <div class="d-flex gap-3 text-muted">
+              <span>DOB: <strong>{{ rec.dateOfBirth }}</strong></span>
+              <span>Gender: <strong>{{ rec.gender }}</strong></span>
+              <span>Blood Group: <strong class="text-danger">{{ rec.bloodGroup || 'Not Specified' }}</strong></span>
+            </div>
+          </div>
+          <button (click)="openEditHistoryModal(rec)" class="btn btn-outline btn-sm">
+            ✏️ Edit Medical Background
+          </button>
+        </div>
+
+        <!-- Alerts: Allergies & Chronic Conditions -->
+        <div class="grid-2 mt-3">
+          <div class="p-3 bg-light rounded border border-warning">
+            <strong class="text-warning">⚠️ Known Drug & Food Allergies:</strong>
+            <p class="m-0 mt-1">{{ rec.allergies || 'No known allergies reported.' }}</p>
+          </div>
+          <div class="p-3 bg-light rounded border border-info">
+            <strong class="text-info">🩺 Chronic Medical Conditions:</strong>
+            <p class="m-0 mt-1">{{ rec.chronicConditions || 'None reported.' }}</p>
+          </div>
+        </div>
+
+        <!-- History Sections -->
+        <div class="grid-2 mt-4">
+          <!-- Past Consultations -->
+          <div>
+            <h4>Past Consultations & Diagnoses ({{ rec.consultations.length }})</h4>
+            <div class="mt-2">
+              @for (c of rec.consultations; track c.id) {
+                <div class="card p-3 mb-2 border">
+                  <div class="d-flex justify-content-between">
+                    <strong>{{ c.diagnosis }}</strong>
+                    <small class="text-muted">{{ c.consultationDateUtc | date:'mediumDate' }}</small>
+                  </div>
+                  <p class="m-0 text-muted mt-1"><small>Complaint:</small> {{ c.chiefComplaint }}</p>
+                  @if (c.treatmentPlan) {
+                    <p class="m-0 text-muted"><small>Plan:</small> {{ c.treatmentPlan }}</p>
+                  }
+                </div>
+              } @empty {
+                <p class="text-muted">No past consultation notes recorded.</p>
+              }
+            </div>
+          </div>
+
+          <!-- Prescriptions History -->
+          <div>
+            <h4>Issued Prescriptions ({{ rec.prescriptions.length }})</h4>
+            <div class="mt-2">
+              @for (p of rec.prescriptions; track p.id) {
+                <div class="card p-3 mb-2 border">
+                  <div class="d-flex justify-content-between">
+                    <strong>{{ p.prescriptionNumber }}</strong>
+                    <small class="text-muted">{{ p.issuedAtUtc | date:'mediumDate' }}</small>
+                  </div>
+                  <small class="text-muted">Diagnosis: {{ p.diagnosis }}</small>
+                  <ul class="m-0 mt-2 pl-3">
+                    @for (item of p.items; track item.id) {
+                      <li>{{ item.medicationName }} ({{ item.dosage }} - {{ item.frequency }})</li>
+                    }
+                  </ul>
+                </div>
+              } @empty {
+                <p class="text-muted">No past prescriptions on file.</p>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="card text-center py-5 mt-3">
+        <span style="font-size: 3rem;">🗂️</span>
+        <h4 class="mt-2">Select a Patient to Open Their EMR Chart</h4>
+        <p class="text-muted">Choose any patient from the dropdown above or from the appointments roster to inspect their clinical records.</p>
+      </div>
+    }
+  }
+
+  <!-- TAB 5: BILLING & FINANCIAL INVOICING -->
+  @if (activeTab() === 'billing') {
+    <div class="tab-header">
+      <div>
+        <h3>💳 Clinic Invoicing & Billing Management</h3>
+        <p class="text-muted m-0">Issue itemized consultation bills, record cash/card payments, and audit financial records.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button (click)="openInvoiceModal()" class="btn btn-primary btn-sm">+ Issue Invoice</button>
+        <button (click)="loadInvoices()" class="btn btn-outline btn-sm">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <div class="card table-card mt-3">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Patient</th>
+              <th>Clinic Branch</th>
+              <th>Date</th>
+              <th>Total Amount</th>
+              <th>Payment Method</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (inv of invoices(); track inv.id) {
+              <tr>
+                <td><strong>{{ inv.invoiceNumber }}</strong></td>
+                <td>{{ inv.patientName || inv.patientId.slice(0, 8) }}</td>
+                <td>{{ inv.clinicName || 'Clinic Branch' }}</td>
+                <td>{{ inv.issuedAtUtc | date:'mediumDate' }}</td>
+                <td><strong class="text-primary">{{ inv.totalAmount }} EGP</strong></td>
+                <td>{{ inv.paymentMethod }}</td>
+                <td>
+                  <span class="badge" [class.badge-confirmed]="inv.status === 'Paid'" [class.badge-scheduled]="inv.status === 'Pending'">
+                    {{ inv.status }}
+                  </span>
+                </td>
+                <td>
+                  @if (inv.status === 'Pending') {
+                    <button (click)="payInvoice(inv.id, 1)" class="btn btn-primary btn-sm">
+                      💵 Collect Cash
+                    </button>
+                  } @else {
+                    <span class="text-muted">Paid on {{ inv.paidAtUtc | date:'shortDate' }}</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="text-center py-5">No invoices recorded yet. Click "+ Issue Invoice" to generate a bill.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 6: APPOINTMENTS MASTER ROSTER -->
   @if (activeTab() === 'appointments') {
     <div class="card filter-card">
       <div class="filter-grid">
@@ -178,6 +603,8 @@
             <option value="">All Statuses</option>
             <option value="Scheduled">Scheduled</option>
             <option value="Confirmed">Confirmed</option>
+            <option value="CheckedIn">Checked In</option>
+            <option value="InConsultation">In Consultation</option>
             <option value="Completed">Completed</option>
             <option value="CancelledByPatient">Cancelled By Patient</option>
             <option value="CancelledByDoctor">Cancelled By Doctor</option>
@@ -207,7 +634,7 @@
               <th>Clinic</th>
               <th>Date & Time</th>
               <th>Status</th>
-              <th>Admin Action</th>
+              <th>EMR / Action</th>
             </tr>
           </thead>
           <tbody>
@@ -226,16 +653,16 @@
                   </span>
                 </td>
                 <td>
-                  @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
-                    <button
-                      (click)="openCancelModal(appt.id)"
-                      class="btn btn-outline btn-sm btn-cancel"
-                    >
-                      Cancel Booking
+                  <div class="d-flex gap-1">
+                    <button (click)="viewPatientRecord(appt.patientId)" class="btn btn-outline btn-sm">
+                      🗂️ EMR
                     </button>
-                  } @else {
-                    <span class="text-muted">-</span>
-                  }
+                    @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
+                      <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
+                        Cancel
+                      </button>
+                    }
+                  </div>
                 </td>
               </tr>
             } @empty {
@@ -249,7 +676,7 @@
     </div>
   }
 
-  <!-- TAB 3: DOCTORS DIRECTORY & MANAGEMENT -->
+  <!-- TAB 7: DOCTORS DIRECTORY -->
   @if (activeTab() === 'doctors') {
     <div class="tab-header">
       <div>
@@ -280,16 +707,11 @@
             <span>Branches: <strong>{{ doc.doctorClinics.length }}</strong></span>
           </div>
         </div>
-      } @empty {
-        <div class="card text-center py-5 col-span-3">
-          <p class="text-muted">No doctors currently registered for this clinic.</p>
-          <button (click)="openDoctorModal()" class="btn btn-primary btn-sm mt-2">Add First Doctor</button>
-        </div>
       }
     </div>
   }
 
-  <!-- TAB 4: CLINICS MANAGEMENT -->
+  <!-- TAB 8: CLINICS -->
   @if (activeTab() === 'clinics') {
     <div class="tab-header">
       <div>
@@ -337,7 +759,7 @@
     </div>
   }
 
-  <!-- TAB 5: SPECIALTIES -->
+  <!-- TAB 9: SPECIALTIES -->
   @if (activeTab() === 'specialties') {
     <div class="tab-header">
       <div>
@@ -362,6 +784,102 @@
           }
         </div>
       }
+    </div>
+  }
+
+  <!-- MODAL: EDIT PATIENT MEDICAL HISTORY -->
+  @if (isHistoryModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>✏️ Edit Patient Medical Background</h3>
+        <p class="text-muted">Update blood group, drug/food allergies, and chronic medical illnesses.</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Blood Group</label>
+          <select [(ngModel)]="historyBloodGroup" class="form-select">
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Known Allergies (حساسية الأدوية والأطعمة)</label>
+          <input type="text" [(ngModel)]="historyAllergies" class="form-control" placeholder="e.g. Penicillin, NSAIDs, Peanuts..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Chronic Conditions (الأمراض المزمنة)</label>
+          <input type="text" [(ngModel)]="historyChronic" class="form-control" placeholder="e.g. Hypertension, Type 2 Diabetes, Asthma..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">General Clinical Notes</label>
+          <textarea [(ngModel)]="historyNotes" rows="2" class="form-control"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button (click)="closeHistoryModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="submitMedicalHistory()" class="btn btn-primary">Save Medical History</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: ISSUE INVOICE -->
+  @if (isInvoiceModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>💳 Issue Clinic Invoice</h3>
+        <p class="text-muted">Generate a billing invoice for patient consultation, lab test, or procedure.</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Patient *</label>
+          <select [(ngModel)]="invPatientId" class="form-select">
+            @for (a of appointments(); track a.id) {
+              <option [value]="a.patientId">{{ a.patientName || a.patientId.slice(0, 8) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select [(ngModel)]="invMethod" class="form-select">
+            <option [value]="1">💵 Cash (نقدي)</option>
+            <option [value]="2">💳 Credit / Debit Card (بطاقة بنكية)</option>
+            <option [value]="3">🛡️ Health Insurance (تأمين صحي)</option>
+          </select>
+        </div>
+
+        <div class="items-box mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>Itemized Services:</strong>
+            <button (click)="addInvoiceItemRow()" class="btn btn-outline btn-sm">+ Add Line Item</button>
+          </div>
+          @for (it of invItems; track $index) {
+            <div class="d-flex gap-2 mb-2 align-items-center">
+              <input type="text" [(ngModel)]="it.description" placeholder="Service description" class="form-control flex-grow-1" />
+              <input type="number" [(ngModel)]="it.quantity" placeholder="Qty" class="form-control" style="width: 70px;" min="1" />
+              <input type="number" [(ngModel)]="it.unitPrice" placeholder="Price" class="form-control" style="width: 100px;" min="0" />
+              @if (invItems.length > 1) {
+                <button (click)="removeInvoiceItemRow($index)" class="btn btn-outline btn-sm text-danger">✕</button>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeInvoiceModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="submitInvoice()" [disabled]="!invPatientId || invItems.length === 0" class="btn btn-primary">
+            Generate Invoice
+          </button>
+        </div>
+      </div>
     </div>
   }
 

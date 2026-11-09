@@ -39,6 +39,7 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHa
         }
     }
     public AppointmentStatus Status { get; private set; }
+    public int? QueueNumber { get; private set; }
     public string? Notes { get; private set; }
     public string? CancellationReason { get; private set; }
     public DateTime? CancelledAtUtc { get; private set; }
@@ -153,9 +154,30 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHa
         AddDomainEvent(new AppointmentRejectedEvent(Id, DoctorId, PatientId, CancellationReason));
     }
 
+    public void CheckIn(int queueNumber)
+    {
+        if (Status != AppointmentStatus.Scheduled && Status != AppointmentStatus.Confirmed)
+        {
+            throw new InvalidAppointmentStateException(Status, nameof(CheckIn));
+        }
+
+        Status = AppointmentStatus.CheckedIn;
+        QueueNumber = queueNumber;
+    }
+
+    public void StartConsultation()
+    {
+        if (Status != AppointmentStatus.CheckedIn && Status != AppointmentStatus.Confirmed)
+        {
+            throw new InvalidAppointmentStateException(Status, nameof(StartConsultation));
+        }
+
+        Status = AppointmentStatus.InConsultation;
+    }
+
     public void Complete()
     {
-        if (Status != AppointmentStatus.Confirmed)
+        if (Status != AppointmentStatus.Confirmed && Status != AppointmentStatus.CheckedIn && Status != AppointmentStatus.InConsultation)
         {
             throw new InvalidAppointmentStateException(Status, nameof(Complete));
         }

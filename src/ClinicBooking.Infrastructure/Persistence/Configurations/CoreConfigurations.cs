@@ -141,6 +141,10 @@ internal sealed class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Property(p => p.Id).ValueGeneratedNever();
 
         builder.Property(p => p.Gender).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(p => p.BloodGroup).HasMaxLength(10);
+        builder.Property(p => p.Allergies).HasMaxLength(500);
+        builder.Property(p => p.ChronicConditions).HasMaxLength(500);
+        builder.Property(p => p.MedicalNotes).HasMaxLength(1000);
         builder.Property(p => p.EmergencyContact)
             .HasConversion(p => p!.Value, value => PhoneNumber.Create(value))
             .HasMaxLength(20)

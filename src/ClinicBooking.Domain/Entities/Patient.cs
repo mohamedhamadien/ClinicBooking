@@ -12,6 +12,10 @@ public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTe
     public DateOnly DateOfBirth { get; private set; }
     public Gender Gender { get; private set; }
     public PhoneNumber? EmergencyContact { get; private set; }
+    public string? BloodGroup { get; private set; }
+    public string? Allergies { get; private set; }
+    public string? ChronicConditions { get; private set; }
+    public string? MedicalNotes { get; private set; }
 
     public DateTime CreatedAtUtc { get; set; }
     public string? CreatedBy { get; set; }
@@ -68,5 +72,13 @@ public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTe
         SetDateOfBirth(dateOfBirth);
         Gender = gender;
         EmergencyContact = emergencyContact;
+    }
+
+    public void UpdateMedicalHistory(string? bloodGroup, string? allergies, string? chronicConditions, string? medicalNotes)
+    {
+        BloodGroup = bloodGroup?.Trim();
+        Allergies = allergies?.Trim();
+        ChronicConditions = chronicConditions?.Trim();
+        MedicalNotes = medicalNotes?.Trim();
     }
 }

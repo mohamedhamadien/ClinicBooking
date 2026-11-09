@@ -52,6 +52,10 @@ public static class DependencyInjection
         services.AddScoped<IPatientRepository, PatientRepository>();
         services.AddScoped<IDoctorRepository, DoctorRepository>();
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+        services.AddScoped<IConsultationRepository, ConsultationRepository>();
+        services.AddScoped<IPatientVitalSignsRepository, PatientVitalSignsRepository>();
+        services.AddScoped<IPrescriptionRepository, PrescriptionRepository>();
+        services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 
         // 4. Infrastructure Services
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();

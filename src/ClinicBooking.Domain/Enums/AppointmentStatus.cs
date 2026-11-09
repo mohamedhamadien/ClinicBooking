@@ -10,5 +10,7 @@ public enum AppointmentStatus
     CancelledByDoctor = 6,
     CancelledByAdmin = 7,
     Rejected = 8,
-    NoShow = 9
+    NoShow = 9,
+    CheckedIn = 10,
+    InConsultation = 11
 }
