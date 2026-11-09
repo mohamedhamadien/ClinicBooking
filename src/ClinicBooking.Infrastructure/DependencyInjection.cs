@@ -27,7 +27,8 @@ public static class DependencyInjection
         if (!services.Any(d => d.ServiceType == typeof(DbContextOptions<ClinicBookingDbContext>)))
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection")
-                ?? "Server=localhost;Database=ClinicBookingDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+                ?? configuration.GetConnectionString("SqlServer")
+                ?? "Server=(localdb)\\mssqllocaldb;Database=ClinicBookingDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 
             services.AddDbContext<ClinicBookingDbContext>(options =>
             {

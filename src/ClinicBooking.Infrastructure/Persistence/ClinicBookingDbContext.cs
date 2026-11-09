@@ -329,5 +329,5 @@ public static class AppointmentIndexNames
     /// Statuses that release a slot. Must stay in sync with <see cref="Appointment.IsSlotOccupied"/>.
     /// </summary>
     public const string ActiveSlotFilter =
-        "[Status] NOT IN ('CancelledByPatient', 'CancelledByDoctor', 'CancelledByAdmin', 'Rejected')";
+        "[Status] IN ('Scheduled', 'Confirmed', 'Completed', 'NoShow')";
 }

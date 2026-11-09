@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -394,14 +394,14 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                 table: "Appointments",
                 columns: new[] { "TenantId", "DoctorId", "StartTimeUtc" },
                 unique: true,
-                filter: "[Status] NOT IN ('CancelledByPatient', 'CancelledByDoctor', 'CancelledByAdmin', 'Rejected')");
+                filter: "[Status] IN ('Scheduled', 'Confirmed', 'Completed', 'NoShow')");
 
             migrationBuilder.CreateIndex(
                 name: "UX_Appointments_Patient_Slot",
                 table: "Appointments",
                 columns: new[] { "TenantId", "PatientId", "StartTimeUtc" },
                 unique: true,
-                filter: "[Status] NOT IN ('CancelledByPatient', 'CancelledByDoctor', 'CancelledByAdmin', 'Rejected')");
+                filter: "[Status] IN ('Scheduled', 'Confirmed', 'Completed', 'NoShow')");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AvailabilityExceptions_Doctor",

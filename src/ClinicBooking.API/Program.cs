@@ -7,9 +7,12 @@ using ClinicBooking.Application;
 using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Infrastructure;
 using ClinicBooking.Infrastructure.Authentication;
+using ClinicBooking.Infrastructure.Persistence;
+using ClinicBooking.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -133,6 +136,31 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Auto-migrate and seed database on startup (skipped when running in Testing harness)
+if (app.Environment.EnvironmentName != "Testing")
+{
+    using var scope = app.Services.CreateScope();
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var db = services.GetRequiredService<ClinicBookingDbContext>();
+        if (db.Database.IsRelational())
+        {
+            logger.LogInformation("Applying pending database migrations...");
+            await db.Database.MigrateAsync();
+        }
+
+        var seeder = services.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
+        logger.LogInformation("Database migration and seeding completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+    }
+}
 
 // --- HTTP Request Pipeline ---
 
