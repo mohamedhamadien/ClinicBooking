@@ -26,6 +26,7 @@ public interface IAppointmentRepository
         DateTime? fromUtc,
         DateTime? toUtc,
         Guid? doctorId,
+        Guid? clinicId = null,
         CancellationToken cancellationToken = default);
     Task<bool> HasConflictingAppointmentForDoctorAsync(
         Guid tenantId,

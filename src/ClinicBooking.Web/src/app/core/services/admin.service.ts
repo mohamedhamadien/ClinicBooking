@@ -4,7 +4,37 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DashboardStatsDto } from '../models/dashboard.models';
 import { AppointmentDto, CancelAppointmentRequest } from '../models/appointment.models';
-import { ClinicDto, SpecialtyDto } from '../models/doctor.models';
+import { ClinicDto, DoctorDto, SpecialtyDto } from '../models/doctor.models';
+
+export interface RegisterDoctorRequest {
+  tenantId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  specialtyId: string;
+  licenseNumber: string;
+  bioEn: string;
+  bioAr?: string;
+  clinicId?: string;
+  consultationFee?: number;
+  defaultSlotDurationMinutes?: number;
+  requiresApproval?: boolean;
+  initialShiftDay?: number;
+  initialShiftStartTime?: string; // HH:mm:ss
+  initialShiftEndTime?: string;   // HH:mm:ss
+}
+
+export interface UpdateClinicRequest {
+  name: string;
+  address: string;
+  city: string;
+  phoneNumber: string;
+  isActive?: boolean;
+  nameAr?: string;
+  addressAr?: string;
+  cityAr?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -12,21 +42,29 @@ import { ClinicDto, SpecialtyDto } from '../models/doctor.models';
 export class AdminService {
   private readonly http = inject(HttpClient);
 
-  public getDashboardStats(): Observable<DashboardStatsDto> {
-    return this.http.get<DashboardStatsDto>(`${environment.apiUrl}/admin/dashboard`);
+  public getDashboardStats(clinicId?: string): Observable<DashboardStatsDto> {
+    let params = new HttpParams();
+    if (clinicId) params = params.set('clinicId', clinicId);
+    return this.http.get<DashboardStatsDto>(`${environment.apiUrl}/admin/dashboard-stats`, { params });
   }
 
   public getAllAppointments(
     fromUtc?: string,
     toUtc?: string,
-    doctorId?: string
+    doctorId?: string,
+    clinicId?: string
   ): Observable<AppointmentDto[]> {
     let params = new HttpParams();
     if (fromUtc) params = params.set('fromUtc', fromUtc);
     if (toUtc) params = params.set('toUtc', toUtc);
     if (doctorId) params = params.set('doctorId', doctorId);
+    if (clinicId) params = params.set('clinicId', clinicId);
 
     return this.http.get<AppointmentDto[]>(`${environment.apiUrl}/admin/appointments`, { params });
+  }
+
+  public registerDoctor(command: RegisterDoctorRequest): Observable<DoctorDto> {
+    return this.http.post<DoctorDto>(`${environment.apiUrl}/doctors/register`, command);
   }
 
   public createSpecialty(command: {
@@ -49,6 +87,22 @@ export class AdminService {
     cityAr?: string;
   }): Observable<ClinicDto> {
     return this.http.post<ClinicDto>(`${environment.apiUrl}/clinics`, command);
+  }
+
+  public updateClinic(id: string, command: UpdateClinicRequest): Observable<ClinicDto> {
+    return this.http.put<ClinicDto>(`${environment.apiUrl}/clinics/${id}`, command);
+  }
+
+  public assignDoctorToClinic(doctorId: string, clinicId: string, consultationFee: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/doctors/${doctorId}/clinics`, {
+      clinicId,
+      consultationFee,
+      isPrimary: true
+    });
+  }
+
+  public removeDoctorFromClinic(doctorId: string, clinicId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/doctors/${doctorId}/clinics/${clinicId}`);
   }
 
   public cancelAppointment(id: string, reason: string): Observable<AppointmentDto> {

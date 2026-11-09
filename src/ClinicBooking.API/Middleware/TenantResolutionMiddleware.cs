@@ -72,8 +72,8 @@ public sealed class TenantResolutionMiddleware
         }
         else
         {
-            // If user has role Admin or request is for global features, allow Host context
-            if (context.User.IsInRole("Admin") || path.StartsWith("/api/v1/specialties"))
+            // If user has role Admin/ClinicAdmin or request is for global features, allow Host context
+            if (context.User.IsInRole("Admin") || context.User.IsInRole("ClinicAdmin") || path.StartsWith("/api/v1/specialties"))
             {
                 tenantContext.SetHost();
             }

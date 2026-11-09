@@ -8,6 +8,7 @@ namespace ClinicBooking.Domain.Entities;
 public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
 {
     public Guid? TenantId { get; private set; }
+    public Guid? ClinicId { get; private set; }
     public EmailAddress Email { get; private set; } = default!;
     public string FirstName { get; private set; } = default!;
     public string LastName { get; private set; } = default!;
@@ -59,16 +60,24 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
         string lastName,
         UserRole role,
         Guid? tenantId = null,
-        bool isActive = true) : base(id)
+        bool isActive = true,
+        Guid? clinicId = null) : base(id)
     {
         TenantId = tenantId;
+        ClinicId = clinicId;
         Email = email ?? throw new ArgumentNullException(nameof(email));
         SetNames(firstName, lastName);
         Role = role;
         IsActive = isActive;
     }
 
-    public static User Create(string email, string firstName, string lastName, UserRole role, Guid? tenantId = null)
+    public static User Create(
+        string email,
+        string firstName,
+        string lastName,
+        UserRole role,
+        Guid? tenantId = null,
+        Guid? clinicId = null)
     {
         return new User(
             Guid.NewGuid(),
@@ -77,7 +86,13 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
             lastName,
             role,
             tenantId,
-            true);
+            true,
+            clinicId);
+    }
+
+    public void AssignToClinic(Guid? clinicId)
+    {
+        ClinicId = clinicId;
     }
 
     public void SetNames(string firstName, string lastName)
@@ -94,6 +109,16 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
 
         FirstName = firstName.Trim();
         LastName = lastName.Trim();
+    }
+
+    public void UpdateProfile(string firstName, string lastName)
+    {
+        SetNames(firstName, lastName);
+    }
+
+    public void SetRole(UserRole role)
+    {
+        Role = role;
     }
 
     public void Deactivate() => IsActive = false;

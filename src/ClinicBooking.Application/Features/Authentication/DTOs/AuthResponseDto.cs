@@ -7,7 +7,8 @@ public sealed record UserDto(
     string FirstName,
     string LastName,
     string Role,
-    bool IsActive);
+    bool IsActive,
+    Guid? ClinicId = null);
 
 public sealed record AuthResponseDto(
     string AccessToken,

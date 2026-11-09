@@ -32,6 +32,14 @@ export class LoginComponent {
     this.onSubmit();
   }
 
+  protected quickClinicAdminLogin(): void {
+    this.form.patchValue({
+      email: 'clinicadmin@clinicbooking.com',
+      password: 'ClinicAdmin@Secure123!'
+    });
+    this.onSubmit();
+  }
+
   protected onSubmit(): void {
     if (this.form.invalid) return;
 
@@ -43,7 +51,7 @@ export class LoginComponent {
     this.authService.login({ email: email!, password: password! }).subscribe({
       next: (res) => {
         this.isSubmitting.set(false);
-        if (res.user.role === 'Admin') {
+        if (res.user.role === 'Admin' || res.user.role === 'ClinicAdmin') {
           this.router.navigate(['/admin/dashboard']);
         } else if (res.user.role === 'Patient') {
           this.router.navigate(['/my-appointments']);

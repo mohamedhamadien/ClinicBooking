@@ -29,5 +29,14 @@ public sealed class CurrentUserService : ICurrentUserService
 
     public string? Role => User?.FindFirst(ClaimTypes.Role)?.Value ?? User?.FindFirst("role")?.Value;
 
+    public Guid? ClinicId
+    {
+        get
+        {
+            var clinicClaim = User?.FindFirst("clinic_id")?.Value;
+            return Guid.TryParse(clinicClaim, out var clinicId) ? clinicId : null;
+        }
+    }
+
     public bool IsAuthenticated => User?.Identity?.IsAuthenticated ?? false;
 }

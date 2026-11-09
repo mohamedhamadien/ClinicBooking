@@ -45,6 +45,7 @@ public sealed class DoctorRepository : IDoctorRepository
     {
         var query = _dbContext.Doctors
             .Include(d => d.Availabilities.Where(a => a.IsActive))
+            .Include(d => d.DoctorClinics)
             .Where(d => d.TenantId == tenantId && d.IsActive);
 
         if (specialtyId.HasValue)

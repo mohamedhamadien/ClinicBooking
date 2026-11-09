@@ -20,8 +20,8 @@ public sealed class CancelAppointmentCommandValidator : AbstractValidator<Cancel
     {
         RuleFor(x => x.AppointmentId).NotEmpty().WithMessage("AppointmentId is required.");
         RuleFor(x => x.Reason).NotEmpty().WithMessage("Cancellation reason is required.").MaximumLength(300);
-        RuleFor(x => x.CancelledByRole).NotEmpty().Must(r => r is "Patient" or "Doctor" or "Admin")
-            .WithMessage("CancelledByRole must be 'Patient', 'Doctor', or 'Admin'.");
+        RuleFor(x => x.CancelledByRole).NotEmpty().Must(r => r is "Patient" or "Doctor" or "Admin" or "ClinicAdmin")
+            .WithMessage("CancelledByRole must be 'Patient', 'Doctor', 'Admin', or 'ClinicAdmin'.");
     }
 }
 
@@ -70,7 +70,7 @@ public sealed class CancelAppointmentCommandHandler : IRequestHandler<CancelAppo
             {
                 appointment.CancelByDoctor(request.Reason, currentUtc);
             }
-            else if (request.CancelledByRole == "Admin")
+            else if (request.CancelledByRole is "Admin" or "ClinicAdmin")
             {
                 appointment.CancelByAdmin(request.Reason, currentUtc);
             }

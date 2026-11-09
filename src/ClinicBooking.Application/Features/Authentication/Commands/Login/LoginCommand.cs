@@ -90,7 +90,8 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
             user.FirstName,
             user.LastName,
             user.Role.ToString(),
-            user.IsActive);
+            user.IsActive,
+            user.ClinicId);
 
         return Result.Success(new AuthResponseDto(
             accessToken,

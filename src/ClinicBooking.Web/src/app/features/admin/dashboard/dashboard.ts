@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AdminService } from '../../../core/services/admin.service';
+import { AdminService, RegisterDoctorRequest, UpdateClinicRequest } from '../../../core/services/admin.service';
 import { DoctorService } from '../../../core/services/doctor.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService } from '../../../core/services/translation.service';
@@ -39,6 +39,13 @@ export class DashboardComponent implements OnInit {
   protected readonly actionMessage = signal<string | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
 
+  // Current Clinic Scope (if Clinic Admin)
+  protected readonly assignedClinicId = computed(() => this.auth.currentUser()?.clinicId || null);
+  protected readonly assignedClinic = computed(() => {
+    const id = this.assignedClinicId();
+    return id ? this.clinics().find((c) => c.id === id) || null : null;
+  });
+
   // Appointment Filters
   protected filterDoctorId = '';
   protected filterStatus = '';
@@ -68,6 +75,35 @@ export class DashboardComponent implements OnInit {
 
     return list;
   });
+
+  // Modal: Register New Doctor
+  protected isDoctorModalOpen = false;
+  protected docFirstName = '';
+  protected docLastName = '';
+  protected docEmail = '';
+  protected docPassword = 'Doctor@Secure123!';
+  protected docSpecialtyId = '';
+  protected docClinicId = '';
+  protected docConsultationFee = 350;
+  protected docLicenseNumber = '';
+  protected docSlotDuration = 30;
+  protected docBioEn = '';
+  protected docBioAr = '';
+  protected docInitialShiftDay = 0; // Sunday
+  protected docInitialShiftStart = '09:00:00';
+  protected docInitialShiftEnd = '17:00:00';
+
+  // Modal: Edit Clinic Branch
+  protected isEditClinicModalOpen = false;
+  protected editingClinicId = '';
+  protected editClinicNameEn = '';
+  protected editClinicNameAr = '';
+  protected editClinicAddressEn = '';
+  protected editClinicAddressAr = '';
+  protected editClinicCityEn = '';
+  protected editClinicCityAr = '';
+  protected editClinicPhone = '';
+  protected editClinicIsActive = true;
 
   // Modal: New Specialty
   protected isSpecialtyModalOpen = false;
@@ -100,13 +136,14 @@ export class DashboardComponent implements OnInit {
 
   protected loadAllData(): void {
     this.loading.set(true);
+    const clinicId = this.assignedClinicId() || undefined;
 
-    this.adminService.getDashboardStats().subscribe({
+    this.adminService.getDashboardStats(clinicId).subscribe({
       next: (s) => this.stats.set(s),
       error: () => {}
     });
 
-    this.adminService.getAllAppointments().subscribe({
+    this.adminService.getAllAppointments(undefined, undefined, undefined, clinicId).subscribe({
       next: (a) => {
         this.appointments.set(a);
         this.loading.set(false);
@@ -116,7 +153,113 @@ export class DashboardComponent implements OnInit {
 
     this.doctorService.getClinics().subscribe((c) => this.clinics.set(c));
     this.doctorService.getSpecialties().subscribe((sp) => this.specialties.set(sp));
-    this.doctorService.getDoctors().subscribe((d) => this.doctors.set(d));
+    this.doctorService.getDoctors(undefined, clinicId).subscribe((d) => this.doctors.set(d));
+  }
+
+  // --- Doctor Actions ---
+  protected openDoctorModal(): void {
+    this.isDoctorModalOpen = true;
+    this.docFirstName = '';
+    this.docLastName = '';
+    this.docEmail = '';
+    this.docPassword = 'Doctor@Secure123!';
+    this.docSpecialtyId = this.specialties().length > 0 ? this.specialties()[0].id : '';
+    this.docClinicId = this.assignedClinicId() || (this.clinics().length > 0 ? this.clinics()[0].id : '');
+    this.docConsultationFee = 350;
+    this.docLicenseNumber = 'EGY-MED-' + Math.floor(10000 + Math.random() * 90000);
+    this.docSlotDuration = 30;
+    this.docBioEn = 'Senior Consultant with extensive clinical care experience.';
+    this.docBioAr = 'استشاري أول متخصص يتمتع بخبرة سريرية واسعة.';
+    this.docInitialShiftDay = 0;
+    this.docInitialShiftStart = '09:00:00';
+    this.docInitialShiftEnd = '17:00:00';
+  }
+
+  protected closeDoctorModal(): void {
+    this.isDoctorModalOpen = false;
+  }
+
+  protected submitDoctor(): void {
+    if (!this.docFirstName || !this.docLastName || !this.docEmail || !this.docSpecialtyId || !this.docLicenseNumber) {
+      return;
+    }
+
+    const tenantId = this.auth.currentUser()?.tenantId || '1f2aa19b-f5dc-4166-abe6-dc93a2f3aaff';
+    const clinicId = this.assignedClinicId() || this.docClinicId || undefined;
+
+    const request: RegisterDoctorRequest = {
+      tenantId,
+      firstName: this.docFirstName,
+      lastName: this.docLastName,
+      email: this.docEmail,
+      password: this.docPassword,
+      specialtyId: this.docSpecialtyId,
+      licenseNumber: this.docLicenseNumber,
+      bioEn: this.docBioEn,
+      bioAr: this.docBioAr || undefined,
+      clinicId,
+      consultationFee: this.docConsultationFee,
+      defaultSlotDurationMinutes: this.docSlotDuration,
+      requiresApproval: false,
+      initialShiftDay: this.docInitialShiftDay,
+      initialShiftStartTime: this.docInitialShiftStart,
+      initialShiftEndTime: this.docInitialShiftEnd
+    };
+
+    this.adminService.registerDoctor(request).subscribe({
+      next: (created) => {
+        this.closeDoctorModal();
+        this.doctors.update((prev) => [created, ...prev]);
+        this.showMessage(`Doctor Dr. ${created.fullName || this.docFirstName + ' ' + this.docLastName} registered successfully!`);
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || err.error?.message || 'Failed to register doctor.');
+      }
+    });
+  }
+
+  // --- Edit Clinic Branch Actions ---
+  protected openEditClinicModal(clinic: ClinicDto): void {
+    this.isEditClinicModalOpen = true;
+    this.editingClinicId = clinic.id;
+    this.editClinicNameEn = clinic.name;
+    this.editClinicNameAr = clinic.nameAr || '';
+    this.editClinicAddressEn = clinic.address;
+    this.editClinicAddressAr = clinic.addressAr || '';
+    this.editClinicCityEn = clinic.city;
+    this.editClinicCityAr = clinic.cityAr || '';
+    this.editClinicPhone = clinic.phoneNumber;
+    this.editClinicIsActive = clinic.isActive;
+  }
+
+  protected closeEditClinicModal(): void {
+    this.isEditClinicModalOpen = false;
+  }
+
+  protected submitEditClinic(): void {
+    if (!this.editingClinicId || !this.editClinicNameEn) return;
+
+    const request: UpdateClinicRequest = {
+      name: this.editClinicNameEn,
+      nameAr: this.editClinicNameAr || undefined,
+      address: this.editClinicAddressEn,
+      addressAr: this.editClinicAddressAr || undefined,
+      city: this.editClinicCityEn,
+      cityAr: this.editClinicCityAr || undefined,
+      phoneNumber: this.editClinicPhone,
+      isActive: this.editClinicIsActive
+    };
+
+    this.adminService.updateClinic(this.editingClinicId, request).subscribe({
+      next: (updated) => {
+        this.closeEditClinicModal();
+        this.clinics.update((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        this.showMessage(`Clinic branch "${updated.name}" updated successfully!`);
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || 'Failed to update clinic branch.');
+      }
+    });
   }
 
   // --- Specialty Actions ---

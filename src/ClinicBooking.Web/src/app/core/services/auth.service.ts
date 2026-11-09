@@ -28,6 +28,8 @@ export class AuthService {
   // Computed Roles
   public readonly isAuthenticated = computed(() => !!this.accessToken() && !!this.currentUser());
   public readonly isAdmin = computed(() => this.currentUser()?.role === 'Admin');
+  public readonly isClinicAdmin = computed(() => this.currentUser()?.role === 'ClinicAdmin');
+  public readonly isAdminOrClinicAdmin = computed(() => this.isAdmin() || this.isClinicAdmin());
   public readonly isDoctor = computed(() => this.currentUser()?.role === 'Doctor');
   public readonly isPatient = computed(() => this.currentUser()?.role === 'Patient');
 

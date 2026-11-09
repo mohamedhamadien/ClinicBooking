@@ -1,4 +1,4 @@
-export type UserRole = 'Admin' | 'Doctor' | 'Patient';
+export type UserRole = 'Admin' | 'ClinicAdmin' | 'Doctor' | 'Patient';
 
 export interface UserDto {
   id: string;
@@ -7,6 +7,7 @@ export interface UserDto {
   lastName: string;
   role: UserRole;
   tenantId?: string;
+  clinicId?: string;
 }
 
 export interface AuthResponseDto {

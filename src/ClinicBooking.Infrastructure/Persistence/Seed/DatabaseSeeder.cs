@@ -140,6 +140,32 @@ public sealed class DatabaseSeeder
                 cityAr: "القاهرة");
 
             await _dbContext.Clinics.AddAsync(defaultClinic, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        // 5. Seed Clinic Administrator
+        var clinicAdminEmail = "clinicadmin@clinicbooking.com";
+        var clinicAdminEmailVo = Domain.ValueObjects.EmailAddress.Create(clinicAdminEmail);
+        var clinicAdminExists = await _dbContext.Users
+            .IgnoreQueryFilters()
+            .AnyAsync(u => u.Email == clinicAdminEmailVo, cancellationToken);
+
+        if (!clinicAdminExists)
+        {
+            var defaultClinicEntity = await _dbContext.Clinics
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.TenantId == defaultTenant.Id, cancellationToken);
+
+            var clinicAdminUser = User.Create(
+                clinicAdminEmail,
+                firstName: "Clinic",
+                lastName: "Administrator",
+                role: UserRole.ClinicAdmin,
+                tenantId: defaultTenant.Id,
+                clinicId: defaultClinicEntity?.Id);
+
+            clinicAdminUser.SetPasswordHash(_passwordHasher.HashPassword("ClinicAdmin@Secure123!"));
+            await _dbContext.Users.AddAsync(clinicAdminUser, cancellationToken);
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);

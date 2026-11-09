@@ -158,6 +158,29 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
         return _exceptions.Any(e => e.IsBlocked && e.Range.OverlapsWith(range));
     }
 
+    public void AssignToClinic(Guid clinicId, decimal consultationFee, bool isPrimary = false)
+    {
+        var existing = _doctorClinics.FirstOrDefault(dc => dc.ClinicId == clinicId);
+        if (existing is not null)
+        {
+            existing.UpdateFee(consultationFee);
+            existing.SetPrimary(isPrimary);
+        }
+        else
+        {
+            _doctorClinics.Add(new DoctorClinic(Guid.NewGuid(), TenantId, Id, clinicId, consultationFee, isPrimary));
+        }
+    }
+
+    public void RemoveFromClinic(Guid clinicId)
+    {
+        var existing = _doctorClinics.FirstOrDefault(dc => dc.ClinicId == clinicId);
+        if (existing is not null)
+        {
+            _doctorClinics.Remove(existing);
+        }
+    }
+
     public void Deactivate() => IsActive = false;
     public void Activate() => IsActive = true;
 }

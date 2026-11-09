@@ -5,5 +5,6 @@ public interface ICurrentUserService
     Guid? UserId { get; }
     string? Email { get; }
     string? Role { get; }
+    Guid? ClinicId { get; }
     bool IsAuthenticated { get; }
 }

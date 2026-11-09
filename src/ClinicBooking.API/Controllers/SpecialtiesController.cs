@@ -32,7 +32,7 @@ public sealed class SpecialtiesController : ApiControllerBase
     /// Add a new medical specialty with bilingual support (Admin only).
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ClinicAdmin")]
     [ProducesResponseType(typeof(SpecialtyDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SpecialtyDto>> CreateSpecialty(

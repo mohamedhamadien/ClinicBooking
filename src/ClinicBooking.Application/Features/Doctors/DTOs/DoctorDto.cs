@@ -1,5 +1,9 @@
 namespace ClinicBooking.Application.Features.Doctors.DTOs;
 
+public sealed record DoctorShiftDto(
+    TimeOnly StartTime,
+    TimeOnly EndTime);
+
 public sealed record DoctorAvailabilityDto(
     Guid Id,
     Guid ClinicId,
@@ -7,7 +11,16 @@ public sealed record DoctorAvailabilityDto(
     TimeOnly StartTime,
     TimeOnly EndTime,
     bool IsActive,
-    string? DayOfWeekName = null);
+    string? DayOfWeekName = null,
+    string? ClinicName = null,
+    DoctorShiftDto? Shift = null);
+
+public sealed record DoctorClinicDto(
+    Guid ClinicId,
+    string ClinicName,
+    string ClinicCity,
+    decimal ConsultationFee,
+    bool IsPrimary = false);
 
 public sealed record DoctorDto(
     Guid Id,
@@ -21,4 +34,8 @@ public sealed record DoctorDto(
     bool IsActive,
     IReadOnlyList<DoctorAvailabilityDto> Availabilities,
     string? BioAr = null,
-    string? LocalizedBio = null);
+    string? LocalizedBio = null,
+    string? FullName = null,
+    string? Email = null,
+    string? SpecialtyName = null,
+    IReadOnlyList<DoctorClinicDto>? DoctorClinics = null);

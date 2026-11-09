@@ -1,6 +1,8 @@
 using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Clinics.Commands.CreateClinic;
+using ClinicBooking.Application.Features.Clinics.Commands.UpdateClinic;
 using ClinicBooking.Application.Features.Clinics.DTOs;
+using ClinicBooking.Application.Features.Clinics.Queries.GetClinicById;
 using ClinicBooking.Application.Features.Clinics.Queries.GetClinics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,10 +32,25 @@ public sealed class ClinicsController : ApiControllerBase
     }
 
     /// <summary>
-    /// Create a clinic branch for a tenant (Admin only).
+    /// Retrieve single clinic by ID.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ClinicDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ClinicDto>> GetClinicById(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new GetClinicByIdQuery(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Create a clinic branch for a tenant (Admin or ClinicAdmin).
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ClinicAdmin")]
     [ProducesResponseType(typeof(ClinicDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ClinicDto>> CreateClinic(
@@ -43,4 +60,41 @@ public sealed class ClinicsController : ApiControllerBase
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
+
+    /// <summary>
+    /// Update clinic branch details (Admin or ClinicAdmin).
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,ClinicAdmin")]
+    [ProducesResponseType(typeof(ClinicDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ClinicDto>> UpdateClinic(
+        [FromRoute] Guid id,
+        [FromBody] UpdateClinicRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateClinicCommand(
+            id,
+            request.Name,
+            request.Address,
+            request.City,
+            request.PhoneNumber,
+            request.IsActive,
+            request.NameAr,
+            request.AddressAr,
+            request.CityAr);
+
+        var result = await Mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
 }
+
+public sealed record UpdateClinicRequest(
+    string Name,
+    string Address,
+    string City,
+    string PhoneNumber,
+    bool IsActive = true,
+    string? NameAr = null,
+    string? AddressAr = null,
+    string? CityAr = null);

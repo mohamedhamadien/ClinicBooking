@@ -43,9 +43,11 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.LastName).HasMaxLength(50).IsRequired();
         builder.Property(u => u.PasswordHash).HasMaxLength(512).IsUnicode(false).IsRequired();
         builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(u => u.ClinicId).IsRequired(false);
 
         builder.HasOne<Tenant>().WithMany().HasForeignKey(u => u.TenantId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(u => u.TenantId).HasDatabaseName("IX_Users_TenantId");
+        builder.HasIndex(u => u.ClinicId).HasDatabaseName("IX_Users_ClinicId");
 
         builder.HasMany(u => u.RefreshTokens)
             .WithOne()

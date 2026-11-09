@@ -78,9 +78,15 @@ public sealed class AppointmentRepository : IAppointmentRepository
         DateTime? fromUtc,
         DateTime? toUtc,
         Guid? doctorId,
+        Guid? clinicId = null,
         CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Appointments.Where(a => a.TenantId == tenantId);
+
+        if (clinicId.HasValue)
+        {
+            query = query.Where(a => a.ClinicId == clinicId.Value);
+        }
 
         if (doctorId.HasValue)
         {

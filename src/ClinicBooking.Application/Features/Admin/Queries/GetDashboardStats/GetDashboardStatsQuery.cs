@@ -6,7 +6,9 @@ using MediatR;
 
 namespace ClinicBooking.Application.Features.Admin.Queries.GetDashboardStats;
 
-public sealed record GetDashboardStatsQuery(Guid TenantId) : IRequest<Result<DashboardStatsDto>>;
+public sealed record GetDashboardStatsQuery(
+    Guid TenantId,
+    Guid? ClinicId = null) : IRequest<Result<DashboardStatsDto>>;
 
 public sealed class GetDashboardStatsQueryHandler
     : IRequestHandler<GetDashboardStatsQuery, Result<DashboardStatsDto>>
@@ -34,16 +36,18 @@ public sealed class GetDashboardStatsQueryHandler
             fromUtc: null,
             toUtc: null,
             doctorId: null,
+            clinicId: request.ClinicId,
             cancellationToken);
 
         var doctors = await _doctorRepository.ListAsync(
             request.TenantId,
             specialtyId: null,
-            clinicId: null,
+            clinicId: request.ClinicId,
             searchTerm: null,
             cancellationToken);
 
         var clinics = await _clinicRepository.ListAsync(request.TenantId, cancellationToken);
+        var clinicCount = request.ClinicId.HasValue ? 1 : clinics.Count;
 
         var total = appointments.Count;
         var scheduled = appointments.Count(a => a.Status == AppointmentStatus.Scheduled);
@@ -60,7 +64,7 @@ public sealed class GetDashboardStatsQueryHandler
             completed,
             cancelled,
             doctors.Count,
-            clinics.Count);
+            clinicCount);
 
         return Result.Success(dto);
     }

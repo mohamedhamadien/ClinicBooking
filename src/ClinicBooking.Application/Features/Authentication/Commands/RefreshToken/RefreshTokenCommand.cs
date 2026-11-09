@@ -102,7 +102,8 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
             user.FirstName,
             user.LastName,
             user.Role.ToString(),
-            user.IsActive);
+            user.IsActive,
+            user.ClinicId);
 
         return Result.Success(new AuthResponseDto(
             newAccessToken,

@@ -240,7 +240,8 @@ public sealed class ClinicBookingDbContext : DbContext
             return;
         }
 
-        var isSystemAdmin = string.Equals(_currentUserService?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        var isSystemAdmin = string.Equals(_currentUserService?.Role, "Admin", StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(_currentUserService?.Role, "ClinicAdmin", StringComparison.OrdinalIgnoreCase);
         var currentTenantId = CurrentTenantId.Value;
 
         foreach (var entry in ChangeTracker.Entries())

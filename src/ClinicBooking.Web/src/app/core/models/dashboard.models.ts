@@ -4,5 +4,7 @@ export interface DashboardStatsDto {
   confirmedAppointments: number;
   completedAppointments: number;
   cancelledAppointments: number;
-  uniquePatients: number;
+  totalDoctors: number;
+  totalClinics: number;
+  uniquePatients?: number;
 }

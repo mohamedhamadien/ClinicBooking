@@ -126,6 +126,7 @@ public class TenantIsolationTests
         public Guid? UserId { get; }
         public string? Email => null;
         public string? Role => "Admin";
+        public Guid? ClinicId => null;
         public bool IsAuthenticated => UserId.HasValue;
 
         public TestCurrentUserService(Guid? userId) => UserId = userId;

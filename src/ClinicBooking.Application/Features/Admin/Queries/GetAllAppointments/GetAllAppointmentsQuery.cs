@@ -11,7 +11,8 @@ public sealed record GetAllAppointmentsQuery(
     Guid TenantId,
     DateTime? FromUtc = null,
     DateTime? ToUtc = null,
-    Guid? DoctorId = null) : IRequest<Result<IReadOnlyList<AppointmentDto>>>;
+    Guid? DoctorId = null,
+    Guid? ClinicId = null) : IRequest<Result<IReadOnlyList<AppointmentDto>>>;
 
 public sealed class GetAllAppointmentsQueryHandler
     : IRequestHandler<GetAllAppointmentsQuery, Result<IReadOnlyList<AppointmentDto>>>
@@ -36,6 +37,7 @@ public sealed class GetAllAppointmentsQueryHandler
             request.FromUtc,
             request.ToUtc,
             request.DoctorId,
+            request.ClinicId,
             cancellationToken);
 
         var dtos = appointments.Select(a => new AppointmentDto(

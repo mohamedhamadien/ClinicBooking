@@ -2,22 +2,40 @@
   <!-- Top Admin Bar -->
   <div class="card admin-identity-card">
     <div class="identity-info">
-      <div class="admin-shield">🛡️</div>
+      <div class="admin-shield">{{ auth.isClinicAdmin() ? '🏥' : '🛡️' }}</div>
       <div>
         <div class="badge-role">
-          <span class="badge badge-confirmed">System Administrator</span>
-          <span class="tenant-tag">Tenant: {{ auth.currentUser()?.tenantId ? 'apex-health' : 'apex-health' }}</span>
+          @if (auth.isClinicAdmin()) {
+            <span class="badge badge-confirmed">Clinic Administrator</span>
+            @if (assignedClinic(); as ac) {
+              <span class="tenant-tag">Branch: {{ ac.name }}</span>
+            }
+          } @else {
+            <span class="badge badge-confirmed">System Administrator</span>
+            <span class="tenant-tag">Tenant: {{ auth.currentUser()?.tenantId ? 'apex-health' : 'apex-health' }}</span>
+          }
         </div>
-        <h2>Clinic Management Console</h2>
+        <h2>
+          @if (auth.isClinicAdmin() && assignedClinic(); as ac) {
+            {{ ac.name }} &mdash; Management Console
+          } @else {
+            Healthcare Network Management Console
+          }
+        </h2>
         <p class="admin-email">Logged in as: <strong>{{ auth.currentUser()?.email }}</strong></p>
       </div>
     </div>
 
     <div class="identity-actions">
-      <button (click)="openClinicModal()" class="btn btn-outline btn-sm">
-        🏥 + New Branch
+      <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">
+        👨‍⚕️ + Add Doctor
       </button>
-      <button (click)="openSpecialtyModal()" class="btn btn-primary btn-sm">
+      @if (auth.isAdmin()) {
+        <button (click)="openClinicModal()" class="btn btn-outline btn-sm">
+          🏥 + New Branch
+        </button>
+      }
+      <button (click)="openSpecialtyModal()" class="btn btn-outline btn-sm">
         🩺 + New Specialty
       </button>
     </div>
@@ -52,6 +70,13 @@
       📅 Appointments ({{ appointments().length }})
     </button>
     <button
+      (click)="setTab('doctors')"
+      [class.active]="activeTab() === 'doctors'"
+      class="tab-btn"
+    >
+      👨‍⚕️ Doctors ({{ doctors().length }})
+    </button>
+    <button
       (click)="setTab('clinics')"
       [class.active]="activeTab() === 'clinics'"
       class="tab-btn"
@@ -64,13 +89,6 @@
       class="tab-btn"
     >
       🩺 Specialties ({{ specialties().length }})
-    </button>
-    <button
-      (click)="setTab('doctors')"
-      [class.active]="activeTab() === 'doctors'"
-      class="tab-btn"
-    >
-      👨‍⚕️ Doctors ({{ doctors().length }})
     </button>
   </div>
 
@@ -103,10 +121,10 @@
         </div>
 
         <div class="card stat-card">
-          <span class="stat-icon">👥</span>
+          <span class="stat-icon">👨‍⚕️</span>
           <div>
-            <span class="stat-label">{{ 'admin.dashboard.stats_patients' | translate }}</span>
-            <span class="stat-val">{{ s.uniquePatients }}</span>
+            <span class="stat-label">Active Doctors</span>
+            <span class="stat-val">{{ s.totalDoctors }}</span>
           </div>
         </div>
       </div>
@@ -114,6 +132,16 @@
 
     <!-- Quick Management Cards -->
     <div class="grid-3 mt-4">
+      <div class="card quick-action-card">
+        <span class="icon">👨‍⚕️</span>
+        <h3>Medical Doctors</h3>
+        <p>{{ doctors().length }} Doctors registered and available for consultations.</p>
+        <div class="d-flex gap-2 justify-content-center">
+          <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">+ Add Doctor</button>
+          <button (click)="setTab('doctors')" class="btn btn-outline btn-sm">View Directory</button>
+        </div>
+      </div>
+
       <div class="card quick-action-card">
         <span class="icon">🏥</span>
         <h3>Clinic Branches</h3>
@@ -126,13 +154,6 @@
         <h3>Medical Specialties</h3>
         <p>{{ specialties().length }} Bilingual medical departments available.</p>
         <button (click)="setTab('specialties')" class="btn btn-outline btn-sm">Manage Specialties</button>
-      </div>
-
-      <div class="card quick-action-card">
-        <span class="icon">👨‍⚕️</span>
-        <h3>Medical Staff</h3>
-        <p>{{ doctors().length }} Registered practicing physicians.</p>
-        <button (click)="setTab('doctors')" class="btn btn-outline btn-sm">View Doctors</button>
       </div>
     </div>
   }
@@ -169,7 +190,7 @@
           <select [(ngModel)]="filterDoctorId" class="form-select">
             <option value="">All Doctors</option>
             @for (d of doctors(); track d.id) {
-              <option [value]="d.id">{{ d.fullName }} ({{ d.specialtyName }})</option>
+              <option [value]="d.id">{{ d.fullName || d.licenseNumber }} ({{ d.specialtyName || 'Specialist' }})</option>
             }
           </select>
         </div>
@@ -228,17 +249,72 @@
     </div>
   }
 
-  <!-- TAB 3: CLINICS -->
+  <!-- TAB 3: DOCTORS DIRECTORY & MANAGEMENT -->
+  @if (activeTab() === 'doctors') {
+    <div class="tab-header">
+      <div>
+        <h3>Medical Staff & Practicing Doctors</h3>
+        <p class="text-muted m-0">Manage doctor profiles, consultation fees, and clinic assignments.</p>
+      </div>
+      <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">👨‍⚕️ + Add Doctor</button>
+    </div>
+
+    <div class="grid-3 mt-3">
+      @for (doc of doctors(); track doc.id) {
+        <div class="card doctor-admin-card">
+          <div class="doctor-admin-top">
+            <span class="avatar">👨‍⚕️</span>
+            <div>
+              <h4>{{ doc.fullName || 'Doctor ' + doc.licenseNumber }}</h4>
+              <span class="specialty-badge">{{ doc.specialtyName || 'Medical Specialist' }}</span>
+              <p class="license">Lic: {{ doc.licenseNumber }}</p>
+            </div>
+          </div>
+          <p class="bio">{{ doc.bio }}</p>
+          @if (doc.bioAr) {
+            <p class="bio arabic-text">{{ doc.bioAr }}</p>
+          }
+          <div class="meta-row">
+            <span>Duration: <strong>{{ doc.defaultSlotDurationMinutes }} mins</strong></span>
+            <span>Fee: <strong>{{ (doc.doctorClinics.length > 0 && doc.doctorClinics[0].consultationFee) ? doc.doctorClinics[0].consultationFee + ' EGP' : 'Standard' }}</strong></span>
+            <span>Branches: <strong>{{ doc.doctorClinics.length }}</strong></span>
+          </div>
+        </div>
+      } @empty {
+        <div class="card text-center py-5 col-span-3">
+          <p class="text-muted">No doctors currently registered for this clinic.</p>
+          <button (click)="openDoctorModal()" class="btn btn-primary btn-sm mt-2">Add First Doctor</button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 4: CLINICS MANAGEMENT -->
   @if (activeTab() === 'clinics') {
     <div class="tab-header">
-      <h3>Active Clinic Branches</h3>
-      <button (click)="openClinicModal()" class="btn btn-primary btn-sm">+ Add Clinic Branch</button>
+      <div>
+        <h3>Clinic Locations & Facilities</h3>
+        <p class="text-muted m-0">View and update branch addresses, working contacts, and operational status.</p>
+      </div>
+      @if (auth.isAdmin()) {
+        <button (click)="openClinicModal()" class="btn btn-primary btn-sm">+ Add Clinic Branch</button>
+      }
     </div>
 
     <div class="grid-3 mt-3">
       @for (c of clinics(); track c.id) {
-        <div class="card clinic-card">
-          <div class="card-icon">🏥</div>
+        <div class="card clinic-card" [class.highlighted-branch]="c.id === assignedClinicId()">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="card-icon">🏥</div>
+            @if (c.id === assignedClinicId()) {
+              <span class="badge badge-confirmed">Your Assigned Branch</span>
+            } @else {
+              <span class="badge" [class.badge-confirmed]="c.isActive" [class.badge-cancelled]="!c.isActive">
+                {{ c.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            }
+          </div>
+
           <h4>{{ c.name }}</h4>
           @if (c.nameAr) {
             <p class="arabic-text">{{ c.nameAr }}</p>
@@ -250,16 +326,24 @@
             }
             <p>📞 {{ c.phoneNumber }}</p>
           </div>
-          <span class="badge badge-confirmed mt-2">Active Branch</span>
+
+          <div class="card-actions mt-3">
+            <button (click)="openEditClinicModal(c)" class="btn btn-outline btn-sm w-100">
+              ✏️ Edit Branch Details
+            </button>
+          </div>
         </div>
       }
     </div>
   }
 
-  <!-- TAB 4: SPECIALTIES -->
+  <!-- TAB 5: SPECIALTIES -->
   @if (activeTab() === 'specialties') {
     <div class="tab-header">
-      <h3>Bilingual Medical Specialties</h3>
+      <div>
+        <h3>Bilingual Medical Specialties</h3>
+        <p class="text-muted m-0">Specialized departments across all healthcare facilities.</p>
+      </div>
       <button (click)="openSpecialtyModal()" class="btn btn-primary btn-sm">+ Add Specialty</button>
     </div>
 
@@ -281,30 +365,188 @@
     </div>
   }
 
-  <!-- TAB 5: DOCTORS -->
-  @if (activeTab() === 'doctors') {
-    <div class="tab-header">
-      <h3>Medical Staff & Practicing Doctors</h3>
-    </div>
+  <!-- MODAL: REGISTER NEW DOCTOR -->
+  @if (isDoctorModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card modal-lg">
+        <h3>👨‍⚕️ Register New Medical Doctor</h3>
+        <p class="text-muted">Create the physician's login credentials, specialty, clinic assignment, and initial shift.</p>
 
-    <div class="grid-3 mt-3">
-      @for (doc of doctors(); track doc.id) {
-        <div class="card doctor-admin-card">
-          <div class="doctor-admin-top">
-            <span class="avatar">👨‍⚕️</span>
-            <div>
-              <h4>{{ doc.fullName }}</h4>
-              <span class="specialty-badge">{{ doc.specialtyName }}</span>
-              <p class="license">Lic: {{ doc.licenseNumber }}</p>
-            </div>
+        <div class="grid-2 mt-3">
+          <div class="form-group">
+            <label class="form-label">First Name *</label>
+            <input type="text" [(ngModel)]="docFirstName" class="form-control" placeholder="e.g. Sarah" />
           </div>
-          <p class="bio">{{ doc.bio }}</p>
-          <div class="meta-row">
-            <span>Duration: <strong>{{ doc.defaultSlotDurationMinutes }} mins</strong></span>
-            <span>Branches: <strong>{{ doc.doctorClinics.length }}</strong></span>
+          <div class="form-group">
+            <label class="form-label">Last Name *</label>
+            <input type="text" [(ngModel)]="docLastName" class="form-control" placeholder="e.g. Johnson" />
           </div>
         </div>
-      }
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Login Email *</label>
+            <input type="email" [(ngModel)]="docEmail" class="form-control" placeholder="dr.johnson@clinic.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Initial Password *</label>
+            <input type="password" [(ngModel)]="docPassword" class="form-control" placeholder="••••••••" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Medical Specialty *</label>
+            <select [(ngModel)]="docSpecialtyId" class="form-select">
+              @for (sp of specialties(); track sp.id) {
+                <option [value]="sp.id">{{ sp.name }} ({{ sp.nameAr || '' }})</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assigned Clinic Branch *</label>
+            <select [(ngModel)]="docClinicId" [disabled]="!!assignedClinicId()" class="form-select">
+              @for (c of clinics(); track c.id) {
+                <option [value]="c.id">{{ c.name }} ({{ c.city }})</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">Medical License Number *</label>
+            <input type="text" [(ngModel)]="docLicenseNumber" class="form-control" placeholder="EGY-MED-..." />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Consultation Fee (EGP) *</label>
+            <input type="number" [(ngModel)]="docConsultationFee" class="form-control" min="0" step="50" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Slot Duration (Mins) *</label>
+            <select [(ngModel)]="docSlotDuration" class="form-select">
+              <option [value]="15">15 minutes</option>
+              <option [value]="20">20 minutes</option>
+              <option [value]="30">30 minutes</option>
+              <option [value]="45">45 minutes</option>
+              <option [value]="60">60 minutes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Doctor Biography (English)</label>
+          <input type="text" [(ngModel)]="docBioEn" class="form-control" placeholder="Summary of expertise..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Doctor Biography (Arabic)</label>
+          <input type="text" [(ngModel)]="docBioAr" class="form-control" placeholder="نبذة عن الطبيب والتخصص باللغة العربية..." />
+        </div>
+
+        <div class="shift-box p-3 bg-light rounded mt-2">
+          <strong>📅 Initial Working Hours Shift:</strong>
+          <div class="grid-3 mt-2">
+            <div class="form-group mb-0">
+              <label class="form-label">Day of Week</label>
+              <select [(ngModel)]="docInitialShiftDay" class="form-select">
+                <option [value]="0">Sunday (الأحد)</option>
+                <option [value]="1">Monday (الإثنين)</option>
+                <option [value]="2">Tuesday (الثلاثاء)</option>
+                <option [value]="3">Wednesday (الأربعاء)</option>
+                <option [value]="4">Thursday (الخميس)</option>
+                <option [value]="5">Friday (الجمعة)</option>
+                <option [value]="6">Saturday (السبت)</option>
+              </select>
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">Shift Start Time</label>
+              <input type="text" [(ngModel)]="docInitialShiftStart" class="form-control" placeholder="09:00:00" />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">Shift End Time</label>
+              <input type="text" [(ngModel)]="docInitialShiftEnd" class="form-control" placeholder="17:00:00" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeDoctorModal()" class="btn btn-outline">Cancel</button>
+          <button
+            (click)="submitDoctor()"
+            [disabled]="!docFirstName || !docLastName || !docEmail || !docSpecialtyId || !docLicenseNumber"
+            class="btn btn-primary"
+          >
+            Create & Register Doctor
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: EDIT CLINIC BRANCH -->
+  @if (isEditClinicModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>✏️ Edit Clinic Branch</h3>
+        <p class="text-muted">Update operational contact information and address for this location.</p>
+
+        <div class="grid-2 mt-3">
+          <div class="form-group">
+            <label class="form-label">Branch Name (English) *</label>
+            <input type="text" [(ngModel)]="editClinicNameEn" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Branch Name (Arabic)</label>
+            <input type="text" [(ngModel)]="editClinicNameAr" class="form-control" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">City (English) *</label>
+            <input type="text" [(ngModel)]="editClinicCityEn" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">City (Arabic)</label>
+            <input type="text" [(ngModel)]="editClinicCityAr" class="form-control" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Street Address (English) *</label>
+            <input type="text" [(ngModel)]="editClinicAddressEn" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Street Address (Arabic)</label>
+            <input type="text" [(ngModel)]="editClinicAddressAr" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phone Number *</label>
+          <input type="tel" [(ngModel)]="editClinicPhone" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label class="d-flex align-items-center gap-2">
+            <input type="checkbox" [(ngModel)]="editClinicIsActive" />
+            <span>Branch is open and active for consultations</span>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button (click)="closeEditClinicModal()" class="btn btn-outline">Cancel</button>
+          <button
+            (click)="submitEditClinic()"
+            [disabled]="!editClinicNameEn || !editClinicCityEn || !editClinicAddressEn"
+            class="btn btn-primary"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
     </div>
   }
 

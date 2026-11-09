@@ -40,6 +40,11 @@ public sealed class TokenService : ITokenService
             claims.Add(new Claim("tenant_id", user.TenantId.Value.ToString()));
         }
 
+        if (user.ClinicId.HasValue)
+        {
+            claims.Add(new Claim("clinic_id", user.ClinicId.Value.ToString()));
+        }
+
         if (!string.IsNullOrWhiteSpace(tenantIdentifier))
         {
             claims.Add(new Claim("tenant", tenantIdentifier));

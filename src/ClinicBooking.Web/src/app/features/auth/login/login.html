@@ -27,15 +27,24 @@
         {{ isSubmitting() ? 'Signing in...' : ('auth.login.submit' | translate) }}
       </button>
 
-      <!-- Quick Admin Sign In Demo Button -->
-      <div class="quick-admin-box mt-3">
+      <!-- Quick Admin Sign In Demo Buttons -->
+      <div class="quick-admin-box mt-3 d-flex flex-column gap-2">
         <button
           type="button"
           (click)="quickAdminLogin()"
           [disabled]="isSubmitting()"
           class="btn btn-outline btn-sm w-100 quick-admin-btn"
         >
-          ⚡ Sign in as Registered Admin (admin&#64;clinicbooking.com)
+          ⚡ System Admin (admin&#64;clinicbooking.com)
+        </button>
+
+        <button
+          type="button"
+          (click)="quickClinicAdminLogin()"
+          [disabled]="isSubmitting()"
+          class="btn btn-outline btn-sm w-100 quick-admin-btn"
+        >
+          🏥 Clinic Admin (clinicadmin&#64;clinicbooking.com)
         </button>
       </div>
     </form>
