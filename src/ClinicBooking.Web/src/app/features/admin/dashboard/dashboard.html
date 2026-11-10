@@ -208,6 +208,25 @@
           }
         </button>
       }
+
+      @if (canAccessTab('inventory')) {
+        <button
+          (click)="setTab('inventory')"
+          [class.active]="activeTab() === 'inventory'"
+          class="sidebar-nav-item"
+          title="{{ translation.isArabic() ? 'المستلزمات والمخزون' : 'Supplies & Inventory' }}"
+        >
+          <span class="nav-icon">📦</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">{{ translation.isArabic() ? 'المستلزمات والمخزون' : 'Supplies & Inventory' }}</span>
+            @if (lowStockCount() > 0) {
+              <span class="nav-counter" style="background: #ef4444; color: #fff;" title="Low stock alert">{{ lowStockCount() }}</span>
+            } @else if (inventoryItems().length > 0) {
+              <span class="nav-counter">{{ inventoryItems().length }}</span>
+            }
+          }
+        </button>
+      }
     </nav>
 
     <!-- Sidebar Quick Info / Branch selector -->
@@ -374,6 +393,9 @@
             }
           </select>
         }
+        <a routerLink="/queue/tv" target="_blank" class="btn btn-primary btn-sm" title="Launch Waiting Room TV Display">
+          📺 {{ translation.isArabic() ? 'شاشة صالة الانتظار (TV)' : 'Smart TV Display' }}
+        </a>
         <button (click)="printQueueReport()" class="btn btn-outline btn-sm">
           🖨️ {{ translation.isArabic() ? 'طباعة كشف الانتظار' : 'Print Queue Sheet' }}
         </button>
@@ -420,21 +442,27 @@
                   </span>
                 </td>
                 <td>
-                  @if (q.status === 'Scheduled' || q.status === 'Confirmed') {
-                    <button (click)="checkInPatient(q.appointmentId)" class="btn btn-primary btn-sm">
-                      🛎️ {{ translation.isArabic() ? 'تسجيل حضور (إصدار رقم)' : 'Check-in (Assign Token)' }}
+                  <div class="d-flex gap-1 align-items-center">
+                    @if (q.status === 'Scheduled' || q.status === 'Confirmed') {
+                      <button (click)="checkInPatient(q.appointmentId)" class="btn btn-primary btn-sm">
+                        🛎️ {{ translation.isArabic() ? 'تسجيل حضور' : 'Check-in' }}
+                      </button>
+                    } @else if (q.status === 'CheckedIn') {
+                      <button (click)="callPatient(q.appointmentId)" class="btn btn-outline btn-sm">
+                        📢 {{ translation.isArabic() ? 'استدعاء' : 'Call Room' }}
+                      </button>
+                    } @else if (q.status === 'InConsultation') {
+                      <button (click)="openConsultationForAppt(q)" class="btn btn-confirmed btn-sm">
+                        🩺 {{ translation.isArabic() ? 'فتح الكشف' : 'Consult' }}
+                      </button>
+                    } @else {
+                      <span class="text-muted">{{ translation.isArabic() ? 'تم' : 'Done' }}</span>
+                    }
+
+                    <button (click)="openWhatsAppQueueCall(q)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'إرسال إشعار واتساب للمريض بالدور' : 'Send WhatsApp token alert' }}">
+                      💬
                     </button>
-                  } @else if (q.status === 'CheckedIn') {
-                    <button (click)="callPatient(q.appointmentId)" class="btn btn-outline btn-sm">
-                      📢 {{ translation.isArabic() ? 'استدعاء لغرفة الكشف' : 'Call into Room' }}
-                    </button>
-                  } @else if (q.status === 'InConsultation') {
-                    <button (click)="openConsultationForAppt(q)" class="btn btn-confirmed btn-sm">
-                      🩺 {{ translation.isArabic() ? 'فتح الكشف الطبي' : 'Open Consultation' }}
-                    </button>
-                  } @else {
-                    <span class="text-muted">{{ translation.isArabic() ? 'تم' : 'Done' }}</span>
-                  }
+                  </div>
                 </td>
               </tr>
             } @empty {
@@ -745,6 +773,53 @@
             </div>
           </div>
         </div>
+
+        <!-- Section 3: Lab & Radiology Documents Vault -->
+        <div class="card p-4 mt-4 border">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="m-0">📁 {{ translation.isArabic() ? 'الفحوصات المخبرية والأشعة والمستندات الطبية' : 'Lab Tests, Radiology Scans & Medical Documents' }} ({{ patientAttachments().length }})</h4>
+              <p class="text-muted m-0 small">{{ translation.isArabic() ? 'أشعة X-Ray، رنين مغناطيسي MRI، تحاليل دم، وتقارير طبية مرفقة.' : 'Diagnostic scans, blood lab panels, imaging, and patient documents.' }}</p>
+            </div>
+            <button (click)="openAttachmentModal()" class="btn btn-primary btn-sm">
+              ➕ {{ translation.isArabic() ? '+ رفع فحص / تقرير جديد' : '+ Upload Lab / Scan' }}
+            </button>
+          </div>
+
+          <div class="grid-3 mt-2">
+            @for (att of patientAttachments(); track att.id) {
+              <div class="card p-3 border doc-card">
+                <div class="d-flex justify-content-between align-items-start">
+                  <span style="font-size: 2rem;">
+                    {{ att.attachmentType === 'XRay' || att.attachmentType === 'MRI' ? '🩻' : att.attachmentType === 'LabResult' ? '🧪' : '📄' }}
+                  </span>
+                  <span class="badge badge-scheduled">{{ att.attachmentType }}</span>
+                </div>
+                <h5 class="mt-2 mb-1">{{ att.title }}</h5>
+                <small class="text-muted">{{ att.fileName }} &bull; {{ (att.fileSizeBytes / 1024).toFixed(1) }} KB</small>
+                <div class="text-muted small mt-1">📅 {{ att.uploadedAtUtc | date:'mediumDate' }}</div>
+                @if (att.notes) {
+                  <p class="small text-muted mt-2 mb-2 p-1 bg-light rounded">{{ att.notes }}</p>
+                }
+                <div class="d-flex gap-2 mt-3">
+                  <button (click)="previewAttachment(att)" class="btn btn-outline btn-xs flex-grow-1">
+                    👁️ {{ translation.isArabic() ? 'معاينة' : 'Preview' }}
+                  </button>
+                  <a [href]="att.dataUrl" [download]="att.fileName" class="btn btn-outline btn-xs" title="Download">
+                    📥
+                  </a>
+                  <button (click)="deleteAttachment(att.id)" class="btn btn-outline btn-xs text-danger" title="Delete">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="text-center py-4 text-muted" style="grid-column: 1 / -1;">
+                {{ translation.isArabic() ? 'لا توجد فحوصات أو أشعة مرفقة في ملف المريض حتى الآن. اضغط "+ رفع فحص / تقرير جديد".' : 'No lab results or scans attached yet. Click "+ Upload Lab / Scan".' }}
+              </div>
+            }
+          </div>
+        </div>
       </div>
     } @else {
       <div class="card text-center py-5 mt-3">
@@ -763,8 +838,17 @@
         <p class="text-muted m-0">{{ translation.isArabic() ? 'إصدار فواتير الكشف والخدمات، تسجيل التحصيل نقداً أو بالبطاقة، ومتابعة سجلات الحسابات.' : 'Issue itemized consultation bills, record cash/card payments, and audit financial records.' }}</p>
       </div>
       <div class="d-flex gap-2">
+        <button (click)="openAddInsuranceModal()" class="btn btn-outline btn-sm">
+          🏢 {{ translation.isArabic() ? 'شركات التأمين' : 'Insurance' }}
+        </button>
+        <button (click)="printInsuranceClaimsReport()" class="btn btn-outline btn-sm">
+          📑 {{ translation.isArabic() ? 'مطالبات التأمين' : 'Claims Report' }}
+        </button>
+        <button (click)="exportInsuranceClaimsCsv()" class="btn btn-outline btn-sm">
+          📥 {{ translation.isArabic() ? 'تصدير المطالبات CSV' : 'Claims CSV' }}
+        </button>
         <button (click)="exportInvoicesCsv()" class="btn btn-outline btn-sm">
-          📥 {{ translation.isArabic() ? 'تصدير دفتر الفواتير CSV' : 'Export Invoices Ledger (CSV)' }}
+          📥 {{ translation.isArabic() ? 'دفتر الفواتير CSV' : 'Ledger CSV' }}
         </button>
         <button (click)="openInvoiceModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إصدار فاتورة' : 'Issue Invoice' }}</button>
         <button (click)="loadInvoices()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث' : '🔄 Refresh' }}</button>
@@ -794,7 +878,13 @@
                 <td>{{ inv.clinicName || 'Clinic Branch' }}</td>
                 <td>{{ inv.issuedAtUtc | date:'mediumDate' }}</td>
                 <td><strong class="text-primary">{{ inv.totalAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong></td>
-                <td>{{ inv.paymentMethod }}</td>
+                <td>
+                  <strong>{{ inv.paymentMethod }}</strong>
+                  @if (inv.insuranceCoverageAmount && inv.insuranceCoverageAmount > 0) {
+                    <div class="small text-info mt-1">🛡️ {{ inv.insuranceProviderName || (translation.isArabic() ? 'تأمين' : 'Insurance') }}: {{ inv.insuranceCoverageAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</div>
+                    <div class="small text-muted">{{ translation.isArabic() ? 'تحمل: ' : 'Copay: ' }}{{ inv.patientCopayAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</div>
+                  }
+                </td>
                 <td>
                   <span class="badge" [class.badge-confirmed]="inv.status === 'Paid'" [class.badge-scheduled]="inv.status === 'Pending'">
                     {{ inv.status === 'Paid' ? (translation.isArabic() ? 'مدفوع' : 'Paid') : inv.status === 'Pending' ? (translation.isArabic() ? 'قيد السداد' : 'Pending') : inv.status }}
@@ -833,12 +923,20 @@
         <h3 class="m-0">📅 {{ translation.isArabic() ? 'سجل وجدول المواعيد العام' : 'Appointments Master Roster' }}</h3>
         <p class="text-muted m-0 small">{{ translation.isArabic() ? 'جدول المواعيد لجميع العيادات والأطباء مع أدوات الفلترة والبحث' : 'Clinic appointment schedule with search and filtering' }}</p>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex gap-1">
+          <button (click)="setAppointmentsView('table')" class="btn btn-sm" [class.btn-primary]="appointmentsViewMode() === 'table'" [class.btn-outline]="appointmentsViewMode() !== 'table'">
+            📋 {{ translation.isArabic() ? 'جدول' : 'Table' }}
+          </button>
+          <button (click)="setAppointmentsView('calendar')" class="btn btn-sm" [class.btn-primary]="appointmentsViewMode() === 'calendar'" [class.btn-outline]="appointmentsViewMode() !== 'calendar'">
+            📅 {{ translation.isArabic() ? 'التقويم المرئي' : 'Calendar View' }}
+          </button>
+        </div>
         <button (click)="printAppointmentsSchedule()" class="btn btn-outline btn-sm">
-          🖨️ {{ translation.isArabic() ? 'طباعة جدول المواعيد' : 'Print Schedule' }}
+          🖨️ {{ translation.isArabic() ? 'طباعة' : 'Print' }}
         </button>
         <button (click)="exportAppointmentsCsv()" class="btn btn-outline btn-sm">
-          📥 {{ translation.isArabic() ? 'تصدير المواعيد CSV' : 'Export CSV' }}
+          📥 {{ translation.isArabic() ? 'تصدير CSV' : 'Export CSV' }}
         </button>
       </div>
     </div>
@@ -882,56 +980,103 @@
       </div>
     </div>
 
-    <div class="card table-card mt-3">
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
-              <th>{{ translation.isArabic() ? 'الطبيب' : 'Doctor' }}</th>
-              <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic' }}</th>
-              <th>{{ translation.isArabic() ? 'التاريخ والوقت' : 'Date & Time' }}</th>
-              <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
-              <th>{{ translation.isArabic() ? 'الملف الطبي / إجراء' : 'EMR / Action' }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (appt of filteredAppointments(); track appt.id) {
+    @if (appointmentsViewMode() === 'table') {
+      <div class="card table-card mt-3">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
               <tr>
-                <td><strong>{{ appt.patientName || appt.patientId.slice(0, 8) }}</strong></td>
-                <td>{{ appt.doctorName || appt.doctorId.slice(0, 8) }}</td>
-                <td>{{ appt.clinicName || 'Clinic Branch' }}</td>
-                <td>
-                  <div>{{ appt.startTimeUtc | date:'mediumDate' }}</div>
-                  <small class="text-muted">{{ appt.startTimeUtc | date:'shortTime' }} - {{ appt.endTimeUtc | date:'shortTime' }}</small>
-                </td>
-                <td>
-                  <span class="badge" [class]="getBadgeClass(appt.status)">
-                    {{ 'status.' + appt.status | translate }}
-                  </span>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button (click)="viewPatientRecord(appt.patientId)" class="btn btn-outline btn-sm">
-                      🗂️ {{ translation.isArabic() ? 'الملف' : 'EMR' }}
-                    </button>
-                    @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
-                      <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
-                        {{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}
+                <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
+                <th>{{ translation.isArabic() ? 'الطبيب' : 'Doctor' }}</th>
+                <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic' }}</th>
+                <th>{{ translation.isArabic() ? 'التاريخ والوقت' : 'Date & Time' }}</th>
+                <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+                <th>{{ translation.isArabic() ? 'الملف الطبي / إجراء' : 'EMR / Action' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (appt of filteredAppointments(); track appt.id) {
+                <tr>
+                  <td><strong>{{ appt.patientName || appt.patientId.slice(0, 8) }}</strong></td>
+                  <td>{{ appt.doctorName || appt.doctorId.slice(0, 8) }}</td>
+                  <td>{{ appt.clinicName || 'Clinic Branch' }}</td>
+                  <td>
+                    <div>{{ appt.startTimeUtc | date:'mediumDate' }}</div>
+                    <small class="text-muted">{{ appt.startTimeUtc | date:'shortTime' }} - {{ appt.endTimeUtc | date:'shortTime' }}</small>
+                  </td>
+                  <td>
+                    <span class="badge" [class]="getBadgeClass(appt.status)">
+                      {{ 'status.' + appt.status | translate }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1 align-items-center">
+                      <button (click)="viewPatientRecord(appt.patientId)" class="btn btn-outline btn-sm" title="View EMR">
+                        🗂️ {{ translation.isArabic() ? 'الملف' : 'EMR' }}
                       </button>
+                      <button (click)="openWhatsAppReminder(appt)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'إرسال تذكير عبر واتساب' : 'Send WhatsApp Reminder' }}">
+                        💬
+                      </button>
+                      @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
+                        <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
+                          {{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="text-center py-4">{{ translation.isArabic() ? 'لا توجد مواعيد تطابق شروط التصفية المختارة.' : 'No appointments match the selected filters.' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    } @else {
+      <!-- INTERACTIVE VISUAL CALENDAR (Feature 5) -->
+      <div class="card calendar-card mt-3 p-3">
+        <div class="calendar-container">
+          <div class="calendar-header-grid">
+            <div class="cal-time-col">{{ translation.isArabic() ? 'الوقت' : 'Time' }}</div>
+            @for (day of getCalendarDays(); track day.dateStr) {
+              <div class="cal-day-col">
+                <div class="cal-day-name">{{ day.dayName }}</div>
+                <div class="cal-day-num">{{ day.dayNum }}</div>
+              </div>
+            }
+          </div>
+
+          <div class="calendar-body">
+            @for (hour of calendarHours; track hour) {
+              <div class="cal-hour-row">
+                <div class="cal-time-label">
+                  {{ hour < 10 ? '0' + hour : hour }}:00
+                </div>
+
+                @for (day of getCalendarDays(); track day.dateStr) {
+                  <div class="cal-slot-cell">
+                    @for (slotAppt of getAppointmentsForSlot(day.dateStr, hour); track slotAppt.id) {
+                      <div
+                        class="cal-event-pill"
+                        [class]="getBadgeClass(slotAppt.status)"
+                        (click)="openQuickAppointment(slotAppt)"
+                        title="Click to view details"
+                      >
+                        <div class="cal-event-patient">{{ slotAppt.patientName || slotAppt.patientId.slice(0, 8) }}</div>
+                        <div class="cal-event-doctor">🩺 {{ slotAppt.doctorName || 'Doctor' }}</div>
+                        <div class="cal-event-time">{{ slotAppt.startTimeUtc | date:'shortTime' }}</div>
+                      </div>
                     }
                   </div>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="6" class="text-center py-4">{{ translation.isArabic() ? 'لا توجد مواعيد تطابق شروط التصفية المختارة.' : 'No appointments match the selected filters.' }}</td>
-              </tr>
+                }
+              </div>
             }
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
-    </div>
+    }
   }
 
   <!-- TAB 7: DOCTORS DIRECTORY -->
@@ -1165,6 +1310,156 @@
       </div>
     </div>
   }
+
+  <!-- TAB 11: MEDICAL INVENTORY & SUPPLIES (Feature 4) -->
+  @if (activeTab() === 'inventory') {
+    <div class="tab-header">
+      <div>
+        <h3>📦 {{ translation.isArabic() ? 'إدارة المستلزمات والمخزون الطبي والصيدلية' : 'Medical Supplies & Pharmacy Inventory' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'متابعة أرصدة الأدوية، السرنجات، الشاش الطبي، تنبيهات حد الأمان، وتواريخ الصلاحية.' : 'Track stock levels, consumable supplies, reorder safety thresholds, and expiration dates.' }}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button (click)="printInventoryReport()" class="btn btn-outline btn-sm">
+          🖨️ {{ translation.isArabic() ? 'طباعة تقرير الجرد' : 'Print Inventory Report' }}
+        </button>
+        <button (click)="exportInventoryCsv()" class="btn btn-outline btn-sm">
+          📥 {{ translation.isArabic() ? 'تصدير المخزون CSV' : 'Export CSV' }}
+        </button>
+        <button (click)="openAddInventoryModal()" class="btn btn-primary btn-sm">
+          ➕ + {{ translation.isArabic() ? 'إضافة صنف / مستلزم' : 'Add Supply Item' }}
+        </button>
+        <button (click)="loadInventory()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث' : '🔄 Refresh' }}</button>
+      </div>
+    </div>
+
+    <!-- Inventory Stat Cards -->
+    <div class="grid-4 stats-grid mt-3">
+      <div class="card stat-card">
+        <span class="stat-icon">📦</span>
+        <div>
+          <span class="stat-label">{{ translation.isArabic() ? 'إجمالي الأصناف' : 'Total Items' }}</span>
+          <span class="stat-val">{{ inventoryItems().length }}</span>
+        </div>
+      </div>
+      <div class="card stat-card" style="border-inline-start-color: #ef4444;">
+        <span class="stat-icon">⚠️</span>
+        <div>
+          <span class="stat-label">{{ translation.isArabic() ? 'تنبيهات انخفاض المخزون' : 'Low Stock Alerts' }}</span>
+          <span class="stat-val text-danger">{{ lowStockCount() }}</span>
+        </div>
+      </div>
+      <div class="card stat-card" style="border-inline-start-color: #f59e0b;">
+        <span class="stat-icon">⏳</span>
+        <div>
+          <span class="stat-label">{{ translation.isArabic() ? 'أصناف منتهية الصلاحية' : 'Expired Items' }}</span>
+          <span class="stat-val text-warning">{{ inventoryItems().filter(i => i.isExpired).length }}</span>
+        </div>
+      </div>
+      <div class="card stat-card" style="border-inline-start-color: #10b981;">
+        <span class="stat-icon">🏥</span>
+        <div>
+          <span class="stat-label">{{ translation.isArabic() ? 'الفرع النشط' : 'Active Facility' }}</span>
+          <span class="stat-val" style="font-size: 1.05rem; font-weight: 700;">{{ getActiveClinicName() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Filters -->
+    <div class="card filter-card mt-3">
+      <div class="filter-grid">
+        <div class="form-group mb-0">
+          <label class="form-label">{{ translation.isArabic() ? 'بحث عن صنف أو كود' : 'Search Item / Batch' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="filterInventorySearch"
+            [placeholder]="translation.isArabic() ? 'اكتب اسم الصنف أو رقم التشغيلة...' : 'Search by item name or batch #...'"
+            class="form-control"
+          />
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب التصنيف' : 'Filter by Category' }}</label>
+          <select [(ngModel)]="filterInventoryCategory" class="form-select">
+            <option value="">{{ translation.isArabic() ? 'كافة التصنيفات' : 'All Categories' }}</option>
+            <option value="Consumables">{{ translation.isArabic() ? 'مستهلكات طبية (Consumables)' : 'Consumables' }}</option>
+            <option value="Pharmaceuticals">{{ translation.isArabic() ? 'أدوية ومحاليل (Pharmaceuticals)' : 'Pharmaceuticals' }}</option>
+            <option value="Equipment">{{ translation.isArabic() ? 'أجهزة ومعدات (Equipment)' : 'Equipment' }}</option>
+            <option value="Supplies">{{ translation.isArabic() ? 'مستلزمات عامة (Supplies)' : 'Supplies' }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Items Table -->
+    <div class="card table-card mt-3">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ translation.isArabic() ? 'اسم الصنف' : 'Item Name' }}</th>
+              <th>{{ translation.isArabic() ? 'التصنيف' : 'Category' }}</th>
+              <th>{{ translation.isArabic() ? 'الرصيد الحالي' : 'Stock Level' }}</th>
+              <th>{{ translation.isArabic() ? 'حد الأمان' : 'Min Threshold' }}</th>
+              <th>{{ translation.isArabic() ? 'سعر الوحدة' : 'Unit Price' }}</th>
+              <th>{{ translation.isArabic() ? 'تاريخ الصلاحية' : 'Expiry Date' }}</th>
+              <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+              <th>{{ translation.isArabic() ? 'تعديل الرصيد / إجراء' : 'Stock Action' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of filteredInventory(); track item.id) {
+              <tr [class.table-warning]="item.isLowStock">
+                <td>
+                  <strong>{{ translation.isArabic() && item.itemNameAr ? item.itemNameAr : item.itemName }}</strong>
+                  @if (item.batchNumber) {
+                    <div class="small text-muted">{{ translation.isArabic() ? 'تشغيلة: ' : 'Batch: ' }}{{ item.batchNumber }}</div>
+                  }
+                </td>
+                <td><span class="badge badge-scheduled">{{ item.category }}</span></td>
+                <td>
+                  <strong style="font-size: 1.15rem;">{{ item.currentStock }}</strong> {{ item.unit }}
+                </td>
+                <td>{{ item.minimumThreshold }} {{ item.unit }}</td>
+                <td>{{ item.unitPrice }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</td>
+                <td>
+                  @if (item.expiryDate) {
+                    <span [class.text-danger]="item.isExpired">{{ item.expiryDate | date:'mediumDate' }}</span>
+                  } @else {
+                    <span class="text-muted">-</span>
+                  }
+                </td>
+                <td>
+                  @if (item.isExpired) {
+                    <span class="badge badge-cancelled">{{ translation.isArabic() ? 'منتهي الصلاحية' : 'Expired' }}</span>
+                  } @else if (item.isLowStock) {
+                    <span class="badge" style="background:#ef4444; color:#fff;">{{ translation.isArabic() ? 'منخفض (إعادة توريد)' : 'Low Stock' }}</span>
+                  } @else {
+                    <span class="badge badge-confirmed">{{ translation.isArabic() ? 'متوفر' : 'In Stock' }}</span>
+                  }
+                </td>
+                <td>
+                  <div class="d-flex gap-1 align-items-center">
+                    <button (click)="adjustInventoryStock(item, 10)" class="btn btn-outline btn-xs" title="{{ translation.isArabic() ? 'توريد +10' : '+10 Restock' }}">
+                      ➕ +10
+                    </button>
+                    <button (click)="adjustInventoryStock(item, -1)" [disabled]="item.currentStock <= 0" class="btn btn-outline btn-xs" title="{{ translation.isArabic() ? 'صرف -1' : '-1 Dispense' }}">
+                      ➖ -1
+                    </button>
+                    <button (click)="deleteInventoryItem(item.id)" class="btn btn-outline btn-xs text-danger" title="Delete">
+                      🗑️
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد أصناف مسجلة في المخزون. اضغط "+ إضافة صنف / مستلزم" لإدخال صنف جديد.' : 'No items recorded in inventory. Click "+ Add Supply Item" to register stock.' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
     </div> <!-- /cms-screen-viewport -->
   </main> <!-- /cms-main-area -->
 
@@ -1240,12 +1535,29 @@
 
         <div class="form-group">
           <label class="form-label">{{ translation.isArabic() ? 'طريقة السداد' : 'Payment Method' }}</label>
-          <select [(ngModel)]="invMethod" class="form-select">
+          <select [(ngModel)]="invMethod" (change)="recalculateInsuranceShares()" class="form-select">
             <option [value]="1">💵 {{ translation.isArabic() ? 'نقدي (Cash)' : 'Cash (نقدي)' }}</option>
             <option [value]="2">💳 {{ translation.isArabic() ? 'بطاقة بنكية (Credit/Debit Card)' : 'Credit / Debit Card (بطاقة بنكية)' }}</option>
             <option [value]="3">🛡️ {{ translation.isArabic() ? 'تأمين صحي (Insurance)' : 'Health Insurance (تأمين صحي)' }}</option>
           </select>
         </div>
+
+        @if (invMethod == 3) {
+          <div class="p-3 bg-light rounded border border-info mb-3">
+            <div class="form-group mb-2">
+              <label class="form-label">{{ translation.isArabic() ? 'شركة التأمين الصحي *' : 'Insurance Provider *' }}</label>
+              <select [(ngModel)]="invInsuranceProviderId" (change)="recalculateInsuranceShares()" class="form-select">
+                @for (p of insuranceProviders(); track p.id) {
+                  <option [value]="p.id">{{ translation.isArabic() && p.nameAr ? p.nameAr : p.name }} ({{ p.defaultCoveragePercentage }}% {{ translation.isArabic() ? 'تغطية' : 'Coverage' }})</option>
+                }
+              </select>
+            </div>
+            <div class="d-flex justify-content-between small">
+              <span>🛡️ {{ translation.isArabic() ? 'تغطية شركة التأمين:' : 'Insurance Coverage:' }} <strong class="text-info">{{ invInsuranceCoverageAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong></span>
+              <span>💵 {{ translation.isArabic() ? 'تحمل المريض (Co-pay):' : 'Patient Copay:' }} <strong class="text-primary">{{ invPatientCopayAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong></span>
+            </div>
+          </div>
+        }
 
         <div class="items-box mt-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -1835,6 +2147,248 @@
         <div class="modal-actions mt-4">
           <button (click)="closeEditStaffModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button (click)="submitUpdateStaffPermissions()" class="btn btn-primary">{{ translation.isArabic() ? 'حفظ التعديلات' : 'Save Changes' }}</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: UPLOAD MEDICAL ATTACHMENT / LAB / SCAN (Feature 2) -->
+  @if (isAttachmentModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>📁 {{ translation.isArabic() ? 'رفع فحص طبي أو تقرير أشعة للمريض' : 'Upload Medical Scan / Lab Result' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'إرفاق نتائج الفحوصات والتحاليل وصور الأشعة بملف المريض الطبي.' : 'Attach laboratory findings, radiological imaging, or clinical documents to patient chart.' }}</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'عنوان المستند / الفحص *' : 'Document Title *' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="attachTitle"
+            [placeholder]="translation.isArabic() ? 'مثال: تحليل صورة دم كاملة CBC، أشعة سينية على الصدر' : 'e.g. Complete Blood Count (CBC), Chest X-Ray'"
+            class="form-control"
+          />
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'نوع الفحص الطبي *' : 'Document Type *' }}</label>
+            <select [(ngModel)]="attachType" class="form-select">
+              <option value="LabResult">🧪 {{ translation.isArabic() ? 'تحليل مخبري (Lab Result)' : 'Lab Result' }}</option>
+              <option value="XRay">🩻 {{ translation.isArabic() ? 'أشعة سينية (X-Ray)' : 'X-Ray' }}</option>
+              <option value="MRI">🩻 {{ translation.isArabic() ? 'رنين مغناطيسي (MRI)' : 'MRI' }}</option>
+              <option value="Ultrasound">📡 {{ translation.isArabic() ? 'سونار / موجات فوق صوتية (Ultrasound)' : 'Ultrasound' }}</option>
+              <option value="PrescriptionScan">💊 {{ translation.isArabic() ? 'مسح روشتة سابقة (Prescription)' : 'Prescription Scan' }}</option>
+              <option value="Report">📄 {{ translation.isArabic() ? 'تقرير طبي واستشاري (Report)' : 'Clinical Report' }}</option>
+              <option value="Other">📎 {{ translation.isArabic() ? 'مستند آخر (Other)' : 'Other' }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'اختر الملف (صورة أو PDF) *' : 'Select File (Image / PDF) *' }}</label>
+            <input type="file" (change)="onAttachmentFileSelected($event)" accept="image/*,.pdf" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'ملاحظات الطبيب أو الفني' : 'Doctor / Technician Notes' }}</label>
+          <textarea
+            [(ngModel)]="attachNotes"
+            rows="2"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'أي ملاحظات خاصة بنتائج التحليل أو الفحص...' : 'Special clinical remarks or findings...'"
+          ></textarea>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeAttachmentModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitAttachment()" [disabled]="!attachTitle || !attachDataUrl" class="btn btn-primary">
+            💾 {{ translation.isArabic() ? 'حفظ وإرفاق بالملف الطبي' : 'Save & Attach to EMR' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: PREVIEW MEDICAL ATTACHMENT -->
+  @if (previewAttachmentModal; as doc) {
+    <div class="modal-backdrop" (click)="closePreviewAttachment()">
+      <div class="card modal-card modal-lg" (click)="$event.stopPropagation()" style="max-width: 800px;">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <div>
+            <h3 class="m-0">🔍 {{ doc.title }}</h3>
+            <small class="text-muted">{{ doc.fileName }} &bull; {{ doc.attachmentType }} &bull; {{ doc.uploadedAtUtc | date:'medium' }}</small>
+          </div>
+          <button (click)="closePreviewAttachment()" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <div class="mt-3 text-center" style="max-height: 550px; overflow-y: auto;">
+          @if (doc.contentType.startsWith('image/')) {
+            <img [src]="doc.dataUrl" [alt]="doc.title" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;" />
+          } @else {
+            <div class="p-5 bg-light rounded text-center">
+              <span style="font-size: 3rem;">📄</span>
+              <p class="mt-2">{{ translation.isArabic() ? 'مستند PDF أو ملف طبي' : 'Medical PDF / File' }}</p>
+              <a [href]="doc.dataUrl" [download]="doc.fileName" class="btn btn-primary mt-2">
+                📥 {{ translation.isArabic() ? 'تنزيل وفتح الملف' : 'Download Document' }}
+              </a>
+            </div>
+          }
+        </div>
+
+        @if (doc.notes) {
+          <div class="p-2 bg-light rounded mt-3">
+            <strong>{{ translation.isArabic() ? 'ملاحظات: ' : 'Notes: ' }}</strong>{{ doc.notes }}
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: ADD MEDICAL INVENTORY ITEM (Feature 4) -->
+  @if (isAddInventoryModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card modal-lg">
+        <h3>📦 {{ translation.isArabic() ? 'إضافة مستلزم أو صنف طبي للمخزون' : 'Add Medical Supply to Inventory' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'إدخال دواء أو مستهلك طبي وتحديد الرصيد الأولي وحد الأمان وسعر الوحدة.' : 'Register clinical supplies, initial quantity, reorder safety threshold, and unit price.' }}</p>
+
+        <div class="grid-2 mt-3">
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'اسم الصنف (إنجليزي) *' : 'Item Name (EN) *' }}</label>
+            <input type="text" [(ngModel)]="invItemName" placeholder="e.g. Sterile Syringes 5ml" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'اسم الصنف (بالعربية)' : 'Item Name (Arabic)' }}</label>
+            <input type="text" [(ngModel)]="invItemNameAr" placeholder="مثال: سرنجات معقمة 5 مل" class="form-control" />
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'التصنيف *' : 'Category *' }}</label>
+            <select [(ngModel)]="invCategory" class="form-select">
+              <option value="Consumables">{{ translation.isArabic() ? 'مستهلكات طبية (Consumables)' : 'Consumables' }}</option>
+              <option value="Pharmaceuticals">{{ translation.isArabic() ? 'أدوية ومحاليل (Pharmaceuticals)' : 'Pharmaceuticals' }}</option>
+              <option value="Equipment">{{ translation.isArabic() ? 'أجهزة ومعدات (Equipment)' : 'Equipment' }}</option>
+              <option value="Supplies">{{ translation.isArabic() ? 'مستلزمات عامة (Supplies)' : 'Supplies' }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'الرصيد الأولي *' : 'Initial Stock *' }}</label>
+            <input type="number" [(ngModel)]="invStock" min="0" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'حد الأمان (التنبيه) *' : 'Reorder Threshold *' }}</label>
+            <input type="number" [(ngModel)]="invMinThreshold" min="0" class="form-control" />
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'وحدة القياس *' : 'Unit *' }}</label>
+            <select [(ngModel)]="invUnit" class="form-select">
+              <option value="Piece">{{ translation.isArabic() ? 'قطعة (Piece)' : 'Piece' }}</option>
+              <option value="Box">{{ translation.isArabic() ? 'علبة (Box)' : 'Box' }}</option>
+              <option value="Pack">{{ translation.isArabic() ? 'باكيت (Pack)' : 'Pack' }}</option>
+              <option value="Ampoule">{{ translation.isArabic() ? 'أمبول (Ampoule)' : 'Ampoule' }}</option>
+              <option value="Bottle">{{ translation.isArabic() ? 'زجاجة / عبوة (Bottle)' : 'Bottle' }}</option>
+              <option value="Vial">{{ translation.isArabic() ? 'فايل (Vial)' : 'Vial' }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'سعر الوحدة (ج.م) *' : 'Unit Price (EGP) *' }}</label>
+            <input type="number" [(ngModel)]="invUnitPrice" min="0" step="0.5" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'تاريخ الصلاحية' : 'Expiry Date' }}</label>
+            <input type="date" [(ngModel)]="invExpiry" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'رقم التشغيلة (Batch #)' : 'Batch / Lot Number' }}</label>
+          <input type="text" [(ngModel)]="invBatch" placeholder="BATCH-2026-X" class="form-control" />
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeAddInventoryModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitInventoryItem()" [disabled]="!invItemName.trim()" class="btn btn-primary">
+            📦 {{ translation.isArabic() ? 'إضافة للمستودع' : 'Save to Inventory' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: ADD INSURANCE PROVIDER (Feature 6) -->
+  @if (isInsuranceProviderModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>🏢 {{ translation.isArabic() ? 'تسجيل شركة تأمين صحي جديدة' : 'Register New Health Insurance Provider' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'إضافة شركة تأمين صحي مع كود التأمين ونسبة التغطية المعتمدة.' : 'Add healthcare insurance carrier, code, and default coverage rate.' }}</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'اسم شركة التأمين (إنجليزي) *' : 'Company Name (EN) *' }}</label>
+          <input type="text" [(ngModel)]="newInsName" placeholder="e.g. Bupa Global Healthcare" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'اسم شركة التأمين (بالعربية)' : 'Company Name (Arabic)' }}</label>
+          <input type="text" [(ngModel)]="newInsNameAr" placeholder="مثال: بوبا للتأمين الصحي" class="form-control" />
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'كود التأمين (Code) *' : 'Insurance Code *' }}</label>
+            <input type="text" [(ngModel)]="newInsCode" placeholder="e.g. BUPA-EGY" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'نسبة التغطية الافتراضية (%) *' : 'Default Coverage (%) *' }}</label>
+            <input type="number" [(ngModel)]="newInsCoverage" min="0" max="100" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'هاتف التواصل / الموافقات' : 'Contact Phone / Approvals' }}</label>
+          <input type="text" [(ngModel)]="newInsPhone" placeholder="+20224001000" class="form-control" />
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeAddInsuranceModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitNewInsuranceProvider()" [disabled]="!newInsName.trim() || !newInsCode.trim()" class="btn btn-primary">
+            🛡️ {{ translation.isArabic() ? 'حفظ شركة التأمين' : 'Save Provider' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: QUICK APPOINTMENT VIEW (Feature 5 Calendar Slot Click) -->
+  @if (quickViewAppointment; as qa) {
+    <div class="modal-backdrop" (click)="closeQuickAppointment()">
+      <div class="card modal-card" (click)="$event.stopPropagation()">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <h3>📅 {{ translation.isArabic() ? 'تفاصيل الموعد' : 'Appointment Details' }}</h3>
+          <button (click)="closeQuickAppointment()" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <div class="mt-3">
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'المريض: ' : 'Patient: ' }}</strong>{{ qa.patientName || qa.patientId }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'الطبيب: ' : 'Doctor: ' }}</strong>{{ qa.doctorName || qa.doctorId }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'الفرع: ' : 'Clinic: ' }}</strong>{{ qa.clinicName || 'Clinic Branch' }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'الوقت: ' : 'Time: ' }}</strong>{{ qa.startTimeUtc | date:'medium' }}</p>
+          <p class="mt-2">
+            <strong>{{ translation.isArabic() ? 'الحالة: ' : 'Status: ' }}</strong>
+            <span class="badge" [class]="getBadgeClass(qa.status)">{{ qa.status }}</span>
+          </p>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button (click)="viewPatientRecord(qa.patientId); closeQuickAppointment()" class="btn btn-primary btn-sm flex-grow-1">
+            🗂️ {{ translation.isArabic() ? 'فتح الملف الطبي' : 'Open EMR Chart' }}
+          </button>
+          <button (click)="openWhatsAppReminder(qa)" class="btn btn-outline btn-sm">
+            💬 {{ translation.isArabic() ? 'تذكير واتساب' : 'WhatsApp' }}
+          </button>
         </div>
       </div>
     </div>

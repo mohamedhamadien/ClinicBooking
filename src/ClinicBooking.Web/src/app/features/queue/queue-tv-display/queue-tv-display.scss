@@ -1,0 +1,405 @@
+.tv-kiosk-wrapper {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
+  color: #f8fafc;
+  font-family: 'Cairo', 'Inter', -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+.tv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 2.5rem;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 2px solid rgba(56, 189, 248, 0.25);
+  backdrop-filter: blur(12px);
+
+  .tv-brand {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+
+    .tv-logo {
+      font-size: 2.75rem;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 0.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .tv-clinic-name {
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin: 0;
+      color: #38bdf8;
+      letter-spacing: -0.5px;
+    }
+
+    .tv-subtitle {
+      font-size: 0.95rem;
+      color: #94a3b8;
+    }
+  }
+
+  .tv-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+
+    .tv-select {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .tv-btn {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+
+      &:hover, &.active {
+        background: #0284c7;
+        color: #ffffff;
+        border-color: #38bdf8;
+      }
+    }
+  }
+
+  .tv-clock-box {
+    text-align: end;
+
+    .tv-time {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 1px;
+    }
+
+    .tv-date {
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+  }
+}
+
+.tv-main-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 2rem;
+  padding: 2.5rem;
+  align-items: stretch;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tv-hero-call {
+  display: flex;
+  flex-direction: column;
+
+  .hero-header-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    .pulse-dot {
+      width: 14px;
+      height: 14px;
+      background: #ef4444;
+      border-radius: 50%;
+      box-shadow: 0 0 0 rgba(239, 68, 68, 0.7);
+      animation: pulse 1.5s infinite;
+    }
+  }
+
+  .hero-token-card {
+    flex: 1;
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+    border: 3px solid #0284c7;
+    border-radius: 28px;
+    padding: 3rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 20px 45px rgba(2, 132, 199, 0.25);
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .token-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 2px;
+      margin-bottom: 0.5rem;
+    }
+
+    .token-giant-number {
+      font-size: 8rem;
+      font-weight: 900;
+      color: #38bdf8;
+      text-shadow: 0 0 35px rgba(56, 189, 248, 0.6);
+      line-height: 1;
+      margin-bottom: 1.5rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .patient-privacy-name {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 1.75rem;
+    }
+
+    .doctor-room-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.25rem;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 1rem 2rem;
+      margin-bottom: 1.5rem;
+      text-align: start;
+
+      .badge-icon {
+        font-size: 2.5rem;
+      }
+
+      .room-label {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        font-weight: 600;
+      }
+
+      .doctor-fullname {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #e2e8f0;
+      }
+    }
+
+    .status-indicator {
+      .badge-live-pulse {
+        display: inline-block;
+        background: #0284c7;
+        color: #ffffff;
+        font-size: 1.15rem;
+        font-weight: 700;
+        padding: 0.65rem 1.85rem;
+        border-radius: 30px;
+        box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      }
+    }
+  }
+
+  .hero-empty-card {
+    flex: 1;
+    background: rgba(30, 41, 59, 0.6);
+    border: 2px dashed rgba(148, 163, 184, 0.3);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+
+    .empty-icon {
+      font-size: 4.5rem;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      color: #cbd5e1;
+      font-size: 1.85rem;
+    }
+
+    p {
+      color: #64748b;
+      font-size: 1.1rem;
+    }
+  }
+}
+
+.tv-queue-roster {
+  display: flex;
+  flex-direction: column;
+
+  .roster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+
+    h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0;
+      color: #e2e8f0;
+    }
+
+    .roster-count {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+  }
+
+  .roster-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 240px);
+
+    .roster-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.15rem 1.5rem;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      border-radius: 16px;
+      transition: all 0.2s ease;
+
+      &.roster-next {
+        background: linear-gradient(90deg, rgba(2, 132, 199, 0.25) 0%, rgba(30, 41, 59, 0.85) 100%);
+        border: 2px solid #0284c7;
+
+        .roster-token {
+          color: #38bdf8;
+          border-color: #0284c7;
+        }
+
+        .roster-badge {
+          background: #0284c7;
+          color: #ffffff;
+        }
+      }
+
+      .roster-token {
+        font-size: 1.75rem;
+        font-weight: 900;
+        color: #f1f5f9;
+        background: #0f172a;
+        padding: 0.35rem 0.95rem;
+        border-radius: 12px;
+        border: 1px solid #334155;
+      }
+
+      .roster-info {
+        flex: 1;
+        margin: 0 1.5rem;
+
+        .roster-patient {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #f8fafc;
+        }
+
+        .roster-doctor {
+          font-size: 0.95rem;
+          color: #94a3b8;
+          margin-top: 0.15rem;
+        }
+      }
+
+      .roster-badge {
+        font-size: 0.85rem;
+        font-weight: 700;
+        background: #1e293b;
+        color: #94a3b8;
+        padding: 0.4rem 0.95rem;
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    .roster-empty {
+      background: rgba(30, 41, 59, 0.4);
+      padding: 2rem;
+      border-radius: 16px;
+      text-align: center;
+      color: #64748b;
+      font-size: 1.05rem;
+    }
+  }
+}
+
+.tv-ticker-bar {
+  display: flex;
+  align-items: center;
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0.85rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+
+  .ticker-label {
+    background: #0369a1;
+    padding: 0.35rem 1rem;
+    border-radius: 6px;
+    font-weight: 800;
+    margin-inline-end: 1.5rem;
+    white-space: nowrap;
+  }
+
+  .ticker-marquee {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}

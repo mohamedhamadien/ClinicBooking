@@ -13,6 +13,7 @@ public static class ClinicPermissions
     public const string ScreenClinics = "Screen.Clinics";
     public const string ScreenSpecialties = "Screen.Specialties";
     public const string ScreenStaff = "Screen.Staff";
+    public const string ScreenInventory = "Screen.Inventory";
 
     // Functional Action Permissions (Which specific actions the staff member can execute)
     public const string QueueCheckIn = "Queue.CheckIn";
@@ -25,6 +26,7 @@ public static class ClinicPermissions
     public const string AppointmentsManage = "Appointments.Manage";
     public const string DoctorsManage = "Doctors.Manage";
     public const string StaffManage = "Staff.Manage";
+    public const string InventoryManage = "Inventory.Manage";
 
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
@@ -39,6 +41,7 @@ public static class ClinicPermissions
         new(ScreenClinics, "Clinics Screen", "إدارة العيادات والمراكز", "Screens", "Access clinics and branch configuration"),
         new(ScreenSpecialties, "Specialties Screen", "إدارة التخصصات الطبية", "Screens", "Access medical specialties list"),
         new(ScreenStaff, "Staff & Permissions Screen", "إدارة الموظفين والصلاحيات", "Screens", "Manage clinic staff accounts and custom permissions"),
+        new(ScreenInventory, "Inventory Screen", "شاشة المخزون والمستلزمات", "Screens", "Manage clinic medical supplies and pharmacy inventory"),
 
         // Functions
         new(QueueCheckIn, "Check-in Patients", "تسجيل حضور المرضى", "Functions", "Mark patient as arrived and assign sequential queue token"),
@@ -50,7 +53,8 @@ public static class ClinicPermissions
         new(BillingCollectPayment, "Collect Payments", "تحصيل وتسجيل المدفوعات", "Functions", "Process cash, card, and insurance payments for invoices"),
         new(AppointmentsManage, "Manage Appointments", "حجز وتعديل وإلغاء المواعيد", "Functions", "Schedule, reschedule, or cancel patient bookings"),
         new(DoctorsManage, "Manage Doctors & Schedules", "إدارة الأطباء ومواعيد العمل", "Functions", "Add/edit doctor profiles, specialties and availability"),
-        new(StaffManage, "Manage Staff & Permissions", "إدارة الموظفين وتعيين الصلاحيات", "Functions", "Create staff accounts and grant/revoke screen and action permissions")
+        new(StaffManage, "Manage Staff & Permissions", "إدارة الموظفين وتعيين الصلاحيات", "Functions", "Create staff accounts and grant/revoke screen and action permissions"),
+        new(InventoryManage, "Manage Inventory & Stock", "إدارة المخزون والتوريد والصرف", "Functions", "Add supplies, adjust stock levels and manage inventory items")
     ];
 
     public static readonly Dictionary<string, IReadOnlyList<string>> RolePresets = new()

@@ -18,6 +18,10 @@ public sealed class Invoice : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTe
     public decimal PaidAmount { get; private set; }
     public InvoiceStatus Status { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
+    public Guid? InsuranceProviderId { get; private set; }
+    public InsuranceProvider? InsuranceProvider { get; private set; }
+    public decimal InsuranceCoverageAmount { get; private set; }
+    public decimal PatientCopayAmount { get; private set; }
     public DateTime? PaidAtUtc { get; private set; }
     public DateTime IssuedAtUtc { get; private set; }
 
@@ -104,6 +108,13 @@ public sealed class Invoice : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTe
     public void Cancel()
     {
         Status = InvoiceStatus.Cancelled;
+    }
+
+    public void SetInsuranceDetails(Guid insuranceProviderId, decimal coverageAmount, decimal copayAmount)
+    {
+        InsuranceProviderId = insuranceProviderId;
+        InsuranceCoverageAmount = Math.Max(0, coverageAmount);
+        PatientCopayAmount = Math.Max(0, copayAmount);
     }
 
     private void RecalculateTotals()

@@ -1,0 +1,130 @@
+<div class="tv-kiosk-wrapper" [attr.dir]="translation.isArabic() ? 'rtl' : 'ltr'">
+  <!-- Top Bar -->
+  <header class="tv-header">
+    <div class="tv-brand">
+      <span class="tv-logo">🏥</span>
+      <div>
+        <h1 class="tv-clinic-name">{{ getActiveClinicName() }}</h1>
+        <span class="tv-subtitle">{{ translation.isArabic() ? 'نظام الاستدعاء وإدارة صالة الانتظار الذكية' : 'Smart Waiting Room & Token Calling System' }}</span>
+      </div>
+    </div>
+
+    <!-- Center Control Bar (Kiosk Options) -->
+    <div class="tv-controls">
+      @if (clinics().length > 1) {
+        <select [(ngModel)]="selectedClinicId" (change)="onClinicChange()" class="tv-select">
+          @for (c of clinics(); track c.id) {
+            <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
+          }
+        </select>
+      }
+
+      <button (click)="isAudioEnabled.set(!isAudioEnabled())" class="tv-btn" [class.active]="isAudioEnabled()" title="Toggle Sound">
+        {{ isAudioEnabled() ? '🔔' : '🔕' }}
+      </button>
+
+      <button (click)="playPleasantChime()" class="tv-btn" title="Test Chime">
+        🎵
+      </button>
+
+      <button (click)="toggleFullscreen()" class="tv-btn" title="Full Screen">
+        {{ isFullscreen() ? '🗗' : '⛶' }}
+      </button>
+
+      <a routerLink="/admin/dashboard" class="tv-btn" title="Back to Dashboard">
+        ✕
+      </a>
+    </div>
+
+    <!-- Live Digital Clock -->
+    <div class="tv-clock-box">
+      <div class="tv-time">{{ currentTime() | date:'hh:mm:ss a' }}</div>
+      <div class="tv-date">{{ currentTime() | date:'fullDate' }}</div>
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <main class="tv-main-grid">
+    <!-- Left / Hero: CURRENT CALLED TOKEN -->
+    <section class="tv-hero-call">
+      <div class="hero-header-label">
+        <span class="pulse-dot"></span>
+        <span>{{ translation.isArabic() ? 'النداء الحالي للاستدعاء' : 'CURRENT CALL / EXAMINATION ROOM' }}</span>
+      </div>
+
+      @if (currentCall(); as call) {
+        <div class="hero-token-card">
+          <div class="token-title">{{ translation.isArabic() ? 'رقم الدور' : 'TOKEN NUMBER' }}</div>
+          <div class="token-giant-number">
+            #{{ (call.queueNumber || 1) < 10 ? '0' + (call.queueNumber || 1) : (call.queueNumber || 1) }}
+          </div>
+
+          <div class="patient-privacy-name">
+            👤 {{ maskPatientName(call.patientName) }}
+          </div>
+
+          <div class="doctor-room-badge">
+            <span class="badge-icon">🩺</span>
+            <div>
+              <div class="room-label">{{ translation.isArabic() ? 'غرفة الكشف' : 'EXAMINATION ROOM' }}</div>
+              <div class="doctor-fullname">{{ call.doctorName }}</div>
+            </div>
+          </div>
+
+          <div class="status-indicator">
+            <span class="badge-live-pulse">
+              {{ call.status === 'InConsultation' ? (translation.isArabic() ? 'داخل غرفة الفحص الآن' : 'Now in Examination') : (translation.isArabic() ? 'يرجى التوجه لغرفة الكشف فوراً' : 'Please proceed to examination room') }}
+            </span>
+          </div>
+        </div>
+      } @else {
+        <div class="hero-empty-card">
+          <span class="empty-icon">🛎️</span>
+          <h2>{{ translation.isArabic() ? 'صالة الانتظار جاهزة' : 'Waiting Room Ready' }}</h2>
+          <p>{{ translation.isArabic() ? 'سيظهر هنا رقم الدور المستدعى فور استدعائه من الطبيب.' : 'Token number will be displayed as soon as called by the doctor.' }}</p>
+        </div>
+      }
+    </section>
+
+    <!-- Right: UPCOMING WAITING QUEUE LIST -->
+    <section class="tv-queue-roster">
+      <div class="roster-header">
+        <h3>📋 {{ translation.isArabic() ? 'الأدوار القادمة بالترتيب' : 'Upcoming Queue Order' }}</h3>
+        <span class="roster-count">{{ upcomingQueue().length }} {{ translation.isArabic() ? 'في الانتظار' : 'Waiting' }}</span>
+      </div>
+
+      <div class="roster-list">
+        @for (item of upcomingQueue(); track item.appointmentId; let idx = $index) {
+          <div class="roster-card" [class.roster-next]="idx === 0">
+            <div class="roster-token">
+              #{{ item.queueNumber ? (item.queueNumber < 10 ? '0' + item.queueNumber : item.queueNumber) : (idx + 1) }}
+            </div>
+            <div class="roster-info">
+              <div class="roster-patient">{{ maskPatientName(item.patientName) }}</div>
+              <div class="roster-doctor">🩺 {{ item.doctorName }}</div>
+            </div>
+            <div class="roster-badge">
+              {{ idx === 0 ? (translation.isArabic() ? 'الدور التالي' : 'NEXT') : (translation.isArabic() ? 'بالانتظار' : 'WAITING') }}
+            </div>
+          </div>
+        } @empty {
+          <div class="roster-empty">
+            <p>{{ translation.isArabic() ? 'لا يوجد مرضى آخرون في صالة الانتظار حالياً.' : 'No other patients currently in queue.' }}</p>
+          </div>
+        }
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom Health Ticker -->
+  <footer class="tv-ticker-bar">
+    <div class="ticker-label">💡 {{ translation.isArabic() ? 'معلومة صحية' : 'HEALTH TIP' }}</div>
+    <div class="ticker-marquee">
+      <span>
+        {{ translation.isArabic() 
+           ? 'نرجو من السادة المراجعين الكرام تجهيز بطاقة الهوية / التأمين الصحي عند الدخول للكشف. نتمنى لكم دوام الصحة والعافية! | يُرجى مراعاة الهدوء في صالة الانتظار.'
+           : 'Please have your ID card and insurance card ready when entering the examination room. We wish you a speedy recovery and good health!' }}
+      </span>
+    </div>
+  </footer>
+</div>

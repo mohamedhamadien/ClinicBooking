@@ -108,6 +108,9 @@ export class ClinicalService {
     discountAmount?: number;
     taxAmount?: number;
     paymentMethod?: number;
+    insuranceProviderId?: string;
+    insuranceCoverageAmount?: number;
+    patientCopayAmount?: number;
     items?: {
       description: string;
       quantity: number;

@@ -168,6 +168,38 @@ public sealed class DatabaseSeeder
             await _dbContext.Users.AddAsync(clinicAdminUser, cancellationToken);
         }
 
+        // 6. Seed Default Insurance Providers
+        var defaultClinicForSeed = await _dbContext.Clinics
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.TenantId == defaultTenant.Id, cancellationToken);
+
+        if (!await _dbContext.InsuranceProviders.IgnoreQueryFilters().AnyAsync(cancellationToken))
+        {
+            var providers = new List<InsuranceProvider>
+            {
+                InsuranceProvider.Create("Bupa Global Healthcare", "بوبا للتأمين الصحي العالمي", "BUPA-EGY", 80m, "+20224001000", defaultTenant.Id),
+                InsuranceProvider.Create("AXA Insurance Egypt", "أكسا للتأمين مصر", "AXA-EGY", 85m, "+20224002000", defaultTenant.Id),
+                InsuranceProvider.Create("MedNet Healthcare", "ميدنت لإدارة النفقات الطبية", "MEDNET", 75m, "+20224003000", defaultTenant.Id),
+                InsuranceProvider.Create("MetLife Health Solutions", "متلايف للرعاية الصحية", "METLIFE", 80m, "+20224004000", defaultTenant.Id)
+            };
+            await _dbContext.InsuranceProviders.AddRangeAsync(providers, cancellationToken);
+        }
+
+        // 7. Seed Medical Inventory Items
+        if (defaultClinicForSeed != null && !await _dbContext.MedicalInventoryItems.IgnoreQueryFilters().AnyAsync(cancellationToken))
+        {
+            var inventoryItems = new List<MedicalInventoryItem>
+            {
+                MedicalInventoryItem.Create(defaultClinicForSeed.Id, "Sterile Disposable Syringes 5ml", "سرنجات معقمة 5 مل استخدام واحد", "Consumables", 120, 30, "Box", 45m, "BATCH-2026-A", DateTime.UtcNow.AddMonths(18), defaultTenant.Id),
+                MedicalInventoryItem.Create(defaultClinicForSeed.Id, "Sterile Gauze Swabs 10x10cm", "شاش طبي معقم 10*10 سم", "Consumables", 85, 25, "Pack", 25m, "BATCH-2026-B", DateTime.UtcNow.AddMonths(12), defaultTenant.Id),
+                MedicalInventoryItem.Create(defaultClinicForSeed.Id, "Surgical Disposable Face Masks (50pcs)", "كمامات طبية جراحية 3 طبقات", "Consumables", 15, 20, "Box", 35m, "BATCH-2026-C", DateTime.UtcNow.AddMonths(24), defaultTenant.Id), // Low stock
+                MedicalInventoryItem.Create(defaultClinicForSeed.Id, "Medical Examination Nitrile Gloves (M)", "قفازات نيتريل فحص طبي مقاس وسط", "Consumables", 40, 15, "Box", 95m, "BATCH-2026-D", DateTime.UtcNow.AddMonths(20), defaultTenant.Id),
+                MedicalInventoryItem.Create(defaultClinicForSeed.Id, "Normal Saline IV Infusion 0.9% 500ml", "محلول ملحي وريدي 0.9% 500 مل", "Pharmaceuticals", 60, 20, "Bottle", 30m, "BATCH-2026-E", DateTime.UtcNow.AddMonths(15), defaultTenant.Id),
+                MedicalInventoryItem.Create(defaultClinicForSeed.Id, "Medical Antiseptic Ethyl Alcohol 70% 1L", "كحول طبي مطهر 70% 1 لتر", "Supplies", 8, 10, "Bottle", 55m, "BATCH-2026-F", DateTime.UtcNow.AddMonths(14), defaultTenant.Id) // Low stock
+            };
+            await _dbContext.MedicalInventoryItems.AddRangeAsync(inventoryItems, cancellationToken);
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Database seeding completed successfully.");
     }

@@ -27,4 +27,8 @@ public sealed record InvoiceDto(
     DateTime IssuedAtUtc,
     IReadOnlyList<InvoiceItemDto> Items,
     string? PatientName = null,
-    string? ClinicName = null);
+    string? ClinicName = null,
+    Guid? InsuranceProviderId = null,
+    string? InsuranceProviderName = null,
+    decimal InsuranceCoverageAmount = 0,
+    decimal PatientCopayAmount = 0);

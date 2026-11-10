@@ -10,6 +10,7 @@ import {
 } from '../models/clinical.models';
 import { DashboardStatsDto } from '../models/dashboard.models';
 import { StaffMemberDto } from '../models/staff.models';
+import { MedicalInventoryItemDto } from '../models/inventory.models';
 
 @Injectable({
   providedIn: 'root'
@@ -807,5 +808,222 @@ export class ReportingService {
     ]);
 
     this.downloadCsv(`clinic_staff_audit_${new Date().toISOString().slice(0, 10)}`, headers, rows);
+  }
+
+  public printInventoryReport(items: MedicalInventoryItemDto[], clinicName?: string): void {
+    const isAr = this.translation.isArabic();
+    const title = isAr ? 'تقرير جرد المستلزمات والمخزون الطبي' : 'Medical Inventory & Supplies Audit Report';
+    const facilityName = clinicName || (isAr ? 'المركز الطبي المركزي' : 'Central Healthcare Clinic');
+    const today = new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { dateStyle: 'full' });
+
+    const totalItems = items.length;
+    const lowStockItems = items.filter((i) => i.isLowStock).length;
+    const totalValuation = items.reduce((acc, i) => acc + i.currentStock * i.unitPrice, 0);
+
+    const rowsHtml = items.map((i) => `
+      <tr style="${i.isLowStock ? 'background:#fffbeb;' : ''}">
+        <td><strong>${isAr && i.itemNameAr ? i.itemNameAr : i.itemName}</strong></td>
+        <td>${i.category}</td>
+        <td>
+          <strong>${i.currentStock}</strong> ${i.unit}
+          ${i.isLowStock ? `<span style="background:#fef2f2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-inline-start:4px;">${isAr ? 'منخفض' : 'LOW'}</span>` : ''}
+        </td>
+        <td>${i.minimumThreshold} ${i.unit}</td>
+        <td>${i.unitPrice.toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</td>
+        <td><strong>${(i.currentStock * i.unitPrice).toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</strong></td>
+        <td>${i.expiryDate ? new Date(i.expiryDate).toLocaleDateString() : (isAr ? 'غير محدد' : 'N/A')}</td>
+      </tr>
+    `).join('');
+
+    const bodyHtml = `
+      <div class="report-letterhead">
+        <div>
+          <div class="clinic-logo-text">🏥 ${facilityName}</div>
+          <div class="report-title">${title}</div>
+          <div class="report-meta">
+            <span>📅 ${isAr ? 'تاريخ التقرير: ' : 'Audit Date: '}<strong>${today}</strong></span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 11px; color: #64748b;">${isAr ? 'نظام إدارة العيادات والمخزون' : 'Clinical OS Inventory'}</div>
+          <div style="font-weight: 700; color: #0284c7;">INVENTORY AUDIT</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
+        <div class="summary-card">
+          <div class="summary-card-val">${totalItems}</div>
+          <div class="summary-card-label">${isAr ? 'إجمالي الأصناف' : 'Total Items'}</div>
+        </div>
+        <div class="summary-card" style="border-inline-start-color: #ef4444;">
+          <div class="summary-card-val" style="color: #ef4444;">${lowStockItems}</div>
+          <div class="summary-card-label">${isAr ? 'أصناف تحتاج إعادة توريد' : 'Low Stock Items'}</div>
+        </div>
+        <div class="summary-card" style="border-inline-start-color: #10b981;">
+          <div class="summary-card-val" style="color: #10b981;">${totalValuation.toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</div>
+          <div class="summary-card-label">${isAr ? 'القيمة التقديرية للمخزون' : 'Stock Valuation'}</div>
+        </div>
+      </div>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>${isAr ? 'اسم الصنف' : 'Item Name'}</th>
+            <th>${isAr ? 'التصنيف' : 'Category'}</th>
+            <th>${isAr ? 'الرصيد الحالي' : 'Stock'}</th>
+            <th>${isAr ? 'حد الأمان' : 'Min Threshold'}</th>
+            <th>${isAr ? 'سعر الوحدة' : 'Unit Price'}</th>
+            <th>${isAr ? 'إجمالي القيمة' : 'Total Value'}</th>
+            <th>${isAr ? 'تاريخ الصلاحية' : 'Expiry'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+
+      <div class="signature-box" style="margin-top: 30px;">
+        <div class="sig-line">
+          <div>${isAr ? 'مسؤول المستودع والمخزون' : 'Inventory Officer'}</div>
+          <div style="margin-top: 40px; font-weight: bold;">......................................</div>
+        </div>
+        <div class="sig-line">
+          <div>${isAr ? 'اعتماد مدير الفرع / الإدارة' : 'Clinic Director Approval'}</div>
+          <div style="margin-top: 40px; font-weight: bold;">......................................</div>
+        </div>
+      </div>
+    `;
+
+    this.printHtmlReport(title, bodyHtml);
+  }
+
+  public exportInventoryCsv(items: MedicalInventoryItemDto[]): void {
+    const isAr = this.translation.isArabic();
+    const headers = isAr
+      ? ['اسم المستلزم', 'الاسم بالعربي', 'التصنيف', 'الرصيد الحالي', 'حد الأمان', 'الوحدة', 'سعر الوحدة', 'القيمة الإجمالية', 'رقم التشغيلة', 'تاريخ الصلاحية', 'حالة المخزون']
+      : ['Item Name', 'Name Ar', 'Category', 'Current Stock', 'Min Threshold', 'Unit', 'Unit Price', 'Total Value', 'Batch Number', 'Expiry Date', 'Status'];
+
+    const rows = items.map((i) => [
+      i.itemName,
+      i.itemNameAr || '',
+      i.category,
+      i.currentStock,
+      i.minimumThreshold,
+      i.unit,
+      i.unitPrice,
+      (i.currentStock * i.unitPrice).toFixed(2),
+      i.batchNumber || '',
+      i.expiryDate ? new Date(i.expiryDate).toLocaleDateString() : '',
+      i.isLowStock ? 'LOW STOCK' : 'IN STOCK'
+    ]);
+
+    this.downloadCsv(`clinic_inventory_${new Date().toISOString().slice(0, 10)}`, headers, rows);
+  }
+
+  public printInsuranceClaimsReport(invoices: InvoiceDto[], clinicName?: string): void {
+    const isAr = this.translation.isArabic();
+    const title = isAr ? 'كشف مطالبات التأمين الصحي المعتمدة' : 'Healthcare Insurance Claims Audit Report';
+    const facilityName = clinicName || (isAr ? 'المركز الطبي المركزي' : 'Central Healthcare Clinic');
+    const today = new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { dateStyle: 'full' });
+
+    const insuranceInvoices = invoices.filter((i) => i.paymentMethod === 'Insurance' || (i.insuranceCoverageAmount && i.insuranceCoverageAmount > 0));
+    const totalClaimsAmount = insuranceInvoices.reduce((acc, i) => acc + (i.insuranceCoverageAmount || 0), 0);
+    const totalCopayAmount = insuranceInvoices.reduce((acc, i) => acc + (i.patientCopayAmount || 0), 0);
+
+    const rowsHtml = insuranceInvoices.map((inv) => `
+      <tr>
+        <td><strong>${inv.invoiceNumber}</strong></td>
+        <td>${inv.patientName || inv.patientId.slice(0, 8)}</td>
+        <td><span class="badge" style="background:#e0f2fe;color:#0369a1;">${inv.insuranceProviderName || (isAr ? 'تأمين معتمد' : 'Insurance Provider')}</span></td>
+        <td>${new Date(inv.issuedAtUtc).toLocaleDateString()}</td>
+        <td>${inv.totalAmount.toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</td>
+        <td style="color:#0369a1;font-weight:700;">${(inv.insuranceCoverageAmount || 0).toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</td>
+        <td style="color:#10b981;">${(inv.patientCopayAmount || 0).toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</td>
+        <td>${inv.status}</td>
+      </tr>
+    `).join('');
+
+    const bodyHtml = `
+      <div class="report-letterhead">
+        <div>
+          <div class="clinic-logo-text">🛡️ ${facilityName}</div>
+          <div class="report-title">${title}</div>
+          <div class="report-meta">
+            <span>📅 ${isAr ? 'تاريخ التقرير: ' : 'Claim Statement Date: '}<strong>${today}</strong></span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 11px; color: #64748b;">${isAr ? 'قسم الحسابات والمطالبات التأمينية' : 'Insurance Audit Department'}</div>
+          <div style="font-weight: 700; color: #0284c7;">CLAIMS DISPATCH</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
+        <div class="summary-card">
+          <div class="summary-card-val">${insuranceInvoices.length}</div>
+          <div class="summary-card-label">${isAr ? 'عدد المطالبات الصادرة' : 'Claims Count'}</div>
+        </div>
+        <div class="summary-card" style="border-inline-start-color: #0284c7;">
+          <div class="summary-card-val" style="color: #0284c7;">${totalClaimsAmount.toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</div>
+          <div class="summary-card-label">${isAr ? 'مستحقات التأمين المطلوبة' : 'Total Insurance Claims Due'}</div>
+        </div>
+        <div class="summary-card" style="border-inline-start-color: #10b981;">
+          <div class="summary-card-val" style="color: #10b981;">${totalCopayAmount.toFixed(2)} ${isAr ? 'ج.م' : 'EGP'}</div>
+          <div class="summary-card-label">${isAr ? 'تحمل المرضى المحصل (Co-pay)' : 'Patient Copay Collected'}</div>
+        </div>
+      </div>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>${isAr ? 'رقم الفاتورة' : 'Invoice #'}</th>
+            <th>${isAr ? 'المريض' : 'Patient'}</th>
+            <th>${isAr ? 'شركة التأمين' : 'Insurance'}</th>
+            <th>${isAr ? 'التاريخ' : 'Date'}</th>
+            <th>${isAr ? 'إجمالي الفاتورة' : 'Total'}</th>
+            <th>${isAr ? 'مطالبة التأمين' : 'Insurance Share'}</th>
+            <th>${isAr ? 'تحمل المريض' : 'Patient Copay'}</th>
+            <th>${isAr ? 'الحالة' : 'Status'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml || `<tr><td colspan="8" style="text-align:center;padding:20px;">${isAr ? 'لا توجد فواتير تأمين مسجلة' : 'No insurance claims found'}</td></tr>`}
+        </tbody>
+      </table>
+
+      <div class="signature-box" style="margin-top: 30px;">
+        <div class="sig-line">
+          <div>${isAr ? 'إعداد المحاسب المسؤول' : 'Accountant Signature'}</div>
+          <div style="margin-top: 40px; font-weight: bold;">......................................</div>
+        </div>
+        <div class="sig-line">
+          <div>${isAr ? 'اعتماد المدير المالي للعيادة' : 'Financial Director Stamp'}</div>
+          <div style="margin-top: 40px; font-weight: bold;">......................................</div>
+        </div>
+      </div>
+    `;
+
+    this.printHtmlReport(title, bodyHtml);
+  }
+
+  public exportInsuranceClaimsCsv(invoices: InvoiceDto[]): void {
+    const isAr = this.translation.isArabic();
+    const headers = isAr
+      ? ['رقم الفاتورة', 'المريض', 'شركة التأمين', 'تاريخ الإصدار', 'إجمالي المبلغ', 'تغطية التأمين', 'تحمل المريض', 'الحالة']
+      : ['Invoice #', 'Patient', 'Insurance Company', 'Issue Date', 'Total Amount', 'Insurance Coverage', 'Patient Copay', 'Status'];
+
+    const insuranceInvoices = invoices.filter((i) => i.paymentMethod === 'Insurance' || (i.insuranceCoverageAmount && i.insuranceCoverageAmount > 0));
+    const rows = insuranceInvoices.map((i) => [
+      i.invoiceNumber,
+      i.patientName || i.patientId,
+      i.insuranceProviderName || 'Insurance',
+      new Date(i.issuedAtUtc).toLocaleDateString(),
+      i.totalAmount,
+      i.insuranceCoverageAmount || 0,
+      i.patientCopayAmount || 0,
+      i.status
+    ]);
+
+    this.downloadCsv(`insurance_claims_${new Date().toISOString().slice(0, 10)}`, headers, rows);
   }
 }

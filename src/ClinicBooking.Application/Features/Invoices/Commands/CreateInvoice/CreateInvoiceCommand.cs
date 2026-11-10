@@ -21,7 +21,10 @@ public sealed record CreateInvoiceCommand(
     decimal DiscountAmount = 0,
     decimal TaxAmount = 0,
     PaymentMethod PaymentMethod = PaymentMethod.Cash,
-    IReadOnlyList<InvoiceLineItemInput>? Items = null) : IRequest<Result<InvoiceDto>>;
+    IReadOnlyList<InvoiceLineItemInput>? Items = null,
+    Guid? InsuranceProviderId = null,
+    decimal InsuranceCoverageAmount = 0,
+    decimal PatientCopayAmount = 0) : IRequest<Result<InvoiceDto>>;
 
 public sealed class CreateInvoiceCommandValidator : AbstractValidator<CreateInvoiceCommand>
 {
@@ -76,6 +79,14 @@ public sealed class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceC
             }
         }
 
+        if (request.InsuranceProviderId.HasValue && request.InsuranceProviderId.Value != Guid.Empty)
+        {
+            invoice.SetInsuranceDetails(
+                request.InsuranceProviderId.Value,
+                request.InsuranceCoverageAmount,
+                request.PatientCopayAmount);
+        }
+
         await _invoiceRepository.AddAsync(invoice, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -106,7 +117,11 @@ public sealed class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceC
             invoice.IssuedAtUtc,
             invoice.Items.Select(i => new InvoiceItemDto(i.Id, i.Description, i.Quantity, i.UnitPrice, i.TotalPrice)).ToList(),
             patientName,
-            clinic?.NameEn);
+            clinic?.NameEn,
+            invoice.InsuranceProviderId,
+            null,
+            invoice.InsuranceCoverageAmount,
+            invoice.PatientCopayAmount);
 
         return Result.Success(dto);
     }

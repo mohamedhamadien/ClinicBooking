@@ -63,7 +63,11 @@ public sealed class GetInvoicesQueryHandler : IRequestHandler<GetInvoicesQuery, 
                 inv.IssuedAtUtc,
                 inv.Items.Select(i => new InvoiceItemDto(i.Id, i.Description, i.Quantity, i.UnitPrice, i.TotalPrice)).ToList(),
                 patientName,
-                clinicName));
+                clinicName,
+                inv.InsuranceProviderId,
+                inv.InsuranceProvider?.Name,
+                inv.InsuranceCoverageAmount,
+                inv.PatientCopayAmount));
         }
 
         return Result.Success<IReadOnlyList<InvoiceDto>>(dtos);

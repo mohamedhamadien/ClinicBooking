@@ -940,3 +940,107 @@
   color: #334155;
   border: 1px solid #cbd5e1;
 }
+
+// --- Calendar View Styles ---
+.calendar-card {
+  overflow-x: auto;
+}
+
+.calendar-container {
+  min-width: 800px;
+}
+
+.calendar-header-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 700;
+  text-align: center;
+
+  .cal-time-col {
+    padding: 10px;
+    border-inline-end: 1px solid #e2e8f0;
+    color: #64748b;
+  }
+
+  .cal-day-col {
+    padding: 10px;
+    border-inline-end: 1px solid #e2e8f0;
+
+    .cal-day-name {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .cal-day-num {
+      font-size: 1.15rem;
+      color: #0284c7;
+    }
+  }
+}
+
+.calendar-body {
+  .cal-hour-row {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    border-bottom: 1px solid #f1f5f9;
+    min-height: 60px;
+
+    .cal-time-label {
+      padding: 8px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      text-align: center;
+      border-inline-end: 1px solid #e2e8f0;
+      background: #fafafa;
+    }
+
+    .cal-slot-cell {
+      border-inline-end: 1px solid #f1f5f9;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      &:hover {
+        background: rgba(2, 132, 199, 0.03);
+      }
+    }
+  }
+}
+
+.cal-event-pill {
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+
+  .cal-event-patient {
+    font-weight: 700;
+  }
+  .cal-event-doctor {
+    font-size: 0.7rem;
+    opacity: 0.85;
+  }
+  .cal-event-time {
+    font-size: 0.65rem;
+    opacity: 0.75;
+  }
+}
+
+// --- Medical Document Card ---
+.doc-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+

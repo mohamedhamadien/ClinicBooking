@@ -24,5 +24,9 @@ export const routes: Routes = [
     component: DashboardComponent,
     canActivate: [adminGuard]
   },
+  {
+    path: 'queue/tv',
+    loadComponent: () => import('./features/queue/queue-tv-display/queue-tv-display').then((m) => m.QueueTvDisplayComponent)
+  },
   { path: '**', redirectTo: '' }
 ];

@@ -28,6 +28,10 @@ export interface ConsultationDto {
   doctorName?: string;
   patientName?: string;
   clinicName?: string;
+  insuranceProviderId?: string;
+  insuranceProviderName?: string;
+  insuranceCoverageAmount?: number;
+  patientCopayAmount?: number;
 }
 
 export interface PrescriptionItemDto {
@@ -54,6 +58,10 @@ export interface PrescriptionDto {
   doctorName?: string;
   patientName?: string;
   clinicName?: string;
+  insuranceProviderId?: string;
+  insuranceProviderName?: string;
+  insuranceCoverageAmount?: number;
+  patientCopayAmount?: number;
 }
 
 export interface PatientMedicalRecordDto {
@@ -100,6 +108,10 @@ export interface InvoiceDto {
   items: InvoiceItemDto[];
   patientName?: string;
   clinicName?: string;
+  insuranceProviderId?: string;
+  insuranceProviderName?: string;
+  insuranceCoverageAmount?: number;
+  patientCopayAmount?: number;
 }
 
 export interface QueueItemDto {

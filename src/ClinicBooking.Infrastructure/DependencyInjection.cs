@@ -56,6 +56,9 @@ public static class DependencyInjection
         services.AddScoped<IPatientVitalSignsRepository, PatientVitalSignsRepository>();
         services.AddScoped<IPrescriptionRepository, PrescriptionRepository>();
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<IMedicalAttachmentRepository, MedicalAttachmentRepository>();
+        services.AddScoped<IMedicalInventoryRepository, MedicalInventoryRepository>();
+        services.AddScoped<IInsuranceProviderRepository, InsuranceProviderRepository>();
 
         // 4. Infrastructure Services
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
