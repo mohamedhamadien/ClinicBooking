@@ -50,6 +50,11 @@ public sealed class TokenService : ITokenService
             claims.Add(new Claim("tenant", tenantIdentifier));
         }
 
+        foreach (var permission in user.GetEffectivePermissions())
+        {
+            claims.Add(new Claim("permission", permission));
+        }
+
         var credentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256);
         var now = _dateTimeProvider.UtcNow;
         var expires = now.AddMinutes(_jwtSettings.ExpiryMinutes);

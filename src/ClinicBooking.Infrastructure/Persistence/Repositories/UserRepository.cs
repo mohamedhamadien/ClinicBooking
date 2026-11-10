@@ -17,6 +17,7 @@ public sealed class UserRepository : IUserRepository
     {
         return _dbContext.Users
             .Include(u => u.RefreshTokens)
+            .Include(u => u.Permissions)
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
@@ -26,6 +27,7 @@ public sealed class UserRepository : IUserRepository
         var emailAddress = Domain.ValueObjects.EmailAddress.Create(email);
         return _dbContext.Users
             .Include(u => u.RefreshTokens)
+            .Include(u => u.Permissions)
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Email == emailAddress, cancellationToken);
     }
@@ -34,6 +36,7 @@ public sealed class UserRepository : IUserRepository
     {
         return _dbContext.Users
             .Include(u => u.RefreshTokens)
+            .Include(u => u.Permissions)
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == refreshToken), cancellationToken);
     }
@@ -44,6 +47,30 @@ public sealed class UserRepository : IUserRepository
         return _dbContext.Users
             .IgnoreQueryFilters()
             .AnyAsync(u => u.Email == emailAddress, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<User>> GetStaffMembersAsync(Guid? tenantId, Guid? clinicId, CancellationToken cancellationToken = default)
+    {
+        var nonStaffRole = Domain.Enums.UserRole.Patient;
+        var query = _dbContext.Users
+            .Include(u => u.Permissions)
+            .Where(u => u.Role != nonStaffRole);
+
+        if (tenantId.HasValue && tenantId.Value != Guid.Empty)
+        {
+            query = query.Where(u => u.TenantId == tenantId.Value);
+        }
+
+        if (clinicId.HasValue && clinicId.Value != Guid.Empty)
+        {
+            query = query.Where(u => u.ClinicId == clinicId.Value);
+        }
+
+        return await query
+            .OrderBy(u => u.Role)
+            .ThenBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)

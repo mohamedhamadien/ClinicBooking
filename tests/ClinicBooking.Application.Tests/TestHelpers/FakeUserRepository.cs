@@ -21,6 +21,14 @@ public class FakeUserRepository : IUserRepository
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default) =>
         Task.FromResult(_users.Any(u => u.Email.Value.Equals(email, StringComparison.OrdinalIgnoreCase)));
 
+    public Task<IReadOnlyList<User>> GetStaffMembersAsync(Guid? tenantId, Guid? clinicId, CancellationToken cancellationToken = default)
+    {
+        var result = _users.Where(u => u.Role != Domain.Enums.UserRole.Patient);
+        if (tenantId.HasValue) result = result.Where(u => u.TenantId == tenantId.Value);
+        if (clinicId.HasValue) result = result.Where(u => u.ClinicId == clinicId.Value);
+        return Task.FromResult<IReadOnlyList<User>>(result.ToList());
+    }
+
     public Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         _users.Add(user);

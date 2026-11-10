@@ -53,69 +53,96 @@
 
   <!-- Admin Tab Bar -->
   <div class="admin-tabs">
-    <button
-      (click)="setTab('overview')"
-      [class.active]="activeTab() === 'overview'"
-      class="tab-btn"
-    >
-      📊 Overview
-    </button>
-    <button
-      (click)="setTab('queue')"
-      [class.active]="activeTab() === 'queue'"
-      class="tab-btn"
-    >
-      🛎️ Waiting Queue ({{ queueItems().length }})
-    </button>
-    <button
-      (click)="setTab('consultation')"
-      [class.active]="activeTab() === 'consultation'"
-      class="tab-btn"
-    >
-      📋 Consultation & Rx
-    </button>
-    <button
-      (click)="setTab('records')"
-      [class.active]="activeTab() === 'records'"
-      class="tab-btn"
-    >
-      🗂️ Patient EMR Charts
-    </button>
-    <button
-      (click)="setTab('billing')"
-      [class.active]="activeTab() === 'billing'"
-      class="tab-btn"
-    >
-      💳 Billing & Finance ({{ invoices().length }})
-    </button>
-    <button
-      (click)="setTab('appointments')"
-      [class.active]="activeTab() === 'appointments'"
-      class="tab-btn"
-    >
-      📅 Appointments ({{ appointments().length }})
-    </button>
-    <button
-      (click)="setTab('doctors')"
-      [class.active]="activeTab() === 'doctors'"
-      class="tab-btn"
-    >
-      👨‍⚕️ Doctors ({{ doctors().length }})
-    </button>
-    <button
-      (click)="setTab('clinics')"
-      [class.active]="activeTab() === 'clinics'"
-      class="tab-btn"
-    >
-      🏥 Clinics ({{ clinics().length }})
-    </button>
-    <button
-      (click)="setTab('specialties')"
-      [class.active]="activeTab() === 'specialties'"
-      class="tab-btn"
-    >
-      🩺 Specialties ({{ specialties().length }})
-    </button>
+    @if (canAccessTab('overview')) {
+      <button
+        (click)="setTab('overview')"
+        [class.active]="activeTab() === 'overview'"
+        class="tab-btn"
+      >
+        📊 Overview
+      </button>
+    }
+    @if (canAccessTab('queue')) {
+      <button
+        (click)="setTab('queue')"
+        [class.active]="activeTab() === 'queue'"
+        class="tab-btn"
+      >
+        🛎️ Waiting Queue ({{ queueItems().length }})
+      </button>
+    }
+    @if (canAccessTab('consultation')) {
+      <button
+        (click)="setTab('consultation')"
+        [class.active]="activeTab() === 'consultation'"
+        class="tab-btn"
+      >
+        📋 Consultation & Rx
+      </button>
+    }
+    @if (canAccessTab('records')) {
+      <button
+        (click)="setTab('records')"
+        [class.active]="activeTab() === 'records'"
+        class="tab-btn"
+      >
+        🗂️ Patient EMR Charts
+      </button>
+    }
+    @if (canAccessTab('billing')) {
+      <button
+        (click)="setTab('billing')"
+        [class.active]="activeTab() === 'billing'"
+        class="tab-btn"
+      >
+        💳 Billing & Finance ({{ invoices().length }})
+      </button>
+    }
+    @if (canAccessTab('appointments')) {
+      <button
+        (click)="setTab('appointments')"
+        [class.active]="activeTab() === 'appointments'"
+        class="tab-btn"
+      >
+        📅 Appointments ({{ appointments().length }})
+      </button>
+    }
+    @if (canAccessTab('doctors')) {
+      <button
+        (click)="setTab('doctors')"
+        [class.active]="activeTab() === 'doctors'"
+        class="tab-btn"
+      >
+        👨‍⚕️ Doctors ({{ doctors().length }})
+      </button>
+    }
+    @if (canAccessTab('clinics')) {
+      <button
+        (click)="setTab('clinics')"
+        [class.active]="activeTab() === 'clinics'"
+        class="tab-btn"
+      >
+        🏥 Clinics ({{ clinics().length }})
+      </button>
+    }
+    @if (canAccessTab('specialties')) {
+      <button
+        (click)="setTab('specialties')"
+        [class.active]="activeTab() === 'specialties'"
+        class="tab-btn"
+      >
+        🩺 Specialties ({{ specialties().length }})
+      </button>
+    }
+    @if (canAccessTab('staff')) {
+      <button
+        (click)="setTab('staff')"
+        [class.active]="activeTab() === 'staff'"
+        class="tab-btn"
+      >
+        👥 Staff & Permissions ({{ staffMembers().length }})
+      </button>
+    }
   </div>
 
   <!-- TAB 1: OVERVIEW -->
@@ -787,6 +814,119 @@
     </div>
   }
 
+  <!-- TAB 10: STAFF & PERMISSIONS MANAGEMENT -->
+  @if (activeTab() === 'staff') {
+    <div class="card">
+      <div class="card-header-actions">
+        <div>
+          <h3>👥 Staff Accounts & Permissions Management</h3>
+          <p class="text-muted">Configure clinic personnel, assign roles (Receptionist, Nurse, Accountant, Doctor), and grant granular screen and function permissions.</p>
+        </div>
+        <button (click)="openCreateStaffModal()" class="btn btn-primary">
+          ➕ + Add Staff Member
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar mt-3">
+        <div class="filter-group">
+          <label class="form-label">Search Staff</label>
+          <input
+            type="text"
+            [(ngModel)]="filterStaffSearch"
+            placeholder="Search by name, email, clinic..."
+            class="form-control"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label class="form-label">Filter by Role</label>
+          <select [(ngModel)]="filterStaffRole" class="form-control">
+            <option value="">All Staff Roles</option>
+            <option value="Admin">Admin</option>
+            <option value="ClinicAdmin">Clinic Admin</option>
+            <option value="Doctor">Doctor</option>
+            <option value="Receptionist">Receptionist</option>
+            <option value="Nurse">Nurse</option>
+            <option value="Accountant">Accountant / Cashier</option>
+            <option value="Staff">General Staff</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Staff Table -->
+      <div class="table-container mt-3">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Staff Member</th>
+              <th>Role</th>
+              <th>Assigned Clinic</th>
+              <th>Permissions</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (staff of filteredStaff(); track staff.id) {
+              <tr>
+                <td>
+                  <strong>{{ staff.fullName }}</strong>
+                  <div class="text-muted small">{{ staff.email }}</div>
+                </td>
+                <td>
+                  <span class="badge" [class]="getStaffRoleBadgeClass(staff.role)">
+                    {{ staff.role }}
+                  </span>
+                </td>
+                <td>
+                  @if (staff.clinicName) {
+                    <span>🏥 {{ staff.clinicName }}</span>
+                  } @else {
+                    <span class="text-muted">All Branches / Global</span>
+                  }
+                </td>
+                <td>
+                  <span class="badge badge-scheduled" (click)="openEditStaffModal(staff)" style="cursor: pointer;" title="Click to view/edit permissions">
+                    🔑 {{ staff.permissions.length }} permissions granted
+                  </span>
+                </td>
+                <td>
+                  @if (staff.isActive) {
+                    <span class="badge badge-confirmed">Active</span>
+                  } @else {
+                    <span class="badge badge-cancelled">Suspended</span>
+                  }
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button (click)="openEditStaffModal(staff)" class="btn btn-outline btn-xs">
+                      ⚙️ Manage Permissions
+                    </button>
+                    <button
+                      (click)="toggleStaffStatus(staff)"
+                      class="btn btn-xs"
+                      [class.btn-danger]="staff.isActive"
+                      [class.btn-success]="!staff.isActive"
+                    >
+                      {{ staff.isActive ? 'Deactivate' : 'Activate' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  No staff members match the selected criteria.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
   <!-- MODAL: EDIT PATIENT MEDICAL HISTORY -->
   @if (isHistoryModalOpen) {
     <div class="modal-backdrop">
@@ -1177,6 +1317,232 @@
         <div class="modal-actions">
           <button (click)="closeCancelModal()" class="btn btn-outline">Dismiss</button>
           <button (click)="confirmAdminCancel()" class="btn btn-danger">Confirm Cancellation</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: CREATE STAFF MEMBER -->
+  @if (showCreateStaffModal()) {
+    <div class="modal-backdrop">
+      <div class="card modal-card modal-large">
+        <div class="modal-header">
+          <h3>➕ Add New Clinic Staff Member</h3>
+          <button (click)="closeCreateStaffModal()" class="close-btn">&times;</button>
+        </div>
+        <p class="text-muted">Register a staff account, select their job role, and assign allowed screens and functional operations.</p>
+
+        <!-- Basic Info Grid -->
+        <div class="form-row-2 mt-3">
+          <div class="form-group">
+            <label class="form-label">First Name *</label>
+            <input type="text" [(ngModel)]="newStaffFirstName" class="form-control" placeholder="e.g. Sarah" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name *</label>
+            <input type="text" [(ngModel)]="newStaffLastName" class="form-control" placeholder="e.g. Connor" />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Email Address (Login) *</label>
+            <input type="email" [(ngModel)]="newStaffEmail" class="form-control" placeholder="staff@clinic.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Initial Password *</label>
+            <input type="password" [(ngModel)]="newStaffPassword" class="form-control" placeholder="Minimum 6 characters" />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Staff Role *</label>
+            <select [(ngModel)]="newStaffRole" (ngModelChange)="applyCreatePreset($event)" class="form-control">
+              <option value="Receptionist">Receptionist (موظف استقبال)</option>
+              <option value="Nurse">Nurse (تمريض)</option>
+              <option value="Accountant">Accountant / Cashier (محاسب / كاشير)</option>
+              <option value="Doctor">Doctor (طبيب)</option>
+              <option value="Staff">General Staff (موظف عام)</option>
+              <option value="ClinicAdmin">Clinic Admin (مدير فرع عيادة)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assigned Clinic Branch</label>
+            <select [(ngModel)]="newStaffClinicId" class="form-control">
+              <option value="">All Branches / Global</option>
+              @for (clinic of clinics(); track clinic.id) {
+                <option [value]="clinic.id">{{ clinic.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Quick Preset Buttons -->
+        <div class="permission-presets-bar mt-3">
+          <span class="preset-label">⚡ Quick Role Presets:</span>
+          <button (click)="applyCreatePreset('Receptionist')" type="button" class="btn btn-outline btn-xs">👤 Receptionist Preset</button>
+          <button (click)="applyCreatePreset('Nurse')" type="button" class="btn btn-outline btn-xs">🩺 Nurse Preset</button>
+          <button (click)="applyCreatePreset('Accountant')" type="button" class="btn btn-outline btn-xs">💰 Cashier/Accountant</button>
+          <button (click)="applyCreatePreset('Doctor')" type="button" class="btn btn-outline btn-xs">👨‍⚕️ Doctor Preset</button>
+          <button (click)="selectAllCreatePermissions()" type="button" class="btn btn-outline btn-xs">✅ Select All</button>
+          <button (click)="clearAllCreatePermissions()" type="button" class="btn btn-outline btn-xs">❌ Clear All</button>
+        </div>
+
+        <!-- Permissions Matrix -->
+        <div class="permissions-container mt-3">
+          <!-- Section 1: Screens -->
+          <div class="permissions-section">
+            <div class="section-title-bar">
+              <h4>🖥️ Allowed Screens & Navigation (الشاشات المصرح بها)</h4>
+              <button (click)="selectAllCreatePermissions('Screens')" type="button" class="btn-link-xs">Select All Screens</button>
+            </div>
+            <div class="permissions-grid">
+              @for (perm of screenPermissions(); track perm.key) {
+                <label class="permission-checkbox-card" [class.selected]="isCreatePermissionSelected(perm.key)">
+                  <input
+                    type="checkbox"
+                    [checked]="isCreatePermissionSelected(perm.key)"
+                    (change)="toggleCreatePermission(perm.key)"
+                  />
+                  <div>
+                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-desc">{{ perm.description }}</div>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+
+          <!-- Section 2: Functional Actions -->
+          <div class="permissions-section mt-4">
+            <div class="section-title-bar">
+              <h4>⚡ Functional Actions & Operations (الصلاحيات والعمليات المصرح بها)</h4>
+              <button (click)="selectAllCreatePermissions('Functions')" type="button" class="btn-link-xs">Select All Functions</button>
+            </div>
+            <div class="permissions-grid">
+              @for (perm of functionPermissions(); track perm.key) {
+                <label class="permission-checkbox-card" [class.selected]="isCreatePermissionSelected(perm.key)">
+                  <input
+                    type="checkbox"
+                    [checked]="isCreatePermissionSelected(perm.key)"
+                    (change)="toggleCreatePermission(perm.key)"
+                  />
+                  <div>
+                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-desc">{{ perm.description }}</div>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeCreateStaffModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="submitCreateStaff()" class="btn btn-primary">Save Staff Member</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: EDIT STAFF PERMISSIONS -->
+  @if (showEditStaffModal()) {
+    <div class="modal-backdrop">
+      <div class="card modal-card modal-large">
+        <div class="modal-header">
+          <h3>⚙️ Manage Staff Permissions: {{ editingStaffFullName }}</h3>
+          <button (click)="closeEditStaffModal()" class="close-btn">&times;</button>
+        </div>
+        <p class="text-muted">Adjust assigned role, clinic location, and granular screen/function permissions for {{ editingStaffEmail }}.</p>
+
+        <!-- Role & Clinic Select -->
+        <div class="form-row-2 mt-3">
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select [(ngModel)]="editingStaffRole" class="form-control">
+              <option value="Receptionist">Receptionist (موظف استقبال)</option>
+              <option value="Nurse">Nurse (تمريض)</option>
+              <option value="Accountant">Accountant / Cashier (محاسب / كاشير)</option>
+              <option value="Doctor">Doctor (طبيب)</option>
+              <option value="Staff">General Staff (موظف عام)</option>
+              <option value="ClinicAdmin">Clinic Admin (مدير فرع عيادة)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assigned Clinic Branch</label>
+            <select [(ngModel)]="editingStaffClinicId" class="form-control">
+              <option value="">All Branches / Global</option>
+              @for (clinic of clinics(); track clinic.id) {
+                <option [value]="clinic.id">{{ clinic.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Quick Preset Buttons -->
+        <div class="permission-presets-bar mt-3">
+          <span class="preset-label">⚡ Apply Preset:</span>
+          <button (click)="applyEditPreset('Receptionist')" type="button" class="btn btn-outline btn-xs">👤 Receptionist</button>
+          <button (click)="applyEditPreset('Nurse')" type="button" class="btn btn-outline btn-xs">🩺 Nurse</button>
+          <button (click)="applyEditPreset('Accountant')" type="button" class="btn btn-outline btn-xs">💰 Cashier/Accountant</button>
+          <button (click)="applyEditPreset('Doctor')" type="button" class="btn btn-outline btn-xs">👨‍⚕️ Doctor</button>
+          <button (click)="selectAllEditPermissions()" type="button" class="btn btn-outline btn-xs">✅ Select All</button>
+          <button (click)="clearAllEditPermissions()" type="button" class="btn btn-outline btn-xs">❌ Clear All</button>
+        </div>
+
+        <!-- Permissions Matrix -->
+        <div class="permissions-container mt-3">
+          <!-- Section 1: Screens -->
+          <div class="permissions-section">
+            <div class="section-title-bar">
+              <h4>🖥️ Allowed Screens & Navigation (الشاشات المصرح بها)</h4>
+              <button (click)="selectAllEditPermissions('Screens')" type="button" class="btn-link-xs">Select All Screens</button>
+            </div>
+            <div class="permissions-grid">
+              @for (perm of screenPermissions(); track perm.key) {
+                <label class="permission-checkbox-card" [class.selected]="isEditPermissionSelected(perm.key)">
+                  <input
+                    type="checkbox"
+                    [checked]="isEditPermissionSelected(perm.key)"
+                    (change)="toggleEditPermission(perm.key)"
+                  />
+                  <div>
+                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-desc">{{ perm.description }}</div>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+
+          <!-- Section 2: Functional Actions -->
+          <div class="permissions-section mt-4">
+            <div class="section-title-bar">
+              <h4>⚡ Functional Actions & Operations (الصلاحيات والعمليات المصرح بها)</h4>
+              <button (click)="selectAllEditPermissions('Functions')" type="button" class="btn-link-xs">Select All Functions</button>
+            </div>
+            <div class="permissions-grid">
+              @for (perm of functionPermissions(); track perm.key) {
+                <label class="permission-checkbox-card" [class.selected]="isEditPermissionSelected(perm.key)">
+                  <input
+                    type="checkbox"
+                    [checked]="isEditPermissionSelected(perm.key)"
+                    (change)="toggleEditPermission(perm.key)"
+                  />
+                  <div>
+                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-desc">{{ perm.description }}</div>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeEditStaffModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="submitUpdateStaffPermissions()" class="btn btn-primary">Save Changes</button>
         </div>
       </div>
     </div>

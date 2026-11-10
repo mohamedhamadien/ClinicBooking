@@ -32,6 +32,28 @@ export class AuthService {
   public readonly isAdminOrClinicAdmin = computed(() => this.isAdmin() || this.isClinicAdmin());
   public readonly isDoctor = computed(() => this.currentUser()?.role === 'Doctor');
   public readonly isPatient = computed(() => this.currentUser()?.role === 'Patient');
+  public readonly isReceptionist = computed(() => this.currentUser()?.role === 'Receptionist');
+  public readonly isNurse = computed(() => this.currentUser()?.role === 'Nurse');
+  public readonly isAccountant = computed(() => this.currentUser()?.role === 'Accountant');
+  public readonly isStaff = computed(() => this.currentUser()?.role === 'Staff');
+  public readonly isAnyStaffOrAdmin = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'Admin' || role === 'ClinicAdmin' || role === 'Doctor' || role === 'Receptionist' || role === 'Nurse' || role === 'Accountant' || role === 'Staff';
+  });
+
+  public hasPermission(permission: string): boolean {
+    const user = this.currentUser();
+    if (!user) return false;
+    if (user.role === 'Admin' || user.role === 'ClinicAdmin') return true;
+    return !!user.permissions?.includes(permission);
+  }
+
+  public canAccessScreen(screenKey: string): boolean {
+    const user = this.currentUser();
+    if (!user) return false;
+    if (user.role === 'Admin' || user.role === 'ClinicAdmin') return true;
+    return !!user.permissions?.includes(screenKey);
+  }
 
   public login(request: LoginRequest): Observable<AuthResponseDto> {
     return this.http.post<AuthResponseDto>(`${environment.apiUrl}/auth/login`, request).pipe(

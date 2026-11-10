@@ -1,4 +1,5 @@
 using ClinicBooking.Domain.Common;
+using ClinicBooking.Domain.Constants;
 using ClinicBooking.Domain.Enums;
 using ClinicBooking.Domain.Exceptions;
 using ClinicBooking.Domain.ValueObjects;
@@ -50,6 +51,9 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
 
     private readonly List<RefreshToken> _refreshTokens = [];
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
+
+    private readonly List<UserPermission> _permissions = [];
+    public IReadOnlyCollection<UserPermission> Permissions => _permissions.AsReadOnly();
 
     private User() { }
 
@@ -134,6 +138,43 @@ public sealed class User : AggregateRoot<Guid>, IAuditableEntity, IMayHaveTenant
             expiresAtUtc,
             DateTime.UtcNow,
             createdByIp));
+    }
+
+    public void SetPermissions(IEnumerable<string> permissions)
+    {
+        _permissions.Clear();
+        foreach (var perm in permissions.Distinct())
+        {
+            if (!string.IsNullOrWhiteSpace(perm))
+            {
+                _permissions.Add(new UserPermission(Guid.NewGuid(), Id, perm.Trim(), TenantId, DateTime.UtcNow));
+            }
+        }
+    }
+
+    public IReadOnlyList<string> GetEffectivePermissions()
+    {
+        if (Role == UserRole.Admin || Role == UserRole.ClinicAdmin)
+        {
+            return ClinicPermissions.All.Select(p => p.Key).ToList();
+        }
+
+        if (_permissions.Count > 0)
+        {
+            return _permissions.Select(p => p.Permission).Distinct().ToList();
+        }
+
+        if (ClinicPermissions.RolePresets.TryGetValue(Role.ToString(), out var preset))
+        {
+            return preset;
+        }
+
+        return [];
+    }
+
+    public bool HasPermission(string permission)
+    {
+        return GetEffectivePermissions().Contains(permission, StringComparer.OrdinalIgnoreCase);
     }
 
     public void RevokeRefreshToken(string token, string? revokedByIp, string? reason, string? replacedByToken = null)

@@ -91,7 +91,8 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
             user.LastName,
             user.Role.ToString(),
             user.IsActive,
-            user.ClinicId);
+            user.ClinicId,
+            user.GetEffectivePermissions());
 
         return Result.Success(new AuthResponseDto(
             accessToken,

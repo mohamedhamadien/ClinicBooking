@@ -7,4 +7,6 @@ public interface ICurrentUserService
     string? Role { get; }
     Guid? ClinicId { get; }
     bool IsAuthenticated { get; }
+    IReadOnlyList<string> Permissions { get; }
+    bool HasPermission(string permission);
 }

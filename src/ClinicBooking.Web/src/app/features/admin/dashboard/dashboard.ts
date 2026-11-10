@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService, RegisterDoctorRequest, UpdateClinicRequest } from '../../../core/services/admin.service';
 import { DoctorService } from '../../../core/services/doctor.service';
 import { ClinicalService } from '../../../core/services/clinical.service';
+import { StaffService } from '../../../core/services/staff.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService } from '../../../core/services/translation.service';
 import { TranslatePipe } from '../../../core/pipes/translate.pipe';
@@ -17,6 +18,13 @@ import {
   PrescriptionDto,
   QueueItemDto
 } from '../../../core/models/clinical.models';
+import {
+  CreateStaffRequest,
+  PermissionCatalogDto,
+  PermissionItemDto,
+  StaffMemberDto,
+  UpdateStaffPermissionsRequest
+} from '../../../core/models/staff.models';
 
 export type AdminTab =
   | 'overview'
@@ -27,7 +35,8 @@ export type AdminTab =
   | 'appointments'
   | 'doctors'
   | 'clinics'
-  | 'specialties';
+  | 'specialties'
+  | 'staff';
 
 @Component({
   selector: 'app-dashboard',
@@ -40,6 +49,7 @@ export class DashboardComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly doctorService = inject(DoctorService);
   private readonly clinicalService = inject(ClinicalService);
+  private readonly staffService = inject(StaffService);
   protected readonly auth = inject(AuthService);
   protected readonly translation = inject(TranslationService);
 
@@ -57,6 +67,59 @@ export class DashboardComponent implements OnInit {
   protected readonly queueItems = signal<QueueItemDto[]>([]);
   protected readonly invoices = signal<InvoiceDto[]>([]);
   protected readonly patientRecord = signal<PatientMedicalRecordDto | null>(null);
+
+  // Staff & Permissions State
+  protected readonly staffMembers = signal<StaffMemberDto[]>([]);
+  protected readonly permissionCatalog = signal<PermissionCatalogDto | null>(null);
+  protected readonly showCreateStaffModal = signal(false);
+  protected readonly showEditStaffModal = signal(false);
+
+  protected filterStaffSearch = '';
+  protected filterStaffRole = '';
+
+  protected readonly screenPermissions = computed(() =>
+    this.permissionCatalog()?.permissions.filter((p) => p.category === 'Screens') || []
+  );
+
+  protected readonly functionPermissions = computed(() =>
+    this.permissionCatalog()?.permissions.filter((p) => p.category === 'Functions') || []
+  );
+
+  protected readonly filteredStaff = computed(() => {
+    let list = this.staffMembers();
+    if (this.filterStaffRole) {
+      list = list.filter((s) => s.role.toLowerCase() === this.filterStaffRole.toLowerCase());
+    }
+    if (this.filterStaffSearch.trim()) {
+      const q = this.filterStaffSearch.trim().toLowerCase();
+      list = list.filter(
+        (s) =>
+          s.fullName.toLowerCase().includes(q) ||
+          s.email.toLowerCase().includes(q) ||
+          (s.clinicName && s.clinicName.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  });
+
+  // Tab Permission Requirements
+  protected readonly tabPermissions: Record<AdminTab, string> = {
+    overview: 'Screen.Overview',
+    queue: 'Screen.Queue',
+    consultation: 'Screen.Consultation',
+    records: 'Screen.MedicalRecords',
+    billing: 'Screen.Billing',
+    appointments: 'Screen.Appointments',
+    doctors: 'Screen.Doctors',
+    clinics: 'Screen.Clinics',
+    specialties: 'Screen.Specialties',
+    staff: 'Screen.Staff'
+  };
+
+  protected canAccessTab(tab: AdminTab): boolean {
+    if (this.auth.isAdmin() || this.auth.isClinicAdmin()) return true;
+    return this.auth.canAccessScreen(this.tabPermissions[tab]);
+  }
 
   protected readonly loading = signal(true);
   protected readonly actionMessage = signal<string | null>(null);
@@ -193,7 +256,43 @@ export class DashboardComponent implements OnInit {
   protected cancelingAppointmentId: string | null = null;
   protected cancelReason = 'Administrative schedule adjustment';
 
+  // --- Staff & Permissions Form State ---
+  protected newStaffEmail = '';
+  protected newStaffPassword = '';
+  protected newStaffFirstName = '';
+  protected newStaffLastName = '';
+  protected newStaffRole = 'Receptionist';
+  protected newStaffClinicId = '';
+  protected newStaffPermissions: string[] = [];
+
+  protected editingStaffId = '';
+  protected editingStaffFullName = '';
+  protected editingStaffEmail = '';
+  protected editingStaffRole = 'Receptionist';
+  protected editingStaffClinicId = '';
+  protected editingStaffPermissions: string[] = [];
+
   ngOnInit(): void {
+    const allTabs: AdminTab[] = [
+      'overview',
+      'queue',
+      'consultation',
+      'records',
+      'billing',
+      'appointments',
+      'doctors',
+      'clinics',
+      'specialties',
+      'staff'
+    ];
+
+    if (!this.canAccessTab(this.activeTab())) {
+      const firstAllowed = allTabs.find((t) => this.canAccessTab(t));
+      if (firstAllowed) {
+        this.activeTab.set(firstAllowed);
+      }
+    }
+
     this.loadAllData();
   }
 
@@ -203,6 +302,9 @@ export class DashboardComponent implements OnInit {
       this.loadQueue();
     } else if (tab === 'billing') {
       this.loadInvoices();
+    } else if (tab === 'staff') {
+      this.loadStaff();
+      this.loadPermissionsCatalog();
     }
   }
 
@@ -234,6 +336,11 @@ export class DashboardComponent implements OnInit {
 
     this.doctorService.getSpecialties().subscribe((sp) => this.specialties.set(sp));
     this.doctorService.getDoctors(undefined, clinicId).subscribe((d) => this.doctors.set(d));
+
+    if (this.canAccessTab('staff')) {
+      this.loadStaff();
+      this.loadPermissionsCatalog();
+    }
   }
 
   // --- Queue Actions ---
@@ -683,6 +790,201 @@ export class DashboardComponent implements OnInit {
         this.errorMessage.set(err.error?.detail || 'Failed to cancel appointment.');
       }
     });
+  }
+
+  // --- Staff & Permissions Actions ---
+  protected loadStaff(): void {
+    const clinicId = this.assignedClinicId() || undefined;
+    this.staffService.getStaff(clinicId).subscribe({
+      next: (s) => this.staffMembers.set(s),
+      error: (err) => console.error('Failed to load staff members', err)
+    });
+  }
+
+  protected loadPermissionsCatalog(): void {
+    if (this.permissionCatalog()) return;
+    this.staffService.getPermissionsCatalog().subscribe({
+      next: (cat) => this.permissionCatalog.set(cat),
+      error: (err) => console.error('Failed to load permission catalog', err)
+    });
+  }
+
+  protected openCreateStaffModal(): void {
+    this.newStaffEmail = '';
+    this.newStaffPassword = '';
+    this.newStaffFirstName = '';
+    this.newStaffLastName = '';
+    this.newStaffRole = 'Receptionist';
+    this.newStaffClinicId = this.assignedClinicId() || (this.clinics().length > 0 ? this.clinics()[0].id : '');
+    this.applyCreatePreset('Receptionist');
+    this.showCreateStaffModal.set(true);
+  }
+
+  protected closeCreateStaffModal(): void {
+    this.showCreateStaffModal.set(false);
+  }
+
+  protected applyCreatePreset(roleName: string): void {
+    this.newStaffRole = roleName;
+    const presets = this.permissionCatalog()?.rolePresets;
+    if (presets && presets[roleName]) {
+      this.newStaffPermissions = [...presets[roleName]];
+    }
+  }
+
+  protected toggleCreatePermission(key: string): void {
+    const idx = this.newStaffPermissions.indexOf(key);
+    if (idx >= 0) {
+      this.newStaffPermissions.splice(idx, 1);
+    } else {
+      this.newStaffPermissions.push(key);
+    }
+  }
+
+  protected isCreatePermissionSelected(key: string): boolean {
+    return this.newStaffPermissions.includes(key);
+  }
+
+  protected selectAllCreatePermissions(category?: 'Screens' | 'Functions'): void {
+    const catalog = this.permissionCatalog();
+    if (!catalog) return;
+    const target = category
+      ? catalog.permissions.filter((p) => p.category === category).map((p) => p.key)
+      : catalog.permissions.map((p) => p.key);
+
+    const merged = new Set([...this.newStaffPermissions, ...target]);
+    this.newStaffPermissions = Array.from(merged);
+  }
+
+  protected clearAllCreatePermissions(): void {
+    this.newStaffPermissions = [];
+  }
+
+  protected submitCreateStaff(): void {
+    if (!this.newStaffEmail.trim() || !this.newStaffPassword.trim() || !this.newStaffFirstName.trim() || !this.newStaffLastName.trim()) {
+      this.errorMessage.set('Please fill in all required fields (Name, Email, Password).');
+      return;
+    }
+
+    const req: CreateStaffRequest = {
+      email: this.newStaffEmail.trim(),
+      password: this.newStaffPassword.trim(),
+      firstName: this.newStaffFirstName.trim(),
+      lastName: this.newStaffLastName.trim(),
+      role: this.newStaffRole,
+      clinicId: this.newStaffClinicId || undefined,
+      permissions: this.newStaffPermissions
+    };
+
+    this.staffService.createStaff(req).subscribe({
+      next: (created) => {
+        this.closeCreateStaffModal();
+        this.staffMembers.update((prev) => [created, ...prev]);
+        this.showMessage(`Staff member ${created.fullName} created successfully!`);
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || err.error?.title || 'Failed to create staff member.');
+      }
+    });
+  }
+
+  protected openEditStaffModal(staff: StaffMemberDto): void {
+    this.editingStaffId = staff.id;
+    this.editingStaffFullName = staff.fullName;
+    this.editingStaffEmail = staff.email;
+    this.editingStaffRole = staff.role;
+    this.editingStaffClinicId = staff.clinicId || '';
+    this.editingStaffPermissions = [...staff.permissions];
+    this.showEditStaffModal.set(true);
+  }
+
+  protected closeEditStaffModal(): void {
+    this.showEditStaffModal.set(false);
+  }
+
+  protected applyEditPreset(roleName: string): void {
+    this.editingStaffRole = roleName;
+    const presets = this.permissionCatalog()?.rolePresets;
+    if (presets && presets[roleName]) {
+      this.editingStaffPermissions = [...presets[roleName]];
+    }
+  }
+
+  protected toggleEditPermission(key: string): void {
+    const idx = this.editingStaffPermissions.indexOf(key);
+    if (idx >= 0) {
+      this.editingStaffPermissions.splice(idx, 1);
+    } else {
+      this.editingStaffPermissions.push(key);
+    }
+  }
+
+  protected isEditPermissionSelected(key: string): boolean {
+    return this.editingStaffPermissions.includes(key);
+  }
+
+  protected selectAllEditPermissions(category?: 'Screens' | 'Functions'): void {
+    const catalog = this.permissionCatalog();
+    if (!catalog) return;
+    const target = category
+      ? catalog.permissions.filter((p) => p.category === category).map((p) => p.key)
+      : catalog.permissions.map((p) => p.key);
+
+    const merged = new Set([...this.editingStaffPermissions, ...target]);
+    this.editingStaffPermissions = Array.from(merged);
+  }
+
+  protected clearAllEditPermissions(): void {
+    this.editingStaffPermissions = [];
+  }
+
+  protected submitUpdateStaffPermissions(): void {
+    if (!this.editingStaffId) return;
+
+    const req: UpdateStaffPermissionsRequest = {
+      role: this.editingStaffRole,
+      clinicId: this.editingStaffClinicId || undefined,
+      permissions: this.editingStaffPermissions
+    };
+
+    this.staffService.updatePermissions(this.editingStaffId, req).subscribe({
+      next: (updated) => {
+        this.closeEditStaffModal();
+        this.staffMembers.update((prev) =>
+          prev.map((s) => (s.id === updated.id ? updated : s))
+        );
+        this.showMessage(`Permissions for ${updated.fullName} updated successfully!`);
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || err.error?.title || 'Failed to update permissions.');
+      }
+    });
+  }
+
+  protected toggleStaffStatus(staff: StaffMemberDto): void {
+    this.staffService.toggleStatus(staff.id).subscribe({
+      next: (updated) => {
+        this.staffMembers.update((prev) =>
+          prev.map((s) => (s.id === updated.id ? updated : s))
+        );
+        this.showMessage(`Staff status for ${updated.fullName} changed to ${updated.isActive ? 'Active' : 'Inactive'}.`);
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || 'Failed to toggle staff status.');
+      }
+    });
+  }
+
+  protected getStaffRoleBadgeClass(role: string): string {
+    switch (role.toLowerCase()) {
+      case 'admin': return 'role-admin';
+      case 'clinicadmin': return 'role-clinic-admin';
+      case 'doctor': return 'role-doctor';
+      case 'receptionist': return 'role-receptionist';
+      case 'nurse': return 'role-nurse';
+      case 'accountant': return 'role-accountant';
+      default: return 'role-staff';
+    }
   }
 
   protected getBadgeClass(status: string): string {

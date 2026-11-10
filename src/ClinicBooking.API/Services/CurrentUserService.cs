@@ -39,4 +39,13 @@ public sealed class CurrentUserService : ICurrentUserService
     }
 
     public bool IsAuthenticated => User?.Identity?.IsAuthenticated ?? false;
+
+    public IReadOnlyList<string> Permissions =>
+        User?.FindAll("permission").Select(c => c.Value).Distinct().ToList() ?? [];
+
+    public bool HasPermission(string permission)
+    {
+        if (Role is "Admin" or "ClinicAdmin") return true;
+        return Permissions.Contains(permission, StringComparer.OrdinalIgnoreCase);
+    }
 }

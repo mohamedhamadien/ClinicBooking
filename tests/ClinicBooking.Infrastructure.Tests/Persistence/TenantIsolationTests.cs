@@ -128,6 +128,8 @@ public class TenantIsolationTests
         public string? Role => "Admin";
         public Guid? ClinicId => null;
         public bool IsAuthenticated => UserId.HasValue;
+        public IReadOnlyList<string> Permissions => [];
+        public bool HasPermission(string permission) => true;
 
         public TestCurrentUserService(Guid? userId) => UserId = userId;
     }

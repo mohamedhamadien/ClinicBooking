@@ -55,9 +55,31 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(u => u.RefreshTokens).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.HasMany(u => u.Permissions)
+            .WithOne()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(u => u.Permissions).UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.ConfigureAudit();
         builder.Ignore(u => u.DomainEvents);
         builder.Ignore(u => u.FullName);
+    }
+}
+
+internal sealed class UserPermissionConfiguration : IEntityTypeConfiguration<UserPermission>
+{
+    public void Configure(EntityTypeBuilder<UserPermission> builder)
+    {
+        builder.ToTable("UserPermissions");
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id).ValueGeneratedNever();
+
+        builder.Property(p => p.Permission).HasMaxLength(100).IsUnicode(false).IsRequired();
+        builder.HasIndex(p => new { p.UserId, p.Permission }).IsUnique().HasDatabaseName("UX_UserPermissions_User_Permission");
+        builder.HasIndex(p => p.TenantId).HasDatabaseName("IX_UserPermissions_TenantId");
+
+        builder.Property(p => p.GrantedAtUtc).HasColumnType("datetime2").IsRequired();
     }
 }
 

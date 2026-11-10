@@ -108,7 +108,8 @@ public sealed class RegisterPatientCommandHandler : IRequestHandler<RegisterPati
             user.LastName,
             user.Role.ToString(),
             user.IsActive,
-            user.ClinicId);
+            user.ClinicId,
+            user.GetEffectivePermissions());
 
         var authResponse = new AuthResponseDto(
             accessToken,

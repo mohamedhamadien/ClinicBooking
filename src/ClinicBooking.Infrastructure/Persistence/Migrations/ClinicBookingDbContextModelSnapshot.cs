@@ -1067,6 +1067,38 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.UserPermission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("GrantedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Permission")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_UserPermissions_TenantId");
+
+                    b.HasIndex("UserId", "Permission")
+                        .IsUnique()
+                        .HasDatabaseName("UX_UserPermissions_User_Permission");
+
+                    b.ToTable("UserPermissions", (string)null);
+                });
+
             modelBuilder.Entity("ClinicBooking.Domain.Entities.Appointment", b =>
                 {
                     b.HasOne("ClinicBooking.Domain.Entities.Clinic", null)
@@ -1370,6 +1402,15 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.UserPermission", b =>
+                {
+                    b.HasOne("ClinicBooking.Domain.Entities.User", null)
+                        .WithMany("Permissions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ClinicBooking.Domain.Entities.Doctor", b =>
                 {
                     b.Navigation("Availabilities");
@@ -1391,6 +1432,8 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ClinicBooking.Domain.Entities.User", b =>
                 {
+                    b.Navigation("Permissions");
+
                     b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicBooking.API.Controllers;
 
-[Authorize(Roles = "Admin,ClinicAdmin")]
+[Authorize(Roles = "Admin,ClinicAdmin,Staff,Receptionist,Nurse,Accountant,Doctor")]
 public sealed class AdminController : ApiControllerBase
 {
     private readonly ITenantContext _tenantContext;
