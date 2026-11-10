@@ -4,10 +4,13 @@ using ClinicBooking.Application.Features.Insurance.Queries.GetInsuranceProviders
 using ClinicBooking.Application.Features.Inventory.Commands.AdjustInventoryStock;
 using ClinicBooking.Application.Features.Inventory.Commands.CreateInventoryItem;
 using ClinicBooking.Application.Features.Inventory.Queries.GetClinicInventory;
+using ClinicBooking.Application.Features.Invoices.Commands.PayInvoice;
 using ClinicBooking.Application.Features.MedicalAttachments.Commands.UploadMedicalAttachment;
 using ClinicBooking.Application.Features.MedicalAttachments.Queries.GetPatientAttachments;
 using ClinicBooking.Application.Tests.TestHelpers;
+using ClinicBooking.Domain.Common;
 using ClinicBooking.Domain.Entities;
+using ClinicBooking.Domain.Enums;
 using Xunit;
 
 namespace ClinicBooking.Application.Tests.Features;
@@ -116,6 +119,121 @@ public class NewFeaturesTests
         Assert.Equal("BUPA-01", result.Value.Code);
         Assert.Equal(80m, result.Value.DefaultCoveragePercentage);
         Assert.Single(_insuranceRepo.Items);
+    }
+
+    [Fact]
+    public async Task PayInvoice_Should_Support_Partial_Payment_And_Set_Status_To_PartiallyPaid()
+    {
+        // Arrange
+        var invoiceRepo = new FakeInvoiceRepository();
+        var patientRepo = new FakePatientRepository();
+        var userRepo = new FakeUserRepository();
+        var handler = new PayInvoiceCommandHandler(invoiceRepo, _clinicRepo, patientRepo, userRepo, _uow);
+
+        var tenantId = Guid.NewGuid();
+        var clinicId = Guid.NewGuid();
+        var patientId = Guid.NewGuid();
+        var invoice = Invoice.Create(tenantId, null, patientId, clinicId, 0, 0, PaymentMethod.Cash, "INV-TEST-001");
+        invoice.AddItem("General Consultation", 1, 300m);
+        invoice.AddItem("Blood Test", 1, 200m); // Total = 500m
+        await invoiceRepo.AddAsync(invoice);
+
+        // Act: Pay 200 out of 500
+        var command = new PayInvoiceCommand(invoice.Id, PaymentMethod.CreditCard, 200m);
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(InvoiceStatus.PartiallyPaid, result.Value.Status);
+        Assert.Equal(200m, result.Value.PaidAmount);
+        Assert.Equal(300m, result.Value.RemainingAmount);
+        Assert.Equal(500m, result.Value.TotalAmount);
+
+        // Act 2: Pay remaining 300
+        var command2 = new PayInvoiceCommand(invoice.Id, PaymentMethod.Cash, 300m);
+        var result2 = await handler.Handle(command2, CancellationToken.None);
+
+        // Assert 2
+        Assert.True(result2.IsSuccess);
+        Assert.Equal(InvoiceStatus.Paid, result2.Value.Status);
+        Assert.Equal(500m, result2.Value.PaidAmount);
+        Assert.Equal(0m, result2.Value.RemainingAmount);
+    }
+
+    [Fact]
+    public void ConsultationNote_Should_Hold_FollowUpDate_And_LabRequests()
+    {
+        // Arrange
+        var followUpDate = DateTime.UtcNow.AddDays(7);
+        var labRequests = "CBC, Fasting Blood Sugar, Chest X-Ray";
+
+        // Act
+        var note = ConsultationNote.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Persistent cough",
+            "Chest clear",
+            "Acute Bronchitis",
+            "Antibiotics and rest",
+            DateTime.UtcNow,
+            followUpDate,
+            labRequests);
+
+        // Assert
+        Assert.Equal(labRequests, note.LabRequests);
+        Assert.NotNull(note.FollowUpDateUtc);
+        Assert.Equal(followUpDate.Date, note.FollowUpDateUtc.Value.Date);
+    }
+
+    [Fact]
+    public void SoftDeletable_Entities_Should_Implement_ISoftDeletable()
+    {
+        // Assert
+        Assert.True(typeof(ISoftDeletable).IsAssignableFrom(typeof(Patient)));
+        Assert.True(typeof(ISoftDeletable).IsAssignableFrom(typeof(MedicalAttachment)));
+    }
+}
+
+internal sealed class FakeInvoiceRepository : IInvoiceRepository
+{
+    public readonly List<Invoice> Items = [];
+
+    public Task<Invoice?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Items.FirstOrDefault(i => i.Id == id));
+    }
+
+    public Task<Invoice?> GetByAppointmentIdAsync(Guid appointmentId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Items.FirstOrDefault(i => i.AppointmentId == appointmentId));
+    }
+
+    public Task<IReadOnlyList<Invoice>> GetByTenantIdAsync(Guid tenantId, Guid? clinicId = null, CancellationToken cancellationToken = default)
+    {
+        var q = Items.Where(i => i.TenantId == tenantId);
+        if (clinicId.HasValue) q = q.Where(i => i.ClinicId == clinicId.Value);
+        return Task.FromResult<IReadOnlyList<Invoice>>(q.ToList());
+    }
+
+    public Task<IReadOnlyList<Invoice>> GetByPatientIdAsync(Guid tenantId, Guid patientId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<Invoice>>(Items.Where(i => i.TenantId == tenantId && i.PatientId == patientId).ToList());
+    }
+
+    public Task AddAsync(Invoice invoice, CancellationToken cancellationToken = default)
+    {
+        Items.Add(invoice);
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAsync(Invoice invoice, CancellationToken cancellationToken = default)
+    {
+        var idx = Items.FindIndex(i => i.Id == invoice.Id);
+        if (idx >= 0) Items[idx] = invoice;
+        return Task.CompletedTask;
     }
 }
 

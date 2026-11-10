@@ -5,7 +5,7 @@ using ClinicBooking.Domain.ValueObjects;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTenant
+public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTenant, ISoftDeletable
 {
     public Guid TenantId { get; private set; }
     public Guid UserId { get; private set; }
@@ -16,6 +16,10 @@ public sealed class Patient : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTe
     public string? Allergies { get; private set; }
     public string? ChronicConditions { get; private set; }
     public string? MedicalNotes { get; private set; }
+
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
+    public string? DeletedBy { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
     public string? CreatedBy { get; set; }

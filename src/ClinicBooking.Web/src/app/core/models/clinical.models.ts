@@ -32,6 +32,8 @@ export interface ConsultationDto {
   insuranceProviderName?: string;
   insuranceCoverageAmount?: number;
   patientCopayAmount?: number;
+  followUpDateUtc?: string;
+  labRequests?: string;
 }
 
 export interface PrescriptionItemDto {
@@ -62,6 +64,8 @@ export interface PrescriptionDto {
   insuranceProviderName?: string;
   insuranceCoverageAmount?: number;
   patientCopayAmount?: number;
+  followUpDateUtc?: string;
+  labRequests?: string;
 }
 
 export interface PatientMedicalRecordDto {
@@ -78,7 +82,7 @@ export interface PatientMedicalRecordDto {
   prescriptions: PrescriptionDto[];
 }
 
-export type InvoiceStatus = 'Pending' | 'Paid' | 'Cancelled' | 'Refunded';
+export type InvoiceStatus = 'Pending' | 'Paid' | 'Cancelled' | 'Refunded' | 'PartiallyPaid';
 export type PaymentMethod = 'Cash' | 'CreditCard' | 'Insurance' | 'BankTransfer';
 
 export interface InvoiceItemDto {
@@ -101,6 +105,7 @@ export interface InvoiceDto {
   taxAmount: number;
   totalAmount: number;
   paidAmount: number;
+  remainingAmount?: number;
   status: InvoiceStatus;
   paymentMethod: PaymentMethod;
   paidAtUtc?: string;
@@ -112,6 +117,8 @@ export interface InvoiceDto {
   insuranceProviderName?: string;
   insuranceCoverageAmount?: number;
   patientCopayAmount?: number;
+  followUpDateUtc?: string;
+  labRequests?: string;
 }
 
 export interface QueueItemDto {

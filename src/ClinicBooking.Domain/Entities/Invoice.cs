@@ -97,12 +97,40 @@ public sealed class Invoice : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTe
         RecalculateTotals();
     }
 
+    public decimal RemainingAmount => Math.Max(0, TotalAmount - PaidAmount);
+
+    public void RecordPayment(decimal amount, PaymentMethod paymentMethod, DateTime paidAtUtc)
+    {
+        if (amount <= 0)
+        {
+            throw new DomainValidationException("Payment amount must be greater than zero.");
+        }
+
+        PaymentMethod = paymentMethod;
+        PaidAmount += amount;
+        PaidAtUtc = DateTime.SpecifyKind(paidAtUtc, DateTimeKind.Utc);
+
+        if (PaidAmount >= TotalAmount)
+        {
+            PaidAmount = TotalAmount;
+            Status = InvoiceStatus.Paid;
+        }
+        else
+        {
+            Status = InvoiceStatus.PartiallyPaid;
+        }
+    }
+
     public void MarkAsPaid(PaymentMethod paymentMethod, DateTime paidAtUtc)
     {
-        PaymentMethod = paymentMethod;
-        PaidAmount = TotalAmount;
-        Status = InvoiceStatus.Paid;
-        PaidAtUtc = DateTime.SpecifyKind(paidAtUtc, DateTimeKind.Utc);
+        var due = TotalAmount - PaidAmount;
+        if (due <= 0)
+        {
+            Status = InvoiceStatus.Paid;
+            PaidAtUtc = DateTime.SpecifyKind(paidAtUtc, DateTimeKind.Utc);
+            return;
+        }
+        RecordPayment(due, paymentMethod, paidAtUtc);
     }
 
     public void Cancel()

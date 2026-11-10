@@ -8,6 +8,7 @@ import { StaffService } from '../../../core/services/staff.service';
 import { AttachmentsService } from '../../../core/services/attachments.service';
 import { InventoryService } from '../../../core/services/inventory.service';
 import { InsuranceService } from '../../../core/services/insurance.service';
+import { AppointmentService } from '../../../core/services/appointment.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService } from '../../../core/services/translation.service';
 import { ReportingService } from '../../../core/services/reporting.service';
@@ -61,6 +62,7 @@ export class DashboardComponent implements OnInit {
   private readonly attachmentsService = inject(AttachmentsService);
   private readonly inventoryService = inject(InventoryService);
   private readonly insuranceService = inject(InsuranceService);
+  private readonly appointmentService = inject(AppointmentService);
   protected readonly auth = inject(AuthService);
   protected readonly translation = inject(TranslationService);
   protected readonly reporting = inject(ReportingService);
@@ -293,6 +295,8 @@ export class DashboardComponent implements OnInit {
   protected consultExamination = '';
   protected consultDiagnosis = '';
   protected consultTreatmentPlan = '';
+  protected consultFollowUpDate = '';
+  protected consultLabRequests = '';
   // Vitals
   protected vitalsSystolic: number | null = 120;
   protected vitalsDiastolic: number | null = 80;
@@ -319,6 +323,18 @@ export class DashboardComponent implements OnInit {
   protected historyAllergies = '';
   protected historyChronic = '';
   protected historyNotes = '';
+
+  // --- Rescheduling Modal State ---
+  protected isRescheduleModalOpen = false;
+  protected rescheduleAppt: AppointmentDto | null = null;
+  protected rescheduleNewDate = '';
+  protected rescheduleNewTime = '10:00';
+
+  // --- Payment / Partial Payment Modal State ---
+  protected isPayModalOpen = false;
+  protected payingInvoice: InvoiceDto | null = null;
+  protected payMethod: number = 1;
+  protected payAmount: number | null = null;
   protected historyPatientId = '';
 
   // --- Invoice Modal ---
@@ -547,6 +563,8 @@ export class DashboardComponent implements OnInit {
       examinationNotes: this.consultExamination,
       diagnosis: this.consultDiagnosis,
       treatmentPlan: this.consultTreatmentPlan,
+      followUpDateUtc: this.consultFollowUpDate ? new Date(this.consultFollowUpDate).toISOString() : undefined,
+      labRequests: this.consultLabRequests.trim() || undefined,
       vitalSigns: {
         systolicBp: this.vitalsSystolic ?? undefined,
         diastolicBp: this.vitalsDiastolic ?? undefined,
@@ -720,10 +738,98 @@ export class DashboardComponent implements OnInit {
     this.clinicalService.payInvoice(invoiceId, method).subscribe({
       next: (updated) => {
         this.invoices.update((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
-        this.showMessage(`Invoice #${updated.invoiceNumber} marked as Paid!`);
+        this.showMessage(`Invoice #${updated.invoiceNumber} payment processed!`);
       },
       error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to pay invoice.')
     });
+  }
+
+  // --- Rescheduling Modal Methods ---
+  protected openRescheduleModal(appt: AppointmentDto): void {
+    this.rescheduleAppt = appt;
+    const current = new Date(appt.startTimeUtc);
+    this.rescheduleNewDate = current.toISOString().slice(0, 10);
+    this.rescheduleNewTime = `${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`;
+    this.isRescheduleModalOpen = true;
+  }
+
+  protected submitReschedule(): void {
+    if (!this.rescheduleAppt || !this.rescheduleNewDate || !this.rescheduleNewTime) {
+      this.errorMessage.set('Please select both a new date and start time.');
+      return;
+    }
+
+    const [hours, minutes] = this.rescheduleNewTime.split(':').map(Number);
+    const start = new Date(this.rescheduleNewDate);
+    start.setHours(hours, minutes, 0, 0);
+    const end = new Date(start.getTime() + 30 * 60000);
+
+    this.appointmentService.rescheduleAppointment(
+      this.rescheduleAppt.id,
+      start.toISOString(),
+      end.toISOString()
+    ).subscribe({
+      next: () => {
+        this.showMessage(`Appointment successfully rescheduled to ${start.toLocaleString()}!`);
+        this.isRescheduleModalOpen = false;
+        this.rescheduleAppt = null;
+        this.loadAllData();
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to reschedule appointment.')
+    });
+  }
+
+  // --- Payment / Partial Payment Methods ---
+  protected openPayModal(inv: InvoiceDto): void {
+    this.payingInvoice = inv;
+    const remaining = (inv.remainingAmount !== undefined && inv.remainingAmount > 0)
+      ? inv.remainingAmount
+      : Math.max(0, inv.totalAmount - inv.paidAmount);
+    this.payAmount = remaining > 0 ? remaining : inv.totalAmount;
+    this.payMethod = 1;
+    this.isPayModalOpen = true;
+  }
+
+  protected submitPayment(): void {
+    if (!this.payingInvoice) return;
+    const amount = this.payAmount !== null && this.payAmount > 0 ? this.payAmount : undefined;
+
+    this.clinicalService.payInvoice(this.payingInvoice.id, this.payMethod, amount).subscribe({
+      next: (updated) => {
+        this.invoices.update((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+        this.isPayModalOpen = false;
+        this.payingInvoice = null;
+        const remaining = updated.remainingAmount ?? Math.max(0, updated.totalAmount - updated.paidAmount);
+        const msg = updated.status === 'Paid'
+          ? `Invoice #${updated.invoiceNumber} paid in full!`
+          : `Partial payment recorded for Invoice #${updated.invoiceNumber}. Remaining balance: $${remaining}.`;
+        this.showMessage(msg);
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to process payment.')
+    });
+  }
+
+  protected printLabOrder(consultation?: ConsultationDto): void {
+    if (consultation) {
+      this.reporting.printLabOrderRequisition(
+        consultation.patientName || 'Patient',
+        consultation.doctorName,
+        consultation.clinicName,
+        consultation.diagnosis,
+        consultation.labRequests,
+        consultation.followUpDateUtc
+      );
+      return;
+    }
+    const appt = this.appointments().find((a) => a.id === this.consultAppointmentId);
+    this.reporting.printLabOrderRequisition(
+      appt?.patientName || 'Patient',
+      appt?.doctorName,
+      appt?.clinicName,
+      this.consultDiagnosis,
+      this.consultLabRequests,
+      this.consultFollowUpDate
+    );
   }
 
   // --- Doctor Actions ---

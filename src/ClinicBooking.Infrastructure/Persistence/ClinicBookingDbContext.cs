@@ -52,6 +52,7 @@ public sealed class ClinicBookingDbContext : DbContext
     public DbSet<MedicalAttachment> MedicalAttachments => Set<MedicalAttachment>();
     public DbSet<MedicalInventoryItem> MedicalInventoryItems => Set<MedicalInventoryItem>();
     public DbSet<InsuranceProvider> InsuranceProviders => Set<InsuranceProvider>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     // Referenced from the global query filters. EF Core evaluates context members per query,
     // so each request sees only its own tenant even though the model is cached.
@@ -85,7 +86,13 @@ public sealed class ClinicBookingDbContext : DbContext
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         EnforceTenantWriteIsolation();
+        ApplySoftDelete();
         ApplyAuditInformation();
+        var auditLogs = GenerateAuditLogs();
+        if (auditLogs.Count > 0)
+        {
+            AuditLogs.AddRange(auditLogs);
+        }
 
         if (Database.ProviderName?.Contains("InMemory") == true)
         {
@@ -202,17 +209,42 @@ public sealed class ClinicBookingDbContext : DbContext
                 continue;
             }
 
-            if (typeof(IMustHaveTenant).IsAssignableFrom(clrType))
+            var isMustHaveTenant = typeof(IMustHaveTenant).IsAssignableFrom(clrType);
+            var isMayHaveTenant = typeof(IMayHaveTenant).IsAssignableFrom(clrType);
+            var isSoftDeletable = typeof(ISoftDeletable).IsAssignableFrom(clrType);
+
+            if (isMustHaveTenant && isSoftDeletable)
+            {
+                typeof(ClinicBookingDbContext)
+                    .GetMethod(nameof(ApplyMustTenantAndSoftDeleteFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, [modelBuilder]);
+            }
+            else if (isMustHaveTenant)
             {
                 typeof(ClinicBookingDbContext)
                     .GetMethod(nameof(ApplyMustHaveTenantFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
                     .MakeGenericMethod(clrType)
                     .Invoke(this, [modelBuilder]);
             }
-            else if (typeof(IMayHaveTenant).IsAssignableFrom(clrType))
+            else if (isMayHaveTenant && isSoftDeletable)
+            {
+                typeof(ClinicBookingDbContext)
+                    .GetMethod(nameof(ApplyMayTenantAndSoftDeleteFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, [modelBuilder]);
+            }
+            else if (isMayHaveTenant)
             {
                 typeof(ClinicBookingDbContext)
                     .GetMethod(nameof(ApplyMayHaveTenantFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, [modelBuilder]);
+            }
+            else if (isSoftDeletable)
+            {
+                typeof(ClinicBookingDbContext)
+                    .GetMethod(nameof(ApplySoftDeleteFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
                     .MakeGenericMethod(clrType)
                     .Invoke(this, [modelBuilder]);
             }
@@ -220,12 +252,19 @@ public sealed class ClinicBookingDbContext : DbContext
     }
 
     // Tenant-owned rows: visible only to their tenant (or the host/platform context).
-    // If no tenant is resolved and the caller is not host, nothing is visible (deny by default).
     private void ApplyMustHaveTenantFilter<TEntity>(ModelBuilder modelBuilder)
         where TEntity : class, IMustHaveTenant
     {
         modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
             IsHostContext || EF.Property<Guid>(e, nameof(IMustHaveTenant.TenantId)) == CurrentTenantId);
+    }
+
+    private void ApplyMustTenantAndSoftDeleteFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, IMustHaveTenant, ISoftDeletable
+    {
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
+            (IsHostContext || EF.Property<Guid>(e, nameof(IMustHaveTenant.TenantId)) == CurrentTenantId) &&
+            !e.IsDeleted);
     }
 
     // Optionally tenant-owned rows: shared (TenantId = NULL) rows are visible to everyone,
@@ -237,6 +276,116 @@ public sealed class ClinicBookingDbContext : DbContext
             IsHostContext
             || EF.Property<Guid?>(e, nameof(IMayHaveTenant.TenantId)) == null
             || EF.Property<Guid?>(e, nameof(IMayHaveTenant.TenantId)) == CurrentTenantId);
+    }
+
+    private void ApplyMayTenantAndSoftDeleteFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, IMayHaveTenant, ISoftDeletable
+    {
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
+            (IsHostContext
+            || EF.Property<Guid?>(e, nameof(IMayHaveTenant.TenantId)) == null
+            || EF.Property<Guid?>(e, nameof(IMayHaveTenant.TenantId)) == CurrentTenantId) &&
+            !e.IsDeleted);
+    }
+
+    private void ApplySoftDeleteFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, ISoftDeletable
+    {
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e => !e.IsDeleted);
+    }
+
+    private void ApplySoftDelete()
+    {
+        var utcNow = _dateTimeProvider.UtcNow;
+        var actor = _currentUserService?.UserId?.ToString() ?? "system";
+
+        foreach (var entry in ChangeTracker.Entries<ISoftDeletable>())
+        {
+            if (entry.State == EntityState.Deleted)
+            {
+                entry.State = EntityState.Modified;
+                entry.Entity.IsDeleted = true;
+                entry.Entity.DeletedAtUtc = utcNow;
+                entry.Entity.DeletedBy = actor;
+            }
+        }
+    }
+
+    private List<AuditLog> GenerateAuditLogs()
+    {
+        var utcNow = _dateTimeProvider.UtcNow;
+        var actor = _currentUserService?.UserId?.ToString() ?? "system";
+        var logs = new List<AuditLog>();
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is AuditLog || entry.State is EntityState.Detached or EntityState.Unchanged)
+            {
+                continue;
+            }
+
+            var action = entry.State switch
+            {
+                EntityState.Added => "Created",
+                EntityState.Modified => "Modified",
+                EntityState.Deleted => "Deleted",
+                _ => "Unknown"
+            };
+
+            if (entry.Entity is ISoftDeletable soft && soft.IsDeleted && entry.State == EntityState.Modified)
+            {
+                var delProp = entry.Property(nameof(ISoftDeletable.IsDeleted));
+                if (delProp.IsModified && (bool)delProp.CurrentValue! == true)
+                {
+                    action = "SoftDeleted";
+                }
+            }
+
+            var entityName = entry.Metadata.ClrType.Name;
+            var primaryKey = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? Guid.NewGuid().ToString();
+
+            Guid? tenantId = entry.Entity switch
+            {
+                IMustHaveTenant must => must.TenantId,
+                IMayHaveTenant may => may.TenantId,
+                _ => null
+            };
+
+            var changes = new Dictionary<string, object?>();
+            if (action is "Modified" or "SoftDeleted")
+            {
+                foreach (var prop in entry.Properties.Where(p => p.IsModified && !p.Metadata.IsPrimaryKey()))
+                {
+                    if (prop.Metadata.Name.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
+                        prop.Metadata.Name.Contains("Base64", StringComparison.OrdinalIgnoreCase) ||
+                        prop.Metadata.Name.Contains("Token", StringComparison.OrdinalIgnoreCase) ||
+                        prop.Metadata.Name.Contains("DataUrl", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    changes[prop.Metadata.Name] = new
+                    {
+                        Old = prop.OriginalValue?.ToString(),
+                        New = prop.CurrentValue?.ToString()
+                    };
+                }
+            }
+
+            string? changesJson = changes.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(changes) : null;
+
+            logs.Add(new AuditLog(
+                Guid.NewGuid(),
+                tenantId,
+                entityName,
+                primaryKey,
+                action,
+                actor,
+                utcNow,
+                changesJson));
+        }
+
+        return logs;
     }
 
     /// <summary>

@@ -115,6 +115,52 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ChangedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ChangesJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAtUtc")
+                        .HasDatabaseName("IX_AuditLogs_ChangedAtUtc");
+
+                    b.HasIndex("TenantId", "EntityName")
+                        .HasDatabaseName("IX_AuditLogs_Tenant_Entity");
+
+                    b.ToTable("AuditLogs", (string)null);
+                });
+
             modelBuilder.Entity("ClinicBooking.Domain.Entities.AvailabilityException", b =>
                 {
                     b.Property<Guid>("Id")
@@ -265,6 +311,13 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(3000)
                         .HasColumnType("nvarchar(3000)");
+
+                    b.Property<DateTime?>("FollowUpDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LabRequests")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<DateTime?>("LastModifiedAtUtc")
                         .HasColumnType("datetime2");
@@ -467,6 +520,40 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.ToTable("DoctorClinics", (string)null);
                 });
 
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.InsuranceProvider", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("DefaultCoveragePercentage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameAr")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InsuranceProviders");
+                });
+
             modelBuilder.Entity("ClinicBooking.Domain.Entities.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -488,6 +575,12 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("InsuranceCoverageAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("InsuranceProviderId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
@@ -511,6 +604,9 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("PaidAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("PatientCopayAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uniqueidentifier");
@@ -545,6 +641,8 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.HasIndex("AppointmentId");
 
                     b.HasIndex("ClinicId");
+
+                    b.HasIndex("InsuranceProviderId");
 
                     b.HasIndex("PatientId");
 
@@ -589,6 +687,115 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.ToTable("InvoiceItems", (string)null);
                 });
 
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.MedicalAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AttachmentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DataUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UploadedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("MedicalAttachments");
+                });
+
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.MedicalInventoryItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BatchNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ClinicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CurrentStock")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ItemNameAr")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastUpdatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MinimumThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicId");
+
+                    b.ToTable("MedicalInventoryItems");
+                });
+
             modelBuilder.Entity("ClinicBooking.Domain.Entities.Patient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -616,6 +823,12 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("DateOfBirth")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("EmergencyContact")
                         .HasMaxLength(20)
                         .IsUnicode(false)
@@ -625,6 +838,9 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastModifiedAtUtc")
                         .HasColumnType("datetime2");
@@ -1289,6 +1505,10 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ClinicBooking.Domain.Entities.InsuranceProvider", "InsuranceProvider")
+                        .WithMany()
+                        .HasForeignKey("InsuranceProviderId");
+
                     b.HasOne("ClinicBooking.Domain.Entities.Patient", null)
                         .WithMany()
                         .HasForeignKey("PatientId")
@@ -1300,6 +1520,8 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("InsuranceProvider");
                 });
 
             modelBuilder.Entity("ClinicBooking.Domain.Entities.InvoiceItem", b =>
@@ -1309,6 +1531,28 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.MedicalAttachment", b =>
+                {
+                    b.HasOne("ClinicBooking.Domain.Entities.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("ClinicBooking.Domain.Entities.MedicalInventoryItem", b =>
+                {
+                    b.HasOne("ClinicBooking.Domain.Entities.Clinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Clinic");
                 });
 
             modelBuilder.Entity("ClinicBooking.Domain.Entities.Patient", b =>

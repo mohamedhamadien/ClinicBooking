@@ -9,13 +9,15 @@ namespace ClinicBooking.Application.Features.Invoices.Commands.PayInvoice;
 
 public sealed record PayInvoiceCommand(
     Guid InvoiceId,
-    PaymentMethod PaymentMethod = PaymentMethod.Cash) : IRequest<Result<InvoiceDto>>;
+    PaymentMethod PaymentMethod = PaymentMethod.Cash,
+    decimal? Amount = null) : IRequest<Result<InvoiceDto>>;
 
 public sealed class PayInvoiceCommandValidator : AbstractValidator<PayInvoiceCommand>
 {
     public PayInvoiceCommandValidator()
     {
         RuleFor(x => x.InvoiceId).NotEmpty();
+        RuleFor(x => x.Amount).GreaterThan(0).When(x => x.Amount.HasValue);
     }
 }
 
@@ -49,7 +51,14 @@ public sealed class PayInvoiceCommandHandler : IRequestHandler<PayInvoiceCommand
             return Result.Failure<InvoiceDto>(Error.NotFound("Invoice", request.InvoiceId));
         }
 
-        invoice.MarkAsPaid(request.PaymentMethod, DateTime.UtcNow);
+        if (request.Amount.HasValue && request.Amount.Value > 0)
+        {
+            invoice.RecordPayment(request.Amount.Value, request.PaymentMethod, DateTime.UtcNow);
+        }
+        else
+        {
+            invoice.MarkAsPaid(request.PaymentMethod, DateTime.UtcNow);
+        }
         await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

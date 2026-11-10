@@ -14,6 +14,8 @@ public sealed class ConsultationNote : AggregateRoot<Guid>, IAuditableEntity, IM
     public string ExaminationNotes { get; private set; } = default!;
     public string Diagnosis { get; private set; } = default!;
     public string TreatmentPlan { get; private set; } = default!;
+    public DateTime? FollowUpDateUtc { get; private set; }
+    public string? LabRequests { get; private set; }
     public DateTime ConsultationDateUtc { get; private set; }
 
     public DateTime CreatedAtUtc { get; set; }
@@ -34,7 +36,9 @@ public sealed class ConsultationNote : AggregateRoot<Guid>, IAuditableEntity, IM
         string examinationNotes,
         string diagnosis,
         string treatmentPlan,
-        DateTime consultationDateUtc) : base(id)
+        DateTime consultationDateUtc,
+        DateTime? followUpDateUtc = null,
+        string? labRequests = null) : base(id)
     {
         if (tenantId == Guid.Empty) throw new DomainValidationException("TenantId is required.");
         if (appointmentId == Guid.Empty) throw new DomainValidationException("AppointmentId is required.");
@@ -51,6 +55,8 @@ public sealed class ConsultationNote : AggregateRoot<Guid>, IAuditableEntity, IM
         Diagnosis = string.IsNullOrWhiteSpace(diagnosis) ? throw new DomainValidationException("Diagnosis is required.") : diagnosis.Trim();
         TreatmentPlan = treatmentPlan?.Trim() ?? string.Empty;
         ConsultationDateUtc = DateTime.SpecifyKind(consultationDateUtc, DateTimeKind.Utc);
+        FollowUpDateUtc = followUpDateUtc.HasValue ? DateTime.SpecifyKind(followUpDateUtc.Value, DateTimeKind.Utc) : null;
+        LabRequests = labRequests?.Trim();
     }
 
     public static ConsultationNote Create(
@@ -63,7 +69,9 @@ public sealed class ConsultationNote : AggregateRoot<Guid>, IAuditableEntity, IM
         string examinationNotes,
         string diagnosis,
         string treatmentPlan,
-        DateTime consultationDateUtc)
+        DateTime consultationDateUtc,
+        DateTime? followUpDateUtc = null,
+        string? labRequests = null)
     {
         return new ConsultationNote(
             Guid.NewGuid(),
@@ -76,6 +84,8 @@ public sealed class ConsultationNote : AggregateRoot<Guid>, IAuditableEntity, IM
             examinationNotes,
             diagnosis,
             treatmentPlan,
-            consultationDateUtc);
+            consultationDateUtc,
+            followUpDateUtc,
+            labRequests);
     }
 }

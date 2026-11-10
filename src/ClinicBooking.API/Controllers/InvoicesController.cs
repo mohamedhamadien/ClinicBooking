@@ -65,10 +65,10 @@ public sealed class InvoicesController : ApiControllerBase
         [FromBody] PayInvoiceRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new PayInvoiceCommand(id, request.PaymentMethod);
+        var command = new PayInvoiceCommand(id, request.PaymentMethod, request.Amount);
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
 }
 
-public sealed record PayInvoiceRequest(PaymentMethod PaymentMethod);
+public sealed record PayInvoiceRequest(PaymentMethod PaymentMethod, decimal? Amount = null);

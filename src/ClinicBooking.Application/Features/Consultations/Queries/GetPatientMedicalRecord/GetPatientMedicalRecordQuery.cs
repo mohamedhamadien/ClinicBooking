@@ -73,7 +73,9 @@ public sealed class GetPatientMedicalRecordQueryHandler : IRequestHandler<GetPat
                 null,
                 null,
                 patientName,
-                clinicName);
+                clinicName,
+                c.FollowUpDateUtc,
+                c.LabRequests);
         }).ToList();
 
         var vitalDtos = vitals.Select(v => new PatientVitalSignsDto(

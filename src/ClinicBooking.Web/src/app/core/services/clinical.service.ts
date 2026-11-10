@@ -52,6 +52,8 @@ export class ClinicalService {
       heightCm?: number;
       bloodGlucoseMgDl?: number;
     };
+    followUpDateUtc?: string;
+    labRequests?: string;
   }): Observable<ConsultationDto> {
     return this.http.post<ConsultationDto>(`${environment.apiUrl}/consultations`, command);
   }
@@ -120,7 +122,11 @@ export class ClinicalService {
     return this.http.post<InvoiceDto>(`${environment.apiUrl}/invoices`, command);
   }
 
-  public payInvoice(invoiceId: string, paymentMethod: number): Observable<InvoiceDto> {
-    return this.http.post<InvoiceDto>(`${environment.apiUrl}/invoices/${invoiceId}/pay`, { paymentMethod });
+  public payInvoice(invoiceId: string, paymentMethod: number, amount?: number): Observable<InvoiceDto> {
+    const payload: { paymentMethod: number; amount?: number } = { paymentMethod };
+    if (amount !== undefined && amount > 0) {
+      payload.amount = amount;
+    }
+    return this.http.post<InvoiceDto>(`${environment.apiUrl}/invoices/${invoiceId}/pay`, payload);
   }
 }

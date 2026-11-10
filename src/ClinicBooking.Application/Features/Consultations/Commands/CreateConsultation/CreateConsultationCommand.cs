@@ -26,7 +26,9 @@ public sealed record CreateConsultationCommand(
     string ExaminationNotes,
     string Diagnosis,
     string TreatmentPlan,
-    VitalSignsInput? VitalSigns = null) : IRequest<Result<ConsultationDto>>;
+    VitalSignsInput? VitalSigns = null,
+    DateTime? FollowUpDateUtc = null,
+    string? LabRequests = null) : IRequest<Result<ConsultationDto>>;
 
 public sealed class CreateConsultationCommandValidator : AbstractValidator<CreateConsultationCommand>
 {
@@ -40,6 +42,7 @@ public sealed class CreateConsultationCommandValidator : AbstractValidator<Creat
         RuleFor(x => x.ChiefComplaint).MaximumLength(1000);
         RuleFor(x => x.ExaminationNotes).MaximumLength(3000);
         RuleFor(x => x.TreatmentPlan).MaximumLength(3000);
+        RuleFor(x => x.LabRequests).MaximumLength(4000);
     }
 }
 
@@ -86,7 +89,9 @@ public sealed class CreateConsultationCommandHandler : IRequestHandler<CreateCon
             request.ExaminationNotes,
             request.Diagnosis,
             request.TreatmentPlan,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            request.FollowUpDateUtc,
+            request.LabRequests);
 
         await _consultationRepository.AddAsync(note, cancellationToken);
 
@@ -146,7 +151,12 @@ public sealed class CreateConsultationCommandHandler : IRequestHandler<CreateCon
             note.Diagnosis,
             note.TreatmentPlan,
             note.ConsultationDateUtc,
-            vitalsDto);
+            vitalsDto,
+            null,
+            null,
+            null,
+            note.FollowUpDateUtc,
+            note.LabRequests);
 
         return Result.Success(dto);
     }

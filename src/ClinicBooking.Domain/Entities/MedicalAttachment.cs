@@ -2,7 +2,7 @@ using ClinicBooking.Domain.Common;
 
 namespace ClinicBooking.Domain.Entities;
 
-public sealed class MedicalAttachment : Entity<Guid>, IMayHaveTenant
+public sealed class MedicalAttachment : Entity<Guid>, IMayHaveTenant, ISoftDeletable
 {
     private MedicalAttachment() { }
 
@@ -18,6 +18,10 @@ public sealed class MedicalAttachment : Entity<Guid>, IMayHaveTenant
     public string? Notes { get; private set; }
     public DateTime UploadedAtUtc { get; private set; }
     public Guid? TenantId { get; private set; }
+
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
+    public string? DeletedBy { get; set; }
 
     public static MedicalAttachment Create(
         Guid patientId,

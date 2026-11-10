@@ -16,6 +16,7 @@ internal sealed class ConsultationNoteConfiguration : IEntityTypeConfiguration<C
         builder.Property(c => c.ExaminationNotes).HasMaxLength(3000);
         builder.Property(c => c.Diagnosis).HasMaxLength(1000).IsRequired();
         builder.Property(c => c.TreatmentPlan).HasMaxLength(3000);
+        builder.Property(c => c.LabRequests).HasMaxLength(4000);
 
         builder.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Appointment>().WithMany().HasForeignKey(c => c.AppointmentId).OnDelete(DeleteBehavior.Restrict);

@@ -181,3 +181,23 @@ internal sealed class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Ignore(p => p.DomainEvents);
     }
 }
+
+internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
+{
+    public void Configure(EntityTypeBuilder<AuditLog> builder)
+    {
+        builder.ToTable("AuditLogs");
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).ValueGeneratedNever();
+
+        builder.Property(a => a.EntityName).HasMaxLength(100).IsRequired();
+        builder.Property(a => a.EntityId).HasMaxLength(100).IsRequired();
+        builder.Property(a => a.Action).HasMaxLength(50).IsRequired();
+        builder.Property(a => a.ChangedBy).HasMaxLength(100).IsRequired();
+        builder.Property(a => a.ChangedAtUtc).IsRequired();
+        builder.Property(a => a.ChangesJson).HasMaxLength(8000);
+
+        builder.HasIndex(a => new { a.TenantId, a.EntityName }).HasDatabaseName("IX_AuditLogs_Tenant_Entity");
+        builder.HasIndex(a => a.ChangedAtUtc).HasDatabaseName("IX_AuditLogs_ChangedAtUtc");
+    }
+}

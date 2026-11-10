@@ -28,4 +28,6 @@ public sealed record ConsultationDto(
     PatientVitalSignsDto? VitalSigns = null,
     string? DoctorName = null,
     string? PatientName = null,
-    string? ClinicName = null);
+    string? ClinicName = null,
+    DateTime? FollowUpDateUtc = null,
+    string? LabRequests = null);

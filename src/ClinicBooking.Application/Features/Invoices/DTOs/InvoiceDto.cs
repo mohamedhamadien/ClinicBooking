@@ -31,4 +31,7 @@ public sealed record InvoiceDto(
     Guid? InsuranceProviderId = null,
     string? InsuranceProviderName = null,
     decimal InsuranceCoverageAmount = 0,
-    decimal PatientCopayAmount = 0);
+    decimal PatientCopayAmount = 0)
+{
+    public decimal RemainingAmount => Math.Max(0, TotalAmount - PaidAmount);
+}

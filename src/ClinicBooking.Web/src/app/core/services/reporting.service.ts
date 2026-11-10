@@ -1026,4 +1026,86 @@ export class ReportingService {
 
     this.downloadCsv(`insurance_claims_${new Date().toISOString().slice(0, 10)}`, headers, rows);
   }
+
+  public printLabOrderRequisition(
+    patientName: string,
+    doctorName?: string,
+    clinicName?: string,
+    diagnosis?: string,
+    labRequests?: string,
+    followUpDate?: string
+  ): void {
+    const isAr = this.translation.isArabic();
+    const title = isAr ? 'إذن فحص وتحاليل مخبرية وأشعة' : 'Laboratory & Radiology Requisition Order';
+
+    const reqLines = (labRequests || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const itemsHtml = reqLines.length > 0
+      ? reqLines.map((line, idx) => `
+        <div style="padding: 10px 14px; border-bottom: 1px dashed #cbd5e1; display: flex; align-items: center; gap: 12px;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #0284c7; color: #fff; font-size: 12px; font-weight: bold;">${idx + 1}</span>
+          <span style="font-size: 15px; font-weight: 600; color: #0f172a;">${line}</span>
+        </div>
+      `).join('')
+      : `<div style="padding: 16px; color: #64748b; text-align: center;">${isAr ? 'لم يتم تحديد فحوصات إضافية' : 'No specific laboratory/radiology tests requested.'}</div>`;
+
+    const bodyHtml = `
+      <div class="report-header">
+        <div style="font-size: 26px; margin-bottom: 6px;">🧪 🩻</div>
+        <h2>${isAr ? 'طلب فحوصات مخبرية وأشعة تشخيصية' : 'Diagnostic Lab & Radiology Requisition'}</h2>
+        <div class="meta">${clinicName || (isAr ? 'المركز الطبي' : 'Medical Center')} — ${new Date().toLocaleDateString()}</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">${isAr ? 'اسم المريض' : 'Patient Name'}</div>
+          <div class="kpi-value" style="font-size: 18px;">${patientName || (isAr ? 'مريض غير محدد' : 'Unknown Patient')}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">${isAr ? 'الطبيب المعالج' : 'Attending Physician'}</div>
+          <div class="kpi-value" style="font-size: 18px;">${doctorName || (isAr ? 'طبيب العيادة' : 'Attending Doctor')}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">${isAr ? 'التشخيص السريري المبدئي' : 'Clinical Diagnosis'}</div>
+          <div class="kpi-value" style="font-size: 16px; color: #0369a1;">${diagnosis || (isAr ? 'فحص دوري' : 'Routine Checkup')}</div>
+        </div>
+        ${
+          followUpDate
+            ? `<div class="kpi-card">
+                <div class="kpi-label">${isAr ? 'موعد المراجعة القادم' : 'Follow-up Date'}</div>
+                <div class="kpi-value" style="font-size: 16px; color: #16a34a;">${new Date(followUpDate).toLocaleDateString()}</div>
+              </div>`
+            : ''
+        }
+      </div>
+
+      <div style="margin: 24px 0 12px; font-size: 16px; font-weight: bold; color: #0f172a;">
+        🔬 ${isAr ? 'قائمة الفحوصات والتحاليل المطلوبة (Lab / Radiology Orders)' : 'Requested Diagnostic Investigations'}
+      </div>
+
+      <div style="border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; overflow: hidden; margin-bottom: 24px;">
+        ${itemsHtml}
+      </div>
+
+      <div style="padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 13px; color: #15803d; margin-bottom: 24px;">
+        ℹ️ ${isAr ? 'يرجى من المريض الصيام من 8-10 ساعات إذا كانت التحاليل تتطلب صياماً مسبقاً (مثل سكر صائم، دهون الدم).' : 'Please observe required fasting instructions (8-10 hours) if fasting blood panel is ordered.'}
+      </div>
+
+      <div class="signature-box">
+        <div class="sig-line">
+          <div>${isAr ? 'توقيع وختم الطبيب المعالج' : 'Physician Signature & Stamp'}</div>
+          <div style="margin-top: 45px; font-weight: bold;">......................................</div>
+        </div>
+        <div class="sig-line">
+          <div>${isAr ? 'استلام قسم المختبر / الأشعة' : 'Laboratory / Radiology Receiving'}</div>
+          <div style="margin-top: 45px; font-weight: bold;">......................................</div>
+        </div>
+      </div>
+    `;
+
+    this.printHtmlReport(title, bodyHtml);
+  }
 }

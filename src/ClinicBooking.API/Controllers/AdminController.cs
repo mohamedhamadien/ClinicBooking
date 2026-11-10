@@ -1,6 +1,7 @@
 using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Admin.DTOs;
 using ClinicBooking.Application.Features.Admin.Queries.GetAllAppointments;
+using ClinicBooking.Application.Features.Admin.Queries.GetAuditLogs;
 using ClinicBooking.Application.Features.Admin.Queries.GetDashboardStats;
 using ClinicBooking.Application.Features.Appointments.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -61,6 +62,22 @@ public sealed class AdminController : ApiControllerBase
             : clinicId;
 
         var query = new GetDashboardStatsQuery(tenantId, effectiveClinicId);
+        var result = await Mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// View audit trail logs for clinical and administrative data changes.
+    /// </summary>
+    [HttpGet("audit-logs")]
+    [ProducesResponseType(typeof(IReadOnlyList<AuditLogDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<AuditLogDto>>> GetAuditLogs(
+        [FromQuery] string? entityName,
+        [FromQuery] int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantContext.TenantId;
+        var query = new GetAuditLogsQuery(tenantId, entityName, limit);
         var result = await Mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }

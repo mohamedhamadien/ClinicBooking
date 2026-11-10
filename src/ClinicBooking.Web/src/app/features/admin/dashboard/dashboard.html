@@ -542,6 +542,38 @@
           ></textarea>
         </div>
 
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">📅 {{ translation.isArabic() ? 'موعد الاستشارة / المراجعة القادمة' : 'Next Follow-up Date' }}</label>
+            <input
+              type="date"
+              [(ngModel)]="consultFollowUpDate"
+              class="form-control"
+            />
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button
+              type="button"
+              (click)="printLabOrder()"
+              [disabled]="!consultAppointmentId"
+              class="btn btn-outline w-100"
+              title="{{ translation.isArabic() ? 'طباعة إذن الفحص والتحاليل' : 'Print Lab/Radiology Order Slip' }}"
+            >
+              🧪 {{ translation.isArabic() ? 'طباعة إذن الفحص والتحاليل' : 'Print Lab/Rad Slip' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">🧪 {{ translation.isArabic() ? 'أمر الفحوصات والتحاليل والأشعة (Lab & Radiology Orders)' : 'Lab & Radiology Orders (فحوصات وأشعة)' }}</label>
+          <textarea
+            [(ngModel)]="consultLabRequests"
+            rows="3"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'اكتب كل تحليل أو فحص في سطر، مثال:\n- صورة دم كاملة CBC\n- سكر صائم FBS\n- أشعة سينية على الصدر Chest X-Ray' : 'Enter requested tests per line, e.g.:\n- CBC Full Blood Count\n- Fasting Blood Sugar FBS\n- Chest X-Ray PA View'"
+          ></textarea>
+        </div>
+
         <h4 class="mt-4">2. {{ translation.isArabic() ? 'العلامات الحيوية للمريض (Vital Signs)' : 'Patient Vital Signs (العلامات الحيوية)' }}</h4>
         <div class="grid-3 mt-2">
           <div class="form-group mb-2">
@@ -738,6 +770,24 @@
                   @if (c.treatmentPlan) {
                     <p class="m-0 text-muted"><small>{{ translation.isArabic() ? 'الخطة: ' : 'Plan: ' }}</small>{{ c.treatmentPlan }}</p>
                   }
+                  @if (c.labRequests) {
+                    <div class="mt-2 p-2 bg-light rounded small border">
+                      <strong>🧪 {{ translation.isArabic() ? 'الفحوصات والأشعة: ' : 'Lab / Radiology Orders: ' }}</strong>
+                      <span class="text-primary">{{ c.labRequests }}</span>
+                    </div>
+                  }
+                  @if (c.followUpDateUtc) {
+                    <div class="mt-1 small text-success">
+                      📅 {{ translation.isArabic() ? 'موعد الاستشارة القادمة: ' : 'Follow-up Date: ' }}<strong>{{ c.followUpDateUtc | date:'mediumDate' }}</strong>
+                    </div>
+                  }
+                  @if (c.labRequests) {
+                    <div class="mt-2 text-end">
+                      <button (click)="printLabOrder(c)" class="btn btn-outline btn-xs">
+                        🧪 {{ translation.isArabic() ? 'طباعة إذن الفحص' : 'Print Lab Order' }}
+                      </button>
+                    </div>
+                  }
                 </div>
               } @empty {
                 <p class="text-muted">{{ translation.isArabic() ? 'لا توجد ملاحظات كشف سابقة مسجلة.' : 'No past consultation notes recorded.' }}</p>
@@ -886,21 +936,29 @@
                   }
                 </td>
                 <td>
-                  <span class="badge" [class.badge-confirmed]="inv.status === 'Paid'" [class.badge-scheduled]="inv.status === 'Pending'">
-                    {{ inv.status === 'Paid' ? (translation.isArabic() ? 'مدفوع' : 'Paid') : inv.status === 'Pending' ? (translation.isArabic() ? 'قيد السداد' : 'Pending') : inv.status }}
+                  <span class="badge"
+                    [class.badge-confirmed]="inv.status === 'Paid'"
+                    [class.badge-scheduled]="inv.status === 'Pending'"
+                    [class.badge-in-consultation]="inv.status === 'PartiallyPaid'">
+                    {{ inv.status === 'Paid' ? (translation.isArabic() ? 'مدفوع بالكامل' : 'Paid in Full') : inv.status === 'PartiallyPaid' ? (translation.isArabic() ? 'مدفوع جزئياً' : 'Partially Paid') : (translation.isArabic() ? 'قيد السداد' : 'Pending') }}
                   </span>
+                  @if (inv.status === 'PartiallyPaid' || (inv.paidAmount > 0 && inv.paidAmount < inv.totalAmount)) {
+                    <div class="small text-danger mt-1">
+                      <strong>{{ translation.isArabic() ? 'المتبقي: ' : 'Remaining: ' }}</strong>{{ (inv.remainingAmount ?? (inv.totalAmount - inv.paidAmount)) }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}
+                    </div>
+                  }
                 </td>
                 <td>
                   <div class="d-flex gap-1 align-items-center">
                     <button (click)="printInvoiceReceipt(inv)" class="btn btn-outline btn-xs" title="{{ translation.isArabic() ? 'طباعة إيصال الفاتورة' : 'Print Invoice Receipt' }}">
                       🧾 {{ translation.isArabic() ? 'طباعة' : 'Print' }}
                     </button>
-                    @if (inv.status === 'Pending') {
-                      <button (click)="payInvoice(inv.id, 1)" class="btn btn-primary btn-xs">
-                        💵 {{ translation.isArabic() ? 'تحصيل' : 'Collect' }}
+                    @if (inv.status === 'Pending' || inv.status === 'PartiallyPaid') {
+                      <button (click)="openPayModal(inv)" class="btn btn-primary btn-xs">
+                        💵 {{ translation.isArabic() ? 'تحصيل / سداد' : 'Pay / Collect' }}
                       </button>
                     } @else {
-                      <span class="text-muted small">{{ translation.isArabic() ? 'سُددت' : 'Paid' }}</span>
+                      <span class="text-success small">✓ {{ translation.isArabic() ? 'سُددت' : 'Paid' }}</span>
                     }
                   </div>
                 </td>
@@ -1018,6 +1076,9 @@
                         💬
                       </button>
                       @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
+                        <button (click)="openRescheduleModal(appt)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'إعادة جدولة الموعد' : 'Reschedule Appointment' }}">
+                          🔄 {{ translation.isArabic() ? 'تعديل' : 'Reschedule' }}
+                        </button>
                         <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
                           {{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}
                         </button>
@@ -2386,8 +2447,125 @@
           <button (click)="viewPatientRecord(qa.patientId); closeQuickAppointment()" class="btn btn-primary btn-sm flex-grow-1">
             🗂️ {{ translation.isArabic() ? 'فتح الملف الطبي' : 'Open EMR Chart' }}
           </button>
+          @if (qa.status === 'Scheduled' || qa.status === 'Confirmed') {
+            <button (click)="openRescheduleModal(qa); closeQuickAppointment()" class="btn btn-outline btn-sm">
+              🔄 {{ translation.isArabic() ? 'إعادة جدولة' : 'Reschedule' }}
+            </button>
+          }
           <button (click)="openWhatsAppReminder(qa)" class="btn btn-outline btn-sm">
             💬 {{ translation.isArabic() ? 'تذكير واتساب' : 'WhatsApp' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: RESCHEDULE APPOINTMENT -->
+  @if (isRescheduleModalOpen && rescheduleAppt) {
+    <div class="modal-backdrop" (click)="isRescheduleModalOpen = false">
+      <div class="card modal-card" (click)="$event.stopPropagation()">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <h3>🔄 {{ translation.isArabic() ? 'إعادة جدولة موعد الكشف' : 'Reschedule Appointment' }}</h3>
+          <button (click)="isRescheduleModalOpen = false" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <div class="mt-3">
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'المريض: ' : 'Patient: ' }}</strong>{{ rescheduleAppt.patientName || rescheduleAppt.patientId }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'الطبيب: ' : 'Doctor: ' }}</strong>{{ rescheduleAppt.doctorName || rescheduleAppt.doctorId }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'الموعد الحالي: ' : 'Current Time: ' }}</strong>{{ rescheduleAppt.startTimeUtc | date:'medium' }}</p>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'التاريخ الجديد *' : 'New Date *' }}</label>
+          <input
+            type="date"
+            [(ngModel)]="rescheduleNewDate"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'وقت البدء الجديد *' : 'New Start Time *' }}</label>
+          <input
+            type="time"
+            [(ngModel)]="rescheduleNewTime"
+            class="form-control"
+          />
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="isRescheduleModalOpen = false" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitReschedule()" class="btn btn-primary">
+            💾 {{ translation.isArabic() ? 'تأكيد إعادة الجدولة' : 'Confirm Reschedule' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: PAY / PARTIAL PAYMENT FOR INVOICE -->
+  @if (isPayModalOpen && payingInvoice) {
+    <div class="modal-backdrop" (click)="isPayModalOpen = false">
+      <div class="card modal-card" (click)="$event.stopPropagation()">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <h3>💵 {{ translation.isArabic() ? 'تحصيل وقيد سداد الفاتورة' : 'Process Invoice Payment' }}</h3>
+          <button (click)="isPayModalOpen = false" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <div class="mt-3">
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'رقم الفاتورة: ' : 'Invoice #: ' }}</strong>{{ payingInvoice.invoiceNumber }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'المريض: ' : 'Patient: ' }}</strong>{{ payingInvoice.patientName || payingInvoice.patientId }}</p>
+          <div class="p-3 bg-light rounded mt-2 border">
+            <div class="d-flex justify-content-between">
+              <span>{{ translation.isArabic() ? 'إجمالي الفاتورة:' : 'Total Amount:' }}</span>
+              <strong>{{ payingInvoice.totalAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
+            </div>
+            <div class="d-flex justify-content-between text-success mt-1">
+              <span>{{ translation.isArabic() ? 'المدفوع مسبقاً:' : 'Already Paid:' }}</span>
+              <strong>{{ payingInvoice.paidAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
+            </div>
+            <div class="d-flex justify-content-between text-danger mt-1 border-top pt-1">
+              <span>{{ translation.isArabic() ? 'المبلغ المستحق المتبقي:' : 'Balance Due:' }}</span>
+              <strong>{{ (payingInvoice.remainingAmount ?? (payingInvoice.totalAmount - payingInvoice.paidAmount)) }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'طريقة السداد' : 'Payment Method' }}</label>
+          <select [(ngModel)]="payMethod" class="form-select">
+            <option [value]="1">{{ translation.isArabic() ? 'نقداً (Cash)' : 'Cash' }}</option>
+            <option [value]="2">{{ translation.isArabic() ? 'بطاقة بنكية / فيزا (Credit/Debit Card)' : 'Credit Card' }}</option>
+            <option [value]="3">{{ translation.isArabic() ? 'تأمين طبي (Health Insurance)' : 'Health Insurance' }}</option>
+            <option [value]="4">{{ translation.isArabic() ? 'تحويل بنكي (Bank Transfer)' : 'Bank Transfer' }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'المبلغ المدفوع حالياً (سداد كامل أو جزئي) *' : 'Payment Amount (Full or Partial) *' }}</label>
+          <div class="d-flex gap-2">
+            <input
+              type="number"
+              step="1"
+              min="1"
+              [(ngModel)]="payAmount"
+              class="form-control"
+              placeholder="0.00"
+            />
+            <button
+              type="button"
+              (click)="payAmount = (payingInvoice.remainingAmount ?? (payingInvoice.totalAmount - payingInvoice.paidAmount))"
+              class="btn btn-outline btn-sm text-nowrap"
+            >
+              {{ translation.isArabic() ? 'سداد المتبقي كاملاً' : 'Pay Full Due' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="isPayModalOpen = false" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitPayment()" class="btn btn-primary">
+            ✓ {{ translation.isArabic() ? 'تأكيد السداد والتحصيل' : 'Confirm & Record Payment' }}
           </button>
         </div>
       </div>
