@@ -89,4 +89,87 @@ public class StaffFeaturesTests
         Assert.True(result2.IsSuccess);
         Assert.True(result2.Value.IsActive);
     }
+
+    [Fact]
+    public async Task ClinicAdmin_Cannot_Create_ClinicAdmin_Or_Admin()
+    {
+        var handler = new CreateStaffMemberCommandHandler(_userRepo, _clinicRepo, _hasher, _uow);
+        var command = new CreateStaffMemberCommand(
+            TenantId: Guid.NewGuid(),
+            Email: "subadmin@clinic.com",
+            Password: "Password123!",
+            FirstName: "Sub",
+            LastName: "Admin",
+            Role: "ClinicAdmin",
+            ClinicId: Guid.NewGuid(),
+            Permissions: [],
+            CallerRole: "ClinicAdmin");
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Auth.Forbidden", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task ClinicAdmin_Can_Create_Staff_Such_As_Doctor_Or_Receptionist()
+    {
+        var clinic = Clinic.Create(Guid.NewGuid(), "Main Clinic", "123 St", "Cairo", "+2012345678");
+        await _clinicRepo.AddAsync(clinic);
+
+        var handler = new CreateStaffMemberCommandHandler(_userRepo, _clinicRepo, _hasher, _uow);
+        var command = new CreateStaffMemberCommand(
+            TenantId: clinic.TenantId,
+            Email: "dr.ahmed@clinic.com",
+            Password: "Password123!",
+            FirstName: "Ahmed",
+            LastName: "Hassan",
+            Role: "Doctor",
+            ClinicId: clinic.Id,
+            Permissions: [ClinicPermissions.ScreenConsultation],
+            CallerRole: "ClinicAdmin");
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Doctor", result.Value.Role);
+        Assert.Equal("Ahmed Hassan", result.Value.FullName);
+    }
+
+    [Fact]
+    public async Task ClinicAdmin_Cannot_Modify_Admin_Or_ClinicAdmin_Permissions()
+    {
+        var admin = User.Create("admin_target@clinic.com", "Super", "Admin", UserRole.Admin);
+        await _userRepo.AddAsync(admin);
+
+        var handler = new UpdateStaffPermissionsCommandHandler(_userRepo, _clinicRepo, _uow);
+        var command = new UpdateStaffPermissionsCommand(
+            admin.Id,
+            Role: "Staff",
+            ClinicId: null,
+            Permissions: [],
+            CallerRole: "ClinicAdmin");
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Auth.Forbidden", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task ClinicAdmin_Cannot_Toggle_Admin_Status()
+    {
+        var admin = User.Create("admin_status@clinic.com", "Super", "Admin", UserRole.Admin);
+        await _userRepo.AddAsync(admin);
+
+        var handler = new ToggleStaffStatusCommandHandler(_userRepo, _clinicRepo, _uow);
+        var command = new ToggleStaffStatusCommand(
+            admin.Id,
+            CallerRole: "ClinicAdmin");
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Auth.Forbidden", result.Error.Code);
+    }
 }

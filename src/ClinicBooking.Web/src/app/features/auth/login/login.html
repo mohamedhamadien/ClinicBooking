@@ -49,9 +49,8 @@
       </div>
     </form>
 
-    <div class="auth-footer">
-      <span>{{ 'auth.login.no_account' | translate }}</span>
-      <a routerLink="/auth/register">{{ 'auth.login.register_here' | translate }}</a>
+    <div class="auth-footer text-muted small text-center mt-3">
+      <span>🔒 {{ translation.isArabic() ? 'الحسابات وإدارتها تتم حصراً عبر إدارة النظام والعيادة.' : 'Accounts are issued and managed exclusively by clinic administration.' }}</span>
     </div>
   </div>
 </div>

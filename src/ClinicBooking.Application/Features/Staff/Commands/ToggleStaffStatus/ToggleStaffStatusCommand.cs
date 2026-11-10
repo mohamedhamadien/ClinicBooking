@@ -6,7 +6,10 @@ using MediatR;
 
 namespace ClinicBooking.Application.Features.Staff.Commands.ToggleStaffStatus;
 
-public sealed record ToggleStaffStatusCommand(Guid StaffUserId) : IRequest<Result<StaffMemberDto>>;
+public sealed record ToggleStaffStatusCommand(
+    Guid StaffUserId,
+    string? CallerRole = null,
+    Guid? CallerClinicId = null) : IRequest<Result<StaffMemberDto>>;
 
 public sealed class ToggleStaffStatusCommandHandler : IRequestHandler<ToggleStaffStatusCommand, Result<StaffMemberDto>>
 {
@@ -30,6 +33,20 @@ public sealed class ToggleStaffStatusCommandHandler : IRequestHandler<ToggleStaf
         if (user is null || user.Role == UserRole.Patient)
         {
             return Result.Failure<StaffMemberDto>(Error.NotFound("User", request.StaffUserId));
+        }
+
+        // Enforce: Clinic Admin cannot deactivate/activate administrator accounts or staff from other clinics
+        if (request.CallerRole == "ClinicAdmin")
+        {
+            if (user.Role == UserRole.Admin || user.Role == UserRole.ClinicAdmin)
+            {
+                return Result.Failure<StaffMemberDto>(Error.Forbidden("Clinic administrators cannot modify administrator accounts."));
+            }
+
+            if (request.CallerClinicId.HasValue && user.ClinicId != request.CallerClinicId)
+            {
+                return Result.Failure<StaffMemberDto>(Error.Forbidden("Clinic administrators can only manage staff belonging to their assigned clinic."));
+            }
         }
 
         if (user.IsActive)

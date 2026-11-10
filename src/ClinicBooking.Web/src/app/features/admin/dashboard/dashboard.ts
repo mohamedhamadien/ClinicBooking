@@ -899,13 +899,17 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
+    const effectiveClinicId = this.auth.isClinicAdmin()
+      ? (this.assignedClinicId() || this.newStaffClinicId)
+      : this.newStaffClinicId;
+
     const req: CreateStaffRequest = {
       email: this.newStaffEmail.trim(),
       password: this.newStaffPassword.trim(),
       firstName: this.newStaffFirstName.trim(),
       lastName: this.newStaffLastName.trim(),
       role: this.newStaffRole,
-      clinicId: this.newStaffClinicId || undefined,
+      clinicId: effectiveClinicId || undefined,
       permissions: this.newStaffPermissions
     };
 
@@ -974,9 +978,13 @@ export class DashboardComponent implements OnInit {
   protected submitUpdateStaffPermissions(): void {
     if (!this.editingStaffId) return;
 
+    const effectiveClinicId = this.auth.isClinicAdmin()
+      ? (this.assignedClinicId() || this.editingStaffClinicId)
+      : this.editingStaffClinicId;
+
     const req: UpdateStaffPermissionsRequest = {
       role: this.editingStaffRole,
-      clinicId: this.editingStaffClinicId || undefined,
+      clinicId: effectiveClinicId || undefined,
       permissions: this.editingStaffPermissions
     };
 

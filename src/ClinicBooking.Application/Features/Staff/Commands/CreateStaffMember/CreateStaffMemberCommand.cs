@@ -18,7 +18,8 @@ public sealed record CreateStaffMemberCommand(
     string LastName,
     string Role,
     Guid? ClinicId,
-    IReadOnlyList<string>? Permissions) : IRequest<Result<StaffMemberDto>>;
+    IReadOnlyList<string>? Permissions,
+    string? CallerRole = null) : IRequest<Result<StaffMemberDto>>;
 
 public sealed class CreateStaffMemberCommandValidator : AbstractValidator<CreateStaffMemberCommand>
 {
@@ -61,6 +62,12 @@ public sealed class CreateStaffMemberCommandHandler : IRequestHandler<CreateStaf
         if (!Enum.TryParse<UserRole>(request.Role, true, out var role) || role == UserRole.Patient)
         {
             return Result.Failure<StaffMemberDto>(Error.Validation("User.InvalidRole", "Invalid staff role specified."));
+        }
+
+        // Enforce: Administrator is the only one responsible for adding Clinic Admin and Admin
+        if (request.CallerRole == "ClinicAdmin" && (role == UserRole.Admin || role == UserRole.ClinicAdmin))
+        {
+            return Result.Failure<StaffMemberDto>(Error.Forbidden("Only system administrators can create clinic administrator or administrator accounts."));
         }
 
         string? clinicName = null;

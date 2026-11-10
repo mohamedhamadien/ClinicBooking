@@ -80,7 +80,8 @@ public sealed class StaffController : ApiControllerBase
             request.LastName,
             request.Role,
             effectiveClinicId,
-            request.Permissions);
+            request.Permissions,
+            _currentUserService.Role);
 
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -106,7 +107,9 @@ public sealed class StaffController : ApiControllerBase
             id,
             request.Role,
             effectiveClinicId,
-            request.Permissions ?? []);
+            request.Permissions ?? [],
+            _currentUserService.Role,
+            _currentUserService.ClinicId);
 
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -122,7 +125,10 @@ public sealed class StaffController : ApiControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
-        var command = new ToggleStaffStatusCommand(id);
+        var command = new ToggleStaffStatusCommand(
+            id,
+            _currentUserService.Role,
+            _currentUserService.ClinicId);
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

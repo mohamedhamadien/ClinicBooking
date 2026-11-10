@@ -12,7 +12,9 @@ public sealed record UpdateStaffPermissionsCommand(
     Guid StaffUserId,
     string? Role,
     Guid? ClinicId,
-    IReadOnlyList<string> Permissions) : IRequest<Result<StaffMemberDto>>;
+    IReadOnlyList<string> Permissions,
+    string? CallerRole = null,
+    Guid? CallerClinicId = null) : IRequest<Result<StaffMemberDto>>;
 
 public sealed class UpdateStaffPermissionsCommandValidator : AbstractValidator<UpdateStaffPermissionsCommand>
 {
@@ -45,6 +47,28 @@ public sealed class UpdateStaffPermissionsCommandHandler : IRequestHandler<Updat
         if (user is null || user.Role == UserRole.Patient)
         {
             return Result.Failure<StaffMemberDto>(Error.NotFound("User", request.StaffUserId));
+        }
+
+        // Enforce: Clinic Admin can manage staffs (Receptionist, Nurse, Accountant, Doctor, Staff) in their clinic
+        // but cannot modify Admin/ClinicAdmin or promote staff to Admin/ClinicAdmin
+        if (request.CallerRole == "ClinicAdmin")
+        {
+            if (user.Role == UserRole.Admin || user.Role == UserRole.ClinicAdmin)
+            {
+                return Result.Failure<StaffMemberDto>(Error.Forbidden("Clinic administrators cannot modify administrator accounts."));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Role) &&
+                (string.Equals(request.Role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(request.Role, "ClinicAdmin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return Result.Failure<StaffMemberDto>(Error.Forbidden("Only system administrators can assign clinic administrator or administrator roles."));
+            }
+
+            if (request.CallerClinicId.HasValue && user.ClinicId != request.CallerClinicId)
+            {
+                return Result.Failure<StaffMemberDto>(Error.Forbidden("Clinic administrators can only manage staff belonging to their assigned clinic."));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Role))

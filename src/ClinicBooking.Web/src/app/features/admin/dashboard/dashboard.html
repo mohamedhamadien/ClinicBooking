@@ -1073,17 +1073,21 @@
                 </td>
                 <td>
                   <div class="action-buttons">
-                    <button (click)="openEditStaffModal(staff)" class="btn btn-outline btn-xs">
-                      ⚙️ {{ translation.isArabic() ? 'إدارة الصلاحيات' : 'Manage Permissions' }}
-                    </button>
-                    <button
-                      (click)="toggleStaffStatus(staff)"
-                      class="btn btn-xs"
-                      [class.btn-danger]="staff.isActive"
-                      [class.btn-success]="!staff.isActive"
-                    >
-                      {{ staff.isActive ? (translation.isArabic() ? 'تجميد' : 'Deactivate') : (translation.isArabic() ? 'تفعيل' : 'Activate') }}
-                    </button>
+                    @if (auth.isAdmin() || (auth.isClinicAdmin() && staff.role !== 'Admin' && staff.role !== 'ClinicAdmin')) {
+                      <button (click)="openEditStaffModal(staff)" class="btn btn-outline btn-xs">
+                        ⚙️ {{ translation.isArabic() ? 'إدارة الصلاحيات' : 'Manage Permissions' }}
+                      </button>
+                      <button
+                        (click)="toggleStaffStatus(staff)"
+                        class="btn btn-xs"
+                        [class.btn-danger]="staff.isActive"
+                        [class.btn-success]="!staff.isActive"
+                      >
+                        {{ staff.isActive ? (translation.isArabic() ? 'تجميد' : 'Deactivate') : (translation.isArabic() ? 'تفعيل' : 'Activate') }}
+                      </button>
+                    } @else {
+                      <span class="text-muted small">🔒 {{ translation.isArabic() ? 'إدارة النظام' : 'System Managed' }}</span>
+                    }
                   </div>
                 </td>
               </tr>
@@ -1568,17 +1572,28 @@
               <option value="Accountant">{{ translation.isArabic() ? 'محاسب / كاشير (Accountant)' : 'Accountant / Cashier (محاسب / كاشير)' }}</option>
               <option value="Doctor">{{ translation.isArabic() ? 'طبيب (Doctor)' : 'Doctor (طبيب)' }}</option>
               <option value="Staff">{{ translation.isArabic() ? 'موظف عام (Staff)' : 'General Staff (موظف عام)' }}</option>
-              <option value="ClinicAdmin">{{ translation.isArabic() ? 'مدير فرع عيادة (Clinic Admin)' : 'Clinic Admin (مدير فرع عيادة)' }}</option>
+              @if (auth.isAdmin()) {
+                <option value="ClinicAdmin">{{ translation.isArabic() ? 'مدير فرع عيادة (Clinic Admin)' : 'Clinic Admin (مدير فرع عيادة)' }}</option>
+              }
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">{{ translation.isArabic() ? 'فرع العيادة المعين له' : 'Assigned Clinic Branch' }}</label>
-            <select [(ngModel)]="newStaffClinicId" class="form-control">
-              <option value="">{{ translation.isArabic() ? 'كافة الفروع / عام' : 'All Branches / Global' }}</option>
-              @for (clinic of clinics(); track clinic.id) {
-                <option [value]="clinic.id">{{ translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name }}</option>
-              }
-            </select>
+            @if (auth.isClinicAdmin() && assignedClinic(); as ac) {
+              <input
+                type="text"
+                class="form-control"
+                [value]="translation.isArabic() && ac.nameAr ? ac.nameAr : ac.name"
+                disabled
+              />
+            } @else {
+              <select [(ngModel)]="newStaffClinicId" class="form-control">
+                <option value="">{{ translation.isArabic() ? 'كافة الفروع / عام' : 'All Branches / Global' }}</option>
+                @for (clinic of clinics(); track clinic.id) {
+                  <option [value]="clinic.id">{{ translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name }}</option>
+                }
+              </select>
+            }
           </div>
         </div>
 
@@ -1664,23 +1679,34 @@
         <div class="form-row-2 mt-3">
           <div class="form-group">
             <label class="form-label">{{ translation.isArabic() ? 'الدور الوظيفي' : 'Role' }}</label>
-            <select [(ngModel)]="editingStaffRole" class="form-control">
+            <select [(ngModel)]="editingStaffRole" class="form-control" [disabled]="!auth.isAdmin() && editingStaffRole === 'ClinicAdmin'">
               <option value="Receptionist">{{ translation.isArabic() ? 'موظف استقبال (Receptionist)' : 'Receptionist (موظف استقبال)' }}</option>
               <option value="Nurse">{{ translation.isArabic() ? 'تمريض (Nurse)' : 'Nurse (تمريض)' }}</option>
               <option value="Accountant">{{ translation.isArabic() ? 'محاسب / كاشير (Accountant)' : 'Accountant / Cashier (محاسب / كاشير)' }}</option>
               <option value="Doctor">{{ translation.isArabic() ? 'طبيب (Doctor)' : 'Doctor (طبيب)' }}</option>
               <option value="Staff">{{ translation.isArabic() ? 'موظف عام (Staff)' : 'General Staff (موظف عام)' }}</option>
-              <option value="ClinicAdmin">{{ translation.isArabic() ? 'مدير فرع عيادة (Clinic Admin)' : 'Clinic Admin (مدير فرع عيادة)' }}</option>
+              @if (auth.isAdmin()) {
+                <option value="ClinicAdmin">{{ translation.isArabic() ? 'مدير فرع عيادة (Clinic Admin)' : 'Clinic Admin (مدير فرع عيادة)' }}</option>
+              }
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">{{ translation.isArabic() ? 'فرع العيادة المعين له' : 'Assigned Clinic Branch' }}</label>
-            <select [(ngModel)]="editingStaffClinicId" class="form-control">
-              <option value="">{{ translation.isArabic() ? 'كافة الفروع / عام' : 'All Branches / Global' }}</option>
-              @for (clinic of clinics(); track clinic.id) {
-                <option [value]="clinic.id">{{ translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name }}</option>
-              }
-            </select>
+            @if (auth.isClinicAdmin() && assignedClinic(); as ac) {
+              <input
+                type="text"
+                class="form-control"
+                [value]="translation.isArabic() && ac.nameAr ? ac.nameAr : ac.name"
+                disabled
+              />
+            } @else {
+              <select [(ngModel)]="editingStaffClinicId" class="form-control">
+                <option value="">{{ translation.isArabic() ? 'كافة الفروع / عام' : 'All Branches / Global' }}</option>
+                @for (clinic of clinics(); track clinic.id) {
+                  <option [value]="clinic.id">{{ translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name }}</option>
+                }
+              </select>
+            }
           </div>
         </div>
 
