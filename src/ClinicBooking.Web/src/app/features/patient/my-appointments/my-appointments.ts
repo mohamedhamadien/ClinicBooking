@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AppointmentService } from '../../../core/services/appointment.service';
+import { TranslationService } from '../../../core/services/translation.service';
 import { TranslatePipe } from '../../../core/pipes/translate.pipe';
 import { AppointmentDto } from '../../../core/models/appointment.models';
 
@@ -15,6 +16,7 @@ import { AppointmentDto } from '../../../core/models/appointment.models';
 })
 export class MyAppointmentsComponent implements OnInit {
   private readonly appointmentService = inject(AppointmentService);
+  protected readonly translation = inject(TranslationService);
 
   protected readonly appointments = signal<AppointmentDto[]>([]);
   protected readonly loading = signal(true);

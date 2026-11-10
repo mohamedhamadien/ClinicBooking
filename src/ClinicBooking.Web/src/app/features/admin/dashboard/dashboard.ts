@@ -62,18 +62,30 @@ export class DashboardComponent implements OnInit {
   }
 
   protected getTabTitle(tab: AdminTab): string {
+    const isAr = this.translation.isArabic();
     switch (tab) {
-      case 'overview': return '📊 System Overview & Operational Metrics';
-      case 'queue': return '🛎️ Reception & Patient Waiting Queue';
-      case 'consultation': return '📋 Clinical Examination (SOAP) & Prescriptions';
-      case 'records': return '🗂️ Patient Medical History & EMR Charts';
-      case 'billing': return '💳 Clinic Invoices, Billing & Payments';
-      case 'appointments': return '📅 Patient Appointments Management';
-      case 'doctors': return '👨‍⚕️ Doctors Directory & Weekly Schedules';
-      case 'clinics': return '🏥 Clinic Facilities & Branch Management';
-      case 'specialties': return '🩺 Medical Specialties & Departments';
-      case 'staff': return '👥 Staff Accounts & Granular Permissions';
-      default: return 'Management Console';
+      case 'overview':
+        return isAr ? '📊 المتابعة العامة ومؤشرات الأداء' : '📊 System Overview & Operational Metrics';
+      case 'queue':
+        return isAr ? '🛎️ طابور الانتظار وشاشة الاستقبال' : '🛎️ Reception & Patient Waiting Queue';
+      case 'consultation':
+        return isAr ? '📋 الكشف الطبي والفحص السريري والروشتة' : '📋 Clinical Examination (SOAP) & Prescriptions';
+      case 'records':
+        return isAr ? '🗂️ السجلات والملفات الطبية للمرضى (EMR)' : '🗂️ Patient Medical History & EMR Charts';
+      case 'billing':
+        return isAr ? '💳 فواتير العيادة والتحصيل المالي' : '💳 Clinic Invoices, Billing & Payments';
+      case 'appointments':
+        return isAr ? '📅 إدارة وجدول المواعيد والحجوزات' : '📅 Patient Appointments Management';
+      case 'doctors':
+        return isAr ? '👨‍⚕️ دليل الأطباء ومواعيد العمل' : '👨‍⚕️ Doctors Directory & Weekly Schedules';
+      case 'clinics':
+        return isAr ? '🏥 الفروع والمراكز والعيادات' : '🏥 Clinic Facilities & Branch Management';
+      case 'specialties':
+        return isAr ? '🩺 التخصصات والأقسام الطبية' : '🩺 Medical Specialties & Departments';
+      case 'staff':
+        return isAr ? '👥 إدارة الموظفين والصلاحيات التفصيلية' : '👥 Staff Accounts & Granular Permissions';
+      default:
+        return isAr ? 'لوحة التحكم' : 'Management Console';
     }
   }
 

@@ -24,7 +24,7 @@
       </div>
 
       <button type="submit" [disabled]="form.invalid || isSubmitting()" class="btn btn-primary w-100">
-        {{ isSubmitting() ? 'Signing in...' : ('auth.login.submit' | translate) }}
+        {{ isSubmitting() ? (translation.isArabic() ? 'جاري تسجيل الدخول...' : 'Signing in...') : ('auth.login.submit' | translate) }}
       </button>
 
       <!-- Quick Admin Sign In Demo Buttons -->
@@ -35,7 +35,7 @@
           [disabled]="isSubmitting()"
           class="btn btn-outline btn-sm w-100 quick-admin-btn"
         >
-          ⚡ System Admin (admin&#64;clinicbooking.com)
+          ⚡ {{ translation.isArabic() ? 'دخول مدير النظام العام (System Admin)' : 'System Admin (admin@clinicbooking.com)' }}
         </button>
 
         <button
@@ -44,7 +44,7 @@
           [disabled]="isSubmitting()"
           class="btn btn-outline btn-sm w-100 quick-admin-btn"
         >
-          🏥 Clinic Admin (clinicadmin&#64;clinicbooking.com)
+          🏥 {{ translation.isArabic() ? 'دخول مدير فرع العيادة (Clinic Admin)' : 'Clinic Admin (clinicadmin@clinicbooking.com)' }}
         </button>
       </div>
     </form>

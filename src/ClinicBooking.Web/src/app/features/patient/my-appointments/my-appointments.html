@@ -18,13 +18,13 @@
 
   @if (loading()) {
     <div class="loading-state card">
-      <p>Loading your appointments...</p>
+      <p>{{ translation.isArabic() ? 'جاري تحميل قائمة مواعيدك...' : 'Loading your appointments...' }}</p>
     </div>
   } @else if (appointments().length === 0) {
     <div class="empty-state card">
       <span class="empty-icon">🗓️</span>
       <h3>{{ 'appointments.no_appointments' | translate }}</h3>
-      <p class="text-muted">Book your first doctor appointment now.</p>
+      <p class="text-muted">{{ translation.isArabic() ? 'احجز موعدك الأول مع نخبة من أفضل الأطباء الآن.' : 'Book your first doctor appointment now.' }}</p>
       <a routerLink="/doctors" class="btn btn-primary mt-3">
         {{ 'home.hero.cta_book' | translate }}
       </a>
@@ -79,17 +79,17 @@
   @if (cancelingAppointmentId) {
     <div class="modal-backdrop">
       <div class="card modal-card">
-        <h3>Confirm Appointment Cancellation</h3>
-        <p class="text-muted">Are you sure you want to cancel this booking?</p>
+        <h3>{{ translation.isArabic() ? 'تأكيد إلغاء الموعد' : 'Confirm Appointment Cancellation' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'هل أنت متأكد من رغبتك في إلغاء هذا الحجز؟' : 'Are you sure you want to cancel this booking?' }}</p>
 
         <div class="form-group mt-3">
-          <label class="form-label">Cancellation Reason</label>
-          <input type="text" [(ngModel)]="cancelReason" class="form-control" />
+          <label class="form-label">{{ translation.isArabic() ? 'سبب الإلغاء' : 'Cancellation Reason' }}</label>
+          <input type="text" [(ngModel)]="cancelReason" class="form-control" [placeholder]="translation.isArabic() ? 'اكتب سبب الإلغاء هنا...' : 'Reason for cancellation...'" />
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeCancelModal()" class="btn btn-outline">Keep Booking</button>
-          <button (click)="confirmCancel()" class="btn btn-danger">Confirm Cancellation</button>
+          <button (click)="closeCancelModal()" class="btn btn-outline">{{ translation.isArabic() ? 'الاحتفاظ بالموعد' : 'Keep Booking' }}</button>
+          <button (click)="confirmCancel()" class="btn btn-danger">{{ translation.isArabic() ? 'تأكيد الإلغاء' : 'Confirm Cancellation' }}</button>
         </div>
       </div>
     </div>

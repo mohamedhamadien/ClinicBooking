@@ -24,6 +24,11 @@
   height: 100vh;
   z-index: 40;
 
+  [dir='rtl'] & {
+    border-right: none;
+    border-left: 1px solid #1e293b;
+  }
+
   &.collapsed {
     width: 72px;
 
@@ -211,6 +216,11 @@
         padding: 0.1rem 0.45rem;
         border-radius: 10px;
         margin-left: auto;
+
+        [dir='rtl'] & {
+          margin-left: 0;
+          margin-right: auto;
+        }
       }
 
       &:hover {

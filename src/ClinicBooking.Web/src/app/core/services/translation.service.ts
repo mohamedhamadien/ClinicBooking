@@ -165,6 +165,6 @@ export class TranslationService {
   private getInitialLanguage(): Language {
     const saved = localStorage.getItem(this.STORAGE_KEY);
     if (saved === 'ar' || saved === 'en') return saved;
-    return 'en';
+    return 'ar';
   }
 }

@@ -1,7 +1,7 @@
 <div class="container booking-container">
   @if (loadingDoctor()) {
     <div class="loading-state card">
-      <p>Loading doctor profile...</p>
+      <p>{{ translation.isArabic() ? 'جاري تحميل بيانات الطبيب...' : 'Loading doctor profile...' }}</p>
     </div>
   } @else if (doctor(); as doc) {
     <!-- Doctor Summary Banner -->
@@ -11,7 +11,7 @@
         <div>
           <span class="specialty-badge">{{ doc.specialtyName }}</span>
           <h2>{{ doc.fullName }}</h2>
-          <p class="license">License: {{ doc.licenseNumber }}</p>
+          <p class="license">{{ translation.isArabic() ? 'رقم الترخيص: ' : 'License: ' }}{{ doc.licenseNumber }}</p>
           <p class="bio">{{ translation.isArabic() && doc.bioAr ? doc.bioAr : doc.bio }}</p>
         </div>
       </div>
@@ -68,7 +68,7 @@
             [(ngModel)]="notes"
             rows="3"
             class="form-control"
-            placeholder="Describe reason for visit..."
+            placeholder="{{ translation.isArabic() ? 'اكتب سبب الزيارة أو الأعراض التي تشعر بها...' : 'Describe reason for visit...' }}"
           ></textarea>
         </div>
       </div>
@@ -82,7 +82,7 @@
 
         @if (loadingSlots()) {
           <div class="slots-loading">
-            <p>Computing real-time doctor availability...</p>
+            <p>{{ translation.isArabic() ? 'جاري حساب وتحديث المواعيد المتاحة لحظياً...' : 'Computing real-time doctor availability...' }}</p>
           </div>
         } @else if (availableSlots().length === 0) {
           <div class="slots-empty">
@@ -102,7 +102,7 @@
               >
                 <span class="slot-time">{{ slot.startLocal }} - {{ slot.endLocal }}</span>
                 <span class="slot-status">
-                  {{ slot.isAvailable ? 'Available' : 'Booked' }}
+                  {{ slot.isAvailable ? (translation.isArabic() ? 'متاح' : 'Available') : (translation.isArabic() ? 'محجوز' : 'Booked') }}
                 </span>
               </button>
             }
@@ -113,7 +113,7 @@
         <div class="booking-confirm-footer">
           @if (selectedSlot) {
             <div class="selected-summary">
-              Selected: <strong>{{ selectedSlot.startLocal }} - {{ selectedSlot.endLocal }}</strong>
+              {{ translation.isArabic() ? 'الموعد المختار: ' : 'Selected: ' }}<strong>{{ selectedSlot.startLocal }} - {{ selectedSlot.endLocal }}</strong>
             </div>
           }
 
@@ -122,7 +122,7 @@
             [disabled]="!selectedSlot || bookingInProgress()"
             class="btn btn-primary w-100"
           >
-            {{ bookingInProgress() ? 'Securing slot...' : ('booking.confirm_btn' | translate) }}
+            {{ bookingInProgress() ? (translation.isArabic() ? 'جاري تأكيد الحجز...' : 'Securing slot...') : ('booking.confirm_btn' | translate) }}
           </button>
         </div>
       </div>

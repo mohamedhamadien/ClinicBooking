@@ -20,12 +20,12 @@
   <section class="specialties-section">
     <div class="section-header">
       <h2>{{ 'home.hero.cta_doctors' | translate }}</h2>
-      <p class="text-muted">Explore medical departments available at our clinics</p>
+      <p class="text-muted">{{ translation.isArabic() ? 'استكشف التخصصات الطبية المتوفرة في عياداتنا' : 'Explore medical departments available at our clinics' }}</p>
     </div>
 
     @if (loading()) {
       <div class="loading-state">
-        <p>Loading specialties...</p>
+        <p>{{ translation.isArabic() ? 'جاري تحميل التخصصات الطبية...' : 'Loading specialties...' }}</p>
       </div>
     } @else {
       <div class="grid-4 specialties-grid">

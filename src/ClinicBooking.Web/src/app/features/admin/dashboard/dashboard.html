@@ -9,17 +9,17 @@
           <div class="brand-text">
             <h3 class="brand-title">
               @if (auth.isClinicAdmin() && assignedClinic(); as ac) {
-                {{ ac.name }}
+                {{ translation.isArabic() && ac.nameAr ? ac.nameAr : ac.name }}
               } @else {
-                Apex Clinic OS
+                {{ translation.isArabic() ? 'نظام إدارة العيادات' : 'Apex Clinic OS' }}
               }
             </h3>
-            <span class="brand-subtitle">{{ auth.currentUser()?.role }} Console</span>
+            <span class="brand-subtitle">{{ translation.isArabic() ? 'لوحة التحكم والتشغيل' : (auth.currentUser()?.role + ' Console') }}</span>
           </div>
         }
       </div>
       <button (click)="toggleSidebar()" class="sidebar-toggle-btn" title="Toggle Sidebar">
-        {{ isSidebarCollapsed() ? '▶' : '◀' }}
+        {{ isSidebarCollapsed() ? (translation.isArabic() ? '◀' : '▶') : (translation.isArabic() ? '▶' : '◀') }}
       </button>
     </div>
 
@@ -44,7 +44,7 @@
     <nav class="sidebar-nav-menu">
       <!-- Section: Clinical & Reception -->
       <div class="nav-category-header">
-        @if (!isSidebarCollapsed()) { <span>CLINICAL & RECEPTION</span> }
+        @if (!isSidebarCollapsed()) { <span>{{ translation.isArabic() ? 'الخدمات الطبية والاستقبال' : 'CLINICAL & RECEPTION' }}</span> }
       </div>
 
       @if (canAccessTab('overview')) {
@@ -52,11 +52,11 @@
           (click)="setTab('overview')"
           [class.active]="activeTab() === 'overview'"
           class="sidebar-nav-item"
-          title="Overview"
+          title="{{ translation.isArabic() ? 'المتابعة العامة' : 'Overview' }}"
         >
           <span class="nav-icon">📊</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Overview</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'المتابعة العامة' : 'Overview' }}</span>
           }
         </button>
       }
@@ -66,11 +66,11 @@
           (click)="setTab('queue')"
           [class.active]="activeTab() === 'queue'"
           class="sidebar-nav-item"
-          title="Waiting Queue"
+          title="{{ translation.isArabic() ? 'طابور الانتظار' : 'Waiting Queue' }}"
         >
           <span class="nav-icon">🛎️</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Waiting Queue</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'طابور الانتظار' : 'Waiting Queue' }}</span>
             @if (queueItems().length > 0) {
               <span class="nav-counter">{{ queueItems().length }}</span>
             }
@@ -83,11 +83,11 @@
           (click)="setTab('consultation')"
           [class.active]="activeTab() === 'consultation'"
           class="sidebar-nav-item"
-          title="Consultation & Rx"
+          title="{{ translation.isArabic() ? 'الكشف والروشتات' : 'Consultation & Rx' }}"
         >
           <span class="nav-icon">📋</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Consultation & Rx</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'الكشف والروشتات' : 'Consultation & Rx' }}</span>
           }
         </button>
       }
@@ -97,18 +97,18 @@
           (click)="setTab('records')"
           [class.active]="activeTab() === 'records'"
           class="sidebar-nav-item"
-          title="Patient EMR Charts"
+          title="{{ translation.isArabic() ? 'السجلات الطبية للمرضى' : 'Patient EMR Charts' }}"
         >
           <span class="nav-icon">🗂️</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Patient EMR Charts</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'السجلات الطبية للمرضى' : 'Patient EMR Charts' }}</span>
           }
         </button>
       }
 
       <!-- Section: Operations & Finance -->
       <div class="nav-category-header">
-        @if (!isSidebarCollapsed()) { <span>OPERATIONS & FINANCE</span> }
+        @if (!isSidebarCollapsed()) { <span>{{ translation.isArabic() ? 'العمليات والمالية' : 'OPERATIONS & FINANCE' }}</span> }
       </div>
 
       @if (canAccessTab('billing')) {
@@ -116,11 +116,11 @@
           (click)="setTab('billing')"
           [class.active]="activeTab() === 'billing'"
           class="sidebar-nav-item"
-          title="Billing & Finance"
+          title="{{ translation.isArabic() ? 'الفواتير والتحصيل' : 'Billing & Invoices' }}"
         >
           <span class="nav-icon">💳</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Billing & Invoices</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'الفواتير والتحصيل' : 'Billing & Invoices' }}</span>
             @if (invoices().length > 0) {
               <span class="nav-counter">{{ invoices().length }}</span>
             }
@@ -133,11 +133,11 @@
           (click)="setTab('appointments')"
           [class.active]="activeTab() === 'appointments'"
           class="sidebar-nav-item"
-          title="Appointments"
+          title="{{ translation.isArabic() ? 'المواعيد والحجوزات' : 'Appointments' }}"
         >
           <span class="nav-icon">📅</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Appointments</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'المواعيد والحجوزات' : 'Appointments' }}</span>
             @if (appointments().length > 0) {
               <span class="nav-counter">{{ appointments().length }}</span>
             }
@@ -147,7 +147,7 @@
 
       <!-- Section: Clinic & Personnel Setup -->
       <div class="nav-category-header">
-        @if (!isSidebarCollapsed()) { <span>ADMINISTRATION</span> }
+        @if (!isSidebarCollapsed()) { <span>{{ translation.isArabic() ? 'الإدارة والإعدادات' : 'ADMINISTRATION' }}</span> }
       </div>
 
       @if (canAccessTab('doctors')) {
@@ -155,11 +155,11 @@
           (click)="setTab('doctors')"
           [class.active]="activeTab() === 'doctors'"
           class="sidebar-nav-item"
-          title="Doctors"
+          title="{{ translation.isArabic() ? 'الأطباء' : 'Doctors' }}"
         >
           <span class="nav-icon">👨‍⚕️</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Doctors ({{ doctors().length }})</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'الأطباء' : 'Doctors' }} ({{ doctors().length }})</span>
           }
         </button>
       }
@@ -169,11 +169,11 @@
           (click)="setTab('clinics')"
           [class.active]="activeTab() === 'clinics'"
           class="sidebar-nav-item"
-          title="Clinics"
+          title="{{ translation.isArabic() ? 'الفروع والعيادات' : 'Clinics' }}"
         >
           <span class="nav-icon">🏥</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Clinics ({{ clinics().length }})</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'الفروع والعيادات' : 'Clinics' }} ({{ clinics().length }})</span>
           }
         </button>
       }
@@ -183,11 +183,11 @@
           (click)="setTab('specialties')"
           [class.active]="activeTab() === 'specialties'"
           class="sidebar-nav-item"
-          title="Specialties"
+          title="{{ translation.isArabic() ? 'التخصصات الطبية' : 'Specialties' }}"
         >
           <span class="nav-icon">🩺</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Specialties ({{ specialties().length }})</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'التخصصات الطبية' : 'Specialties' }} ({{ specialties().length }})</span>
           }
         </button>
       }
@@ -197,11 +197,11 @@
           (click)="setTab('staff')"
           [class.active]="activeTab() === 'staff'"
           class="sidebar-nav-item"
-          title="Staff & Permissions"
+          title="{{ translation.isArabic() ? 'الموظفون والصلاحيات' : 'Staff & Permissions' }}"
         >
           <span class="nav-icon">👥</span>
           @if (!isSidebarCollapsed()) {
-            <span class="nav-text">Staff & Permissions</span>
+            <span class="nav-text">{{ translation.isArabic() ? 'الموظفون والصلاحيات' : 'Staff & Permissions' }}</span>
             @if (staffMembers().length > 0) {
               <span class="nav-counter">{{ staffMembers().length }}</span>
             }
@@ -213,14 +213,14 @@
     <!-- Sidebar Quick Info / Branch selector -->
     @if (!isSidebarCollapsed()) {
       <div class="sidebar-footer-box">
-        <div class="footer-branch-label">ACTIVE FACILITY</div>
+        <div class="footer-branch-label">{{ translation.isArabic() ? 'الفرع النشط' : 'ACTIVE FACILITY' }}</div>
         <div class="footer-branch-name">
           @if (assignedClinic(); as ac) {
-            {{ ac.name }}
+            {{ translation.isArabic() && ac.nameAr ? ac.nameAr : ac.name }}
           } @else if (clinics().length > 0) {
-            {{ clinics()[0].name }}
+            {{ translation.isArabic() && clinics()[0].nameAr ? clinics()[0].nameAr : clinics()[0].name }}
           } @else {
-            Central Healthcare Clinic
+            {{ translation.isArabic() ? 'الفرع الرئيسي' : 'Central Healthcare Clinic' }}
           }
         </div>
       </div>
@@ -235,23 +235,28 @@
         <h2 class="current-screen-title">
           {{ getTabTitle(activeTab()) }}
         </h2>
-        <span class="topbar-breadcrumb">Console &rsaquo; {{ activeTab() }}</span>
+        <span class="topbar-breadcrumb">{{ translation.isArabic() ? 'لوحة التحكم' : 'Console' }} &rsaquo; {{ activeTab() }}</span>
       </div>
 
       <div class="topbar-actions">
+        <!-- Language Switcher in Topbar -->
+        <button (click)="translation.toggleLanguage()" class="btn btn-outline btn-sm lang-toggle">
+          🌐 {{ translation.isArabic() ? 'English' : 'العربية' }}
+        </button>
+
         @if (canAccessTab('consultation')) {
           <button (click)="setTab('consultation')" class="btn btn-primary btn-sm">
-            🩺 Start Consultation
+            🩺 {{ translation.isArabic() ? 'بدء كشف طبي' : 'Start Consultation' }}
           </button>
         }
         @if (canAccessTab('billing')) {
           <button (click)="openInvoiceModal()" class="btn btn-outline btn-sm">
-            💳 Issue Invoice
+            💳 {{ translation.isArabic() ? 'إصدار فاتورة' : 'Issue Invoice' }}
           </button>
         }
         @if (canAccessTab('doctors')) {
           <button (click)="openDoctorModal()" class="btn btn-outline btn-sm">
-            👨‍⚕️ + Add Doctor
+            👨‍⚕️ {{ translation.isArabic() ? '+ إضافة طبيب' : '+ Add Doctor' }}
           </button>
         }
       </div>
@@ -305,7 +310,7 @@
         <div class="card stat-card">
           <span class="stat-icon">👨‍⚕️</span>
           <div>
-            <span class="stat-label">Active Doctors</span>
+            <span class="stat-label">{{ translation.isArabic() ? 'الأطباء النشطون' : 'Active Doctors' }}</span>
             <span class="stat-val">{{ s.totalDoctors }}</span>
           </div>
         </div>
@@ -316,30 +321,30 @@
     <div class="grid-4 mt-4">
       <div class="card quick-action-card">
         <span class="icon">🛎️</span>
-        <h3>Reception Queue</h3>
-        <p>Live patient check-in, token assignment & waiting room flow.</p>
-        <button (click)="setTab('queue')" class="btn btn-primary btn-sm">Open Waiting Room</button>
+        <h3>{{ translation.isArabic() ? 'طابور الاستقبال وصالة الانتظار' : 'Reception Queue' }}</h3>
+        <p>{{ translation.isArabic() ? 'تسجيل حضور المرضى وتوليد أرقام الدور ومتابعة تدفق صالة الانتظار.' : 'Live patient check-in, token assignment & waiting room flow.' }}</p>
+        <button (click)="setTab('queue')" class="btn btn-primary btn-sm">{{ translation.isArabic() ? 'فتح صالة الانتظار' : 'Open Waiting Room' }}</button>
       </div>
 
       <div class="card quick-action-card">
         <span class="icon">📋</span>
-        <h3>Doctor Consultation</h3>
-        <p>Record SOAP notes, vitals, and issue official e-prescriptions.</p>
-        <button (click)="setTab('consultation')" class="btn btn-outline btn-sm">Start Consultation</button>
+        <h3>{{ translation.isArabic() ? 'كشف الطبيب والروشتات' : 'Doctor Consultation' }}</h3>
+        <p>{{ translation.isArabic() ? 'تدوين الملاحظات السريرية، العلامات الحيوية، وإصدار الروشتات الإلكترونية.' : 'Record SOAP notes, vitals, and issue official e-prescriptions.' }}</p>
+        <button (click)="setTab('consultation')" class="btn btn-outline btn-sm">{{ translation.isArabic() ? 'بدء كشف طبي' : 'Start Consultation' }}</button>
       </div>
 
       <div class="card quick-action-card">
         <span class="icon">💳</span>
-        <h3>Clinic Billing</h3>
-        <p>Generate invoices, record payments, and track daily revenue.</p>
-        <button (click)="setTab('billing')" class="btn btn-outline btn-sm">View Invoices</button>
+        <h3>{{ translation.isArabic() ? 'فواتير العيادة والتحصيل' : 'Clinic Billing' }}</h3>
+        <p>{{ translation.isArabic() ? 'إصدار الفواتير وتسجيل المدفوعات النقدية ومتابعة الإيرادات اليومية.' : 'Generate invoices, record payments, and track daily revenue.' }}</p>
+        <button (click)="setTab('billing')" class="btn btn-outline btn-sm">{{ translation.isArabic() ? 'عرض الفواتير' : 'View Invoices' }}</button>
       </div>
 
       <div class="card quick-action-card">
         <span class="icon">🗂️</span>
-        <h3>Patient EMR Records</h3>
-        <p>Clinical charts, past visit histories, allergies & vitals timeline.</p>
-        <button (click)="setTab('records')" class="btn btn-outline btn-sm">Patient Charts</button>
+        <h3>{{ translation.isArabic() ? 'السجلات الطبية للمرضى' : 'Patient EMR Records' }}</h3>
+        <p>{{ translation.isArabic() ? 'الملف الطبي الموحد، تاريخ الزيارات، الحساسيات، وتطور العلامات الحيوية.' : 'Clinical charts, past visit histories, allergies & vitals timeline.' }}</p>
+        <button (click)="setTab('records')" class="btn btn-outline btn-sm">{{ translation.isArabic() ? 'الملفات الطبية' : 'Patient Charts' }}</button>
       </div>
     </div>
   }
@@ -348,18 +353,18 @@
   @if (activeTab() === 'queue') {
     <div class="tab-header">
       <div>
-        <h3>🛎️ Reception & Waiting Room Queue</h3>
-        <p class="text-muted m-0">Live token numbers, patient check-in, and examination room call system.</p>
+        <h3>🛎️ {{ translation.isArabic() ? 'طابور الاستقبال وصالة الانتظار' : 'Reception & Waiting Room Queue' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'أرقام دور حية، تسجيل حضور المرضى، ونظام الاستدعاء لغرف الكشف.' : 'Live token numbers, patient check-in, and examination room call system.' }}</p>
       </div>
       <div class="d-flex gap-2">
         @if (auth.isAdmin()) {
           <select [(ngModel)]="selectedClinicId" (change)="loadQueue()" class="form-select form-select-sm">
             @for (c of clinics(); track c.id) {
-              <option [value]="c.id">{{ c.name }}</option>
+              <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
             }
           </select>
         }
-        <button (click)="loadQueue()" class="btn btn-outline btn-sm">🔄 Refresh Queue</button>
+        <button (click)="loadQueue()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث الطابور' : '🔄 Refresh Queue' }}</button>
       </div>
     </div>
 
@@ -368,13 +373,13 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Token #</th>
-              <th>Patient</th>
-              <th>Doctor</th>
-              <th>Clinic Branch</th>
-              <th>Scheduled Time</th>
-              <th>Queue Status</th>
-              <th>Reception Action</th>
+              <th>{{ translation.isArabic() ? 'رقم الدور' : 'Token #' }}</th>
+              <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
+              <th>{{ translation.isArabic() ? 'الطبيب' : 'Doctor' }}</th>
+              <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }}</th>
+              <th>{{ translation.isArabic() ? 'موعد الحجز' : 'Scheduled Time' }}</th>
+              <th>{{ translation.isArabic() ? 'حالة الدور' : 'Queue Status' }}</th>
+              <th>{{ translation.isArabic() ? 'إجراء الاستقبال' : 'Reception Action' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -386,7 +391,7 @@
                       #{{ q.queueNumber < 10 ? '0' + q.queueNumber : q.queueNumber }}
                     </span>
                   } @else {
-                    <span class="text-muted">Not Checked In</span>
+                    <span class="text-muted">{{ translation.isArabic() ? 'لم يحضر بعد' : 'Not Checked In' }}</span>
                   }
                 </td>
                 <td><strong>{{ q.patientName }}</strong></td>
@@ -395,30 +400,30 @@
                 <td>{{ q.startTimeUtc | date:'shortTime' }}</td>
                 <td>
                   <span class="badge" [class]="getBadgeClass(q.status)">
-                    {{ q.status === 'CheckedIn' ? 'In Waiting Room' : q.status === 'InConsultation' ? 'In Examination' : q.status }}
+                    {{ q.status === 'CheckedIn' ? (translation.isArabic() ? 'في صالة الانتظار' : 'In Waiting Room') : q.status === 'InConsultation' ? (translation.isArabic() ? 'داخل الكشف' : 'In Examination') : q.status }}
                   </span>
                 </td>
                 <td>
                   @if (q.status === 'Scheduled' || q.status === 'Confirmed') {
                     <button (click)="checkInPatient(q.appointmentId)" class="btn btn-primary btn-sm">
-                      🛎️ Check-in (Assign Token)
+                      🛎️ {{ translation.isArabic() ? 'تسجيل حضور (إصدار رقم)' : 'Check-in (Assign Token)' }}
                     </button>
                   } @else if (q.status === 'CheckedIn') {
                     <button (click)="callPatient(q.appointmentId)" class="btn btn-outline btn-sm">
-                      📢 Call into Room
+                      📢 {{ translation.isArabic() ? 'استدعاء لغرفة الكشف' : 'Call into Room' }}
                     </button>
                   } @else if (q.status === 'InConsultation') {
                     <button (click)="openConsultationForAppt(q)" class="btn btn-confirmed btn-sm">
-                      🩺 Open Consultation
+                      🩺 {{ translation.isArabic() ? 'فتح الكشف الطبي' : 'Open Consultation' }}
                     </button>
                   } @else {
-                    <span class="text-muted">Done</span>
+                    <span class="text-muted">{{ translation.isArabic() ? 'تم' : 'Done' }}</span>
                   }
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="text-center py-5">No patients currently in the clinic waiting queue for today.</td>
+                <td colspan="7" class="text-center py-5">{{ translation.isArabic() ? 'لا يوجد مرضى حالياً في طابور انتظار العيادة اليوم.' : 'No patients currently in the clinic waiting queue for today.' }}</td>
               </tr>
             }
           </tbody>
@@ -431,20 +436,20 @@
   @if (activeTab() === 'consultation') {
     <div class="tab-header">
       <div>
-        <h3>📋 Clinical Consultation & Electronic Prescription (Rx)</h3>
-        <p class="text-muted m-0">Document SOAP clinical notes, vital signs, and issue verified electronic prescriptions.</p>
+        <h3>📋 {{ translation.isArabic() ? 'الكشف الطبي والروشتة الإلكترونية (Rx)' : 'Clinical Consultation & Electronic Prescription (Rx)' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'تدوين الملاحظات السريرية، العلامات الحيوية للمريض، وإصدار الروشتات المعتمدة.' : 'Document SOAP clinical notes, vital signs, and issue verified electronic prescriptions.' }}</p>
       </div>
     </div>
 
     <div class="grid-2 mt-3">
       <!-- Left: Consultation Form -->
       <div class="card p-4">
-        <h4>1. Consultation Details (SOAP Notes)</h4>
+        <h4>1. {{ translation.isArabic() ? 'تفاصيل الكشف الطبي (SOAP)' : 'Consultation Details (SOAP Notes)' }}</h4>
 
         <div class="form-group mt-3">
-          <label class="form-label">Select Active Appointment *</label>
+          <label class="form-label">{{ translation.isArabic() ? 'اختر الموعد المطلوب كشفه *' : 'Select Active Appointment *' }}</label>
           <select [(ngModel)]="consultAppointmentId" class="form-select">
-            <option value="">-- Choose appointment to examine --</option>
+            <option value="">{{ translation.isArabic() ? '-- اختر الموعد لبدء الكشف الطبي --' : '-- Choose appointment to examine --' }}</option>
             @for (a of appointments(); track a.id) {
               <option [value]="a.id">
                 {{ a.patientName || a.patientId.slice(0, 8) }} with {{ a.doctorName || 'Doctor' }} ({{ a.startTimeUtc | date:'shortTime' }}) - {{ a.status }}
@@ -454,29 +459,49 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Chief Complaint (شكوى المريض) *</label>
-          <input type="text" [(ngModel)]="consultChiefComplaint" class="form-control" placeholder="e.g. Persistent cough, chest discomfort for 4 days" />
+          <label class="form-label">{{ translation.isArabic() ? 'شكوى المريض الرئيسية (Chief Complaint) *' : 'Chief Complaint (شكوى المريض) *' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="consultChiefComplaint"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'مثال: سعال مستمر، ألم بالصدر منذ 4 أيام' : 'e.g. Persistent cough, chest discomfort for 4 days'"
+          />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Clinical Examination Notes (الفحص السريري)</label>
-          <textarea [(ngModel)]="consultExamination" rows="2" class="form-control" placeholder="Physical signs, heart sounds, chest auscultation..."></textarea>
+          <label class="form-label">{{ translation.isArabic() ? 'الفحص السريري (Physical Examination)' : 'Clinical Examination Notes (الفحص السريري)' }}</label>
+          <textarea
+            [(ngModel)]="consultExamination"
+            rows="2"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'العلامات السريرية، فحص الصدر، سماع ضربات القلب...' : 'Physical signs, heart sounds, chest auscultation...'"
+          ></textarea>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Clinical Diagnosis (التشخيص الطبي) *</label>
-          <input type="text" [(ngModel)]="consultDiagnosis" class="form-control" placeholder="e.g. Acute Bronchitis / Hypertension Stage 1" />
+          <label class="form-label">{{ translation.isArabic() ? 'التشخيص الطبي (Clinical Diagnosis) *' : 'Clinical Diagnosis (التشخيص الطبي) *' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="consultDiagnosis"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'مثال: التهاب شعبي حاد / ارتفاع ضغط دم مرحلة 1' : 'e.g. Acute Bronchitis / Hypertension Stage 1'"
+          />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Treatment Plan & Doctor Instructions (خطة العلاج)</label>
-          <textarea [(ngModel)]="consultTreatmentPlan" rows="2" class="form-control" placeholder="Rest, diet recommendations, follow-up in 1 week..."></textarea>
+          <label class="form-label">{{ translation.isArabic() ? 'خطة العلاج وتوجيهات الطبيب (Treatment Plan)' : 'Treatment Plan & Doctor Instructions (خطة العلاج)' }}</label>
+          <textarea
+            [(ngModel)]="consultTreatmentPlan"
+            rows="2"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'توصيات الراحة، النظام الغذائي، وموعد إعادة الاستشارة...' : 'Rest, diet recommendations, follow-up in 1 week...'"
+          ></textarea>
         </div>
 
-        <h4 class="mt-4">2. Patient Vital Signs (العلامات الحيوية)</h4>
+        <h4 class="mt-4">2. {{ translation.isArabic() ? 'العلامات الحيوية للمريض (Vital Signs)' : 'Patient Vital Signs (العلامات الحيوية)' }}</h4>
         <div class="grid-3 mt-2">
           <div class="form-group mb-2">
-            <label class="form-label">BP (Systolic / Diastolic)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'ضغط الدم (انقباضي / انبساطي)' : 'BP (Systolic / Diastolic)' }}</label>
             <div class="d-flex gap-1 align-items-center">
               <input type="number" [(ngModel)]="vitalsSystolic" placeholder="120" class="form-control" />
               <span>/</span>
@@ -484,23 +509,23 @@
             </div>
           </div>
           <div class="form-group mb-2">
-            <label class="form-label">Heart Rate (bpm)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'نبض القلب (نبضة/د)' : 'Heart Rate (bpm)' }}</label>
             <input type="number" [(ngModel)]="vitalsHeartRate" placeholder="72" class="form-control" />
           </div>
           <div class="form-group mb-2">
-            <label class="form-label">Temperature (°C)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'الحرارة (°م)' : 'Temperature (°C)' }}</label>
             <input type="number" step="0.1" [(ngModel)]="vitalsTemp" placeholder="37.0" class="form-control" />
           </div>
           <div class="form-group mb-0">
-            <label class="form-label">Weight (Kg)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'الوزن (كجم)' : 'Weight (Kg)' }}</label>
             <input type="number" step="0.5" [(ngModel)]="vitalsWeight" placeholder="75" class="form-control" />
           </div>
           <div class="form-group mb-0">
-            <label class="form-label">Height (Cm)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'الطول (سم)' : 'Height (Cm)' }}</label>
             <input type="number" [(ngModel)]="vitalsHeight" placeholder="175" class="form-control" />
           </div>
           <div class="form-group mb-0">
-            <label class="form-label">Blood Glucose (mg/dL)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'سكر الدم (ملجم/دسل)' : 'Blood Glucose (mg/dL)' }}</label>
             <input type="number" [(ngModel)]="vitalsGlucose" placeholder="105" class="form-control" />
           </div>
         </div>
@@ -509,34 +534,59 @@
       <!-- Right: E-Prescription (Rx) & Medications -->
       <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h4>3. Electronic Prescription (الروشتة - Rx)</h4>
-          <button (click)="addMedicationRow()" class="btn btn-outline btn-sm">+ Add Drug</button>
+          <h4>3. {{ translation.isArabic() ? 'الروشتة الإلكترونية (Rx)' : 'Electronic Prescription (الروشتة - Rx)' }}</h4>
+          <button (click)="addMedicationRow()" class="btn btn-outline btn-sm">+ {{ translation.isArabic() ? 'إضافة دواء' : 'Add Drug' }}</button>
         </div>
 
         <div class="medications-container">
           @for (med of rxMedications; track $index) {
             <div class="p-3 bg-light rounded mb-3 border">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <strong>💊 Medication #{{ $index + 1 }}</strong>
+                <strong>💊 {{ translation.isArabic() ? 'الدواء رقم' : 'Medication #' }} {{ $index + 1 }}</strong>
                 @if (rxMedications.length > 1) {
                   <button (click)="removeMedicationRow($index)" class="btn btn-outline btn-sm text-danger">✕</button>
                 }
               </div>
               <div class="form-group mb-2">
-                <input type="text" [(ngModel)]="med.medicationName" class="form-control" placeholder="Medication Name (e.g. Augmentin 1g)" />
+                <input
+                  type="text"
+                  [(ngModel)]="med.medicationName"
+                  class="form-control"
+                  [placeholder]="translation.isArabic() ? 'اسم الدواء والتركيز (مثال: أوجمنتين 1 جم)' : 'Medication Name (e.g. Augmentin 1g)'"
+                />
               </div>
               <div class="grid-3">
-                <input type="text" [(ngModel)]="med.dosage" class="form-control" placeholder="Dosage (1 tab)" />
-                <input type="text" [(ngModel)]="med.frequency" class="form-control" placeholder="Frequency (Every 12 hrs)" />
-                <input type="text" [(ngModel)]="med.duration" class="form-control" placeholder="Duration (7 days)" />
+                <input
+                  type="text"
+                  [(ngModel)]="med.dosage"
+                  class="form-control"
+                  [placeholder]="translation.isArabic() ? 'الجرعة (قرص واحد)' : 'Dosage (1 tab)'"
+                />
+                <input
+                  type="text"
+                  [(ngModel)]="med.frequency"
+                  class="form-control"
+                  [placeholder]="translation.isArabic() ? 'التكرار (كل 12 ساعة)' : 'Frequency (Every 12 hrs)'"
+                />
+                <input
+                  type="text"
+                  [(ngModel)]="med.duration"
+                  class="form-control"
+                  [placeholder]="translation.isArabic() ? 'المدة (7 أيام)' : 'Duration (7 days)'"
+                />
               </div>
-              <input type="text" [(ngModel)]="med.instructions" class="form-control mt-2" placeholder="Special instructions (e.g. after lunch)" />
+              <input
+                type="text"
+                [(ngModel)]="med.instructions"
+                class="form-control mt-2"
+                [placeholder]="translation.isArabic() ? 'تعليمات خاصة (مثال: بعد الأكل)' : 'Special instructions (e.g. after lunch)'"
+              />
             </div>
           }
         </div>
 
         <button (click)="submitConsultation()" [disabled]="!consultAppointmentId || !consultDiagnosis" class="btn btn-primary w-100 mt-3" style="padding: 0.85rem; font-size: 1rem;">
-          💾 Save Consultation & Issue Prescription
+          💾 {{ translation.isArabic() ? 'حفظ الكشف وإصدار الروشتة' : 'Save Consultation & Issue Prescription' }}
         </button>
 
         @if (lastIssuedPrescription; as rx) {
@@ -544,19 +594,19 @@
             <div class="d-flex justify-content-between border-bottom pb-2">
               <div>
                 <h4 class="text-primary m-0">🏥 {{ rx.clinicName || 'Apex Healthcare' }}</h4>
-                <small class="text-muted">Prescription #: <strong>{{ rx.prescriptionNumber }}</strong></small>
+                <small class="text-muted">{{ translation.isArabic() ? 'رقم الروشتة: ' : 'Prescription #: ' }}<strong>{{ rx.prescriptionNumber }}</strong></small>
               </div>
               <div class="text-end">
-                <span class="badge badge-confirmed">Issued</span>
+                <span class="badge badge-confirmed">{{ translation.isArabic() ? 'معتمدة ومصدرة' : 'Issued' }}</span>
                 <div><small>{{ rx.issuedAtUtc | date:'mediumDate' }}</small></div>
               </div>
             </div>
             <div class="mt-2">
-              <p class="m-0"><strong>Patient:</strong> {{ rx.patientName || 'Patient' }}</p>
-              <p class="m-0"><strong>Diagnosis:</strong> {{ rx.diagnosis }}</p>
+              <p class="m-0"><strong>{{ translation.isArabic() ? 'المريض: ' : 'Patient: ' }}</strong>{{ rx.patientName || 'Patient' }}</p>
+              <p class="m-0"><strong>{{ translation.isArabic() ? 'التشخيص: ' : 'Diagnosis: ' }}</strong>{{ rx.diagnosis }}</p>
             </div>
             <div class="mt-2">
-              <strong>Prescribed Drugs (Rx):</strong>
+              <strong>{{ translation.isArabic() ? 'الأدوية الموصوفة (Rx):' : 'Prescribed Drugs (Rx):' }}</strong>
               <ul class="mb-0 mt-1">
                 @for (item of rx.items; track item.id) {
                   <li>
@@ -578,12 +628,12 @@
   @if (activeTab() === 'records') {
     <div class="tab-header">
       <div>
-        <h3>🗂️ Patient Medical Records & Clinical Chart (EMR)</h3>
-        <p class="text-muted m-0">Centralized electronic health record with past visit histories, prescriptions, and allergies.</p>
+        <h3>🗂️ {{ translation.isArabic() ? 'السجلات الطبية وملفات المرضى (EMR)' : 'Patient Medical Records & Clinical Chart (EMR)' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'الملف الطبي الموحد للمريض يشمل تاريخ الكشوفات السابقة، الروشتات، والحساسيات.' : 'Centralized electronic health record with past visit histories, prescriptions, and allergies.' }}</p>
       </div>
       <div class="d-flex gap-2">
         <select #patientSelect (change)="viewPatientRecord(patientSelect.value)" class="form-select form-select-sm">
-          <option value="">-- Select Patient to View EMR --</option>
+          <option value="">{{ translation.isArabic() ? '-- اختر المريض لعرض سجله الطبي --' : '-- Select Patient to View EMR --' }}</option>
           @for (a of appointments(); track a.id) {
             <option [value]="a.patientId">{{ a.patientName || a.patientId.slice(0, 8) }}</option>
           }
@@ -598,25 +648,25 @@
           <div>
             <h2>👤 {{ rec.patientName }}</h2>
             <div class="d-flex gap-3 text-muted">
-              <span>DOB: <strong>{{ rec.dateOfBirth }}</strong></span>
-              <span>Gender: <strong>{{ rec.gender }}</strong></span>
-              <span>Blood Group: <strong class="text-danger">{{ rec.bloodGroup || 'Not Specified' }}</strong></span>
+              <span>{{ translation.isArabic() ? 'تاريخ الميلاد: ' : 'DOB: ' }}<strong>{{ rec.dateOfBirth }}</strong></span>
+              <span>{{ translation.isArabic() ? 'النوع: ' : 'Gender: ' }}<strong>{{ rec.gender }}</strong></span>
+              <span>{{ translation.isArabic() ? 'فصيلة الدم: ' : 'Blood Group: ' }}<strong class="text-danger">{{ rec.bloodGroup || (translation.isArabic() ? 'غير محدد' : 'Not Specified') }}</strong></span>
             </div>
           </div>
           <button (click)="openEditHistoryModal(rec)" class="btn btn-outline btn-sm">
-            ✏️ Edit Medical Background
+            ✏️ {{ translation.isArabic() ? 'تعديل التاريخ المرضي' : 'Edit Medical Background' }}
           </button>
         </div>
 
         <!-- Alerts: Allergies & Chronic Conditions -->
         <div class="grid-2 mt-3">
           <div class="p-3 bg-light rounded border border-warning">
-            <strong class="text-warning">⚠️ Known Drug & Food Allergies:</strong>
-            <p class="m-0 mt-1">{{ rec.allergies || 'No known allergies reported.' }}</p>
+            <strong class="text-warning">⚠️ {{ translation.isArabic() ? 'حساسية الأدوية والأطعمة المعروفة:' : 'Known Drug & Food Allergies:' }}</strong>
+            <p class="m-0 mt-1">{{ rec.allergies || (translation.isArabic() ? 'لا توجد حساسية معروفة مسجلة.' : 'No known allergies reported.') }}</p>
           </div>
           <div class="p-3 bg-light rounded border border-info">
-            <strong class="text-info">🩺 Chronic Medical Conditions:</strong>
-            <p class="m-0 mt-1">{{ rec.chronicConditions || 'None reported.' }}</p>
+            <strong class="text-info">🩺 {{ translation.isArabic() ? 'الأمراض الطبية المزمنة:' : 'Chronic Medical Conditions:' }}</strong>
+            <p class="m-0 mt-1">{{ rec.chronicConditions || (translation.isArabic() ? 'لا توجد أمراض مزمنة مسجلة.' : 'None reported.') }}</p>
           </div>
         </div>
 
@@ -624,7 +674,7 @@
         <div class="grid-2 mt-4">
           <!-- Past Consultations -->
           <div>
-            <h4>Past Consultations & Diagnoses ({{ rec.consultations.length }})</h4>
+            <h4>{{ translation.isArabic() ? 'الكشوفات والتشخيصات السابقة' : 'Past Consultations & Diagnoses' }} ({{ rec.consultations.length }})</h4>
             <div class="mt-2">
               @for (c of rec.consultations; track c.id) {
                 <div class="card p-3 mb-2 border">
@@ -632,20 +682,20 @@
                     <strong>{{ c.diagnosis }}</strong>
                     <small class="text-muted">{{ c.consultationDateUtc | date:'mediumDate' }}</small>
                   </div>
-                  <p class="m-0 text-muted mt-1"><small>Complaint:</small> {{ c.chiefComplaint }}</p>
+                  <p class="m-0 text-muted mt-1"><small>{{ translation.isArabic() ? 'الشكوى: ' : 'Complaint: ' }}</small>{{ c.chiefComplaint }}</p>
                   @if (c.treatmentPlan) {
-                    <p class="m-0 text-muted"><small>Plan:</small> {{ c.treatmentPlan }}</p>
+                    <p class="m-0 text-muted"><small>{{ translation.isArabic() ? 'الخطة: ' : 'Plan: ' }}</small>{{ c.treatmentPlan }}</p>
                   }
                 </div>
               } @empty {
-                <p class="text-muted">No past consultation notes recorded.</p>
+                <p class="text-muted">{{ translation.isArabic() ? 'لا توجد ملاحظات كشف سابقة مسجلة.' : 'No past consultation notes recorded.' }}</p>
               }
             </div>
           </div>
 
           <!-- Prescriptions History -->
           <div>
-            <h4>Issued Prescriptions ({{ rec.prescriptions.length }})</h4>
+            <h4>{{ translation.isArabic() ? 'الروشتات الطبية الصادرة' : 'Issued Prescriptions' }} ({{ rec.prescriptions.length }})</h4>
             <div class="mt-2">
               @for (p of rec.prescriptions; track p.id) {
                 <div class="card p-3 mb-2 border">
@@ -653,7 +703,7 @@
                     <strong>{{ p.prescriptionNumber }}</strong>
                     <small class="text-muted">{{ p.issuedAtUtc | date:'mediumDate' }}</small>
                   </div>
-                  <small class="text-muted">Diagnosis: {{ p.diagnosis }}</small>
+                  <small class="text-muted">{{ translation.isArabic() ? 'التشخيص: ' : 'Diagnosis: ' }}{{ p.diagnosis }}</small>
                   <ul class="m-0 mt-2 pl-3">
                     @for (item of p.items; track item.id) {
                       <li>{{ item.medicationName }} ({{ item.dosage }} - {{ item.frequency }})</li>
@@ -661,7 +711,7 @@
                   </ul>
                 </div>
               } @empty {
-                <p class="text-muted">No past prescriptions on file.</p>
+                <p class="text-muted">{{ translation.isArabic() ? 'لا توجد روشتات سابقة في الملف.' : 'No past prescriptions on file.' }}</p>
               }
             </div>
           </div>
@@ -670,8 +720,8 @@
     } @else {
       <div class="card text-center py-5 mt-3">
         <span style="font-size: 3rem;">🗂️</span>
-        <h4 class="mt-2">Select a Patient to Open Their EMR Chart</h4>
-        <p class="text-muted">Choose any patient from the dropdown above or from the appointments roster to inspect their clinical records.</p>
+        <h4 class="mt-2">{{ translation.isArabic() ? 'اختر مريضاً لعرض سجله الطبي الإلكتروني (EMR)' : 'Select a Patient to Open Their EMR Chart' }}</h4>
+        <p class="text-muted">{{ translation.isArabic() ? 'اختر أي مريض من القائمة المنسدلة بالأعلى أو من جدول المواعيد للاطلاع على تاريخه الطبي وفحوصاته.' : 'Choose any patient from the dropdown above or from the appointments roster to inspect their clinical records.' }}</p>
       </div>
     }
   }
@@ -680,12 +730,12 @@
   @if (activeTab() === 'billing') {
     <div class="tab-header">
       <div>
-        <h3>💳 Clinic Invoicing & Billing Management</h3>
-        <p class="text-muted m-0">Issue itemized consultation bills, record cash/card payments, and audit financial records.</p>
+        <h3>💳 {{ translation.isArabic() ? 'إدارة الفواتير والتحصيل المالي' : 'Clinic Invoicing & Billing Management' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'إصدار فواتير الكشف والخدمات، تسجيل التحصيل نقداً أو بالبطاقة، ومتابعة سجلات الحسابات.' : 'Issue itemized consultation bills, record cash/card payments, and audit financial records.' }}</p>
       </div>
       <div class="d-flex gap-2">
-        <button (click)="openInvoiceModal()" class="btn btn-primary btn-sm">+ Issue Invoice</button>
-        <button (click)="loadInvoices()" class="btn btn-outline btn-sm">🔄 Refresh</button>
+        <button (click)="openInvoiceModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إصدار فاتورة' : 'Issue Invoice' }}</button>
+        <button (click)="loadInvoices()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث' : '🔄 Refresh' }}</button>
       </div>
     </div>
 
@@ -694,14 +744,14 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Invoice #</th>
-              <th>Patient</th>
-              <th>Clinic Branch</th>
-              <th>Date</th>
-              <th>Total Amount</th>
-              <th>Payment Method</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{{ translation.isArabic() ? 'رقم الفاتورة' : 'Invoice #' }}</th>
+              <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
+              <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }}</th>
+              <th>{{ translation.isArabic() ? 'التاريخ' : 'Date' }}</th>
+              <th>{{ translation.isArabic() ? 'المبلغ الإجمالي' : 'Total Amount' }}</th>
+              <th>{{ translation.isArabic() ? 'طريقة السداد' : 'Payment Method' }}</th>
+              <th>{{ translation.isArabic() ? 'حالة السداد' : 'Status' }}</th>
+              <th>{{ translation.isArabic() ? 'الإجراء' : 'Action' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -711,26 +761,26 @@
                 <td>{{ inv.patientName || inv.patientId.slice(0, 8) }}</td>
                 <td>{{ inv.clinicName || 'Clinic Branch' }}</td>
                 <td>{{ inv.issuedAtUtc | date:'mediumDate' }}</td>
-                <td><strong class="text-primary">{{ inv.totalAmount }} EGP</strong></td>
+                <td><strong class="text-primary">{{ inv.totalAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong></td>
                 <td>{{ inv.paymentMethod }}</td>
                 <td>
                   <span class="badge" [class.badge-confirmed]="inv.status === 'Paid'" [class.badge-scheduled]="inv.status === 'Pending'">
-                    {{ inv.status }}
+                    {{ inv.status === 'Paid' ? (translation.isArabic() ? 'مدفوع' : 'Paid') : inv.status === 'Pending' ? (translation.isArabic() ? 'قيد السداد' : 'Pending') : inv.status }}
                   </span>
                 </td>
                 <td>
                   @if (inv.status === 'Pending') {
                     <button (click)="payInvoice(inv.id, 1)" class="btn btn-primary btn-sm">
-                      💵 Collect Cash
+                      💵 {{ translation.isArabic() ? 'تحصيل نقدي' : 'Collect Cash' }}
                     </button>
                   } @else {
-                    <span class="text-muted">Paid on {{ inv.paidAtUtc | date:'shortDate' }}</span>
+                    <span class="text-muted">{{ translation.isArabic() ? 'سُددت بتاريخ ' : 'Paid on ' }}{{ inv.paidAtUtc | date:'shortDate' }}</span>
                   }
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="8" class="text-center py-5">No invoices recorded yet. Click "+ Issue Invoice" to generate a bill.</td>
+                <td colspan="8" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد فواتير مسجلة بعد. اضغط "+ إصدار فاتورة" لتوليد فاتورة جديدة.' : 'No invoices recorded yet. Click "+ Issue Invoice" to generate a bill.' }}</td>
               </tr>
             }
           </tbody>
@@ -744,34 +794,34 @@
     <div class="card filter-card">
       <div class="filter-grid">
         <div class="form-group mb-0">
-          <label class="form-label">Search Patient / Doctor</label>
+          <label class="form-label">{{ translation.isArabic() ? 'بحث عن مريض أو طبيب' : 'Search Patient / Doctor' }}</label>
           <input
             type="text"
             [(ngModel)]="filterSearchPatient"
             class="form-control"
-            placeholder="Type name or ID..."
+            [placeholder]="translation.isArabic() ? 'اكتب اسم المريض أو الطبيب...' : 'Type name or ID...'"
           />
         </div>
 
         <div class="form-group mb-0">
-          <label class="form-label">Filter by Status</label>
+          <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب الحالة' : 'Filter by Status' }}</label>
           <select [(ngModel)]="filterStatus" class="form-select">
-            <option value="">All Statuses</option>
-            <option value="Scheduled">Scheduled</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="CheckedIn">Checked In</option>
-            <option value="InConsultation">In Consultation</option>
-            <option value="Completed">Completed</option>
-            <option value="CancelledByPatient">Cancelled By Patient</option>
-            <option value="CancelledByDoctor">Cancelled By Doctor</option>
-            <option value="CancelledByAdmin">Cancelled By Admin</option>
+            <option value="">{{ translation.isArabic() ? 'كافة الحالات' : 'All Statuses' }}</option>
+            <option value="Scheduled">{{ translation.isArabic() ? 'مجدول' : 'Scheduled' }}</option>
+            <option value="Confirmed">{{ translation.isArabic() ? 'مؤكد' : 'Confirmed' }}</option>
+            <option value="CheckedIn">{{ translation.isArabic() ? 'في الانتظار' : 'Checked In' }}</option>
+            <option value="InConsultation">{{ translation.isArabic() ? 'في الكشف' : 'In Consultation' }}</option>
+            <option value="Completed">{{ translation.isArabic() ? 'مكتمل' : 'Completed' }}</option>
+            <option value="CancelledByPatient">{{ translation.isArabic() ? 'ملغي بواسطة المريض' : 'Cancelled By Patient' }}</option>
+            <option value="CancelledByDoctor">{{ translation.isArabic() ? 'ملغي بواسطة الطبيب' : 'Cancelled By Doctor' }}</option>
+            <option value="CancelledByAdmin">{{ translation.isArabic() ? 'ملغي بواسطة الإدارة' : 'Cancelled By Admin' }}</option>
           </select>
         </div>
 
         <div class="form-group mb-0">
-          <label class="form-label">Filter by Doctor</label>
+          <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب الطبيب' : 'Filter by Doctor' }}</label>
           <select [(ngModel)]="filterDoctorId" class="form-select">
-            <option value="">All Doctors</option>
+            <option value="">{{ translation.isArabic() ? 'كافة الأطباء' : 'All Doctors' }}</option>
             @for (d of doctors(); track d.id) {
               <option [value]="d.id">{{ d.fullName || d.licenseNumber }} ({{ d.specialtyName || 'Specialist' }})</option>
             }
@@ -785,12 +835,12 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Patient</th>
-              <th>Doctor</th>
-              <th>Clinic</th>
-              <th>Date & Time</th>
-              <th>Status</th>
-              <th>EMR / Action</th>
+              <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
+              <th>{{ translation.isArabic() ? 'الطبيب' : 'Doctor' }}</th>
+              <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic' }}</th>
+              <th>{{ translation.isArabic() ? 'التاريخ والوقت' : 'Date & Time' }}</th>
+              <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+              <th>{{ translation.isArabic() ? 'الملف الطبي / إجراء' : 'EMR / Action' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -811,11 +861,11 @@
                 <td>
                   <div class="d-flex gap-1">
                     <button (click)="viewPatientRecord(appt.patientId)" class="btn btn-outline btn-sm">
-                      🗂️ EMR
+                      🗂️ {{ translation.isArabic() ? 'الملف' : 'EMR' }}
                     </button>
                     @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
                       <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
-                        Cancel
+                        {{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}
                       </button>
                     }
                   </div>
@@ -823,7 +873,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="text-center py-4">No appointments match the selected filters.</td>
+                <td colspan="6" class="text-center py-4">{{ translation.isArabic() ? 'لا توجد مواعيد تطابق شروط التصفية المختارة.' : 'No appointments match the selected filters.' }}</td>
               </tr>
             }
           </tbody>
@@ -836,10 +886,10 @@
   @if (activeTab() === 'doctors') {
     <div class="tab-header">
       <div>
-        <h3>Medical Staff & Practicing Doctors</h3>
-        <p class="text-muted m-0">Manage doctor profiles, consultation fees, and clinic assignments.</p>
+        <h3>{{ translation.isArabic() ? 'الفريق الطبي والأطباء المعتمدون' : 'Medical Staff & Practicing Doctors' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'إدارة ملفات الأطباء، أسعار الكشف، وجداول المناوبات في الفروع.' : 'Manage doctor profiles, consultation fees, and clinic assignments.' }}</p>
       </div>
-      <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">👨‍⚕️ + Add Doctor</button>
+      <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">👨‍⚕️ + {{ translation.isArabic() ? 'إضافة طبيب' : 'Add Doctor' }}</button>
     </div>
 
     <div class="grid-3 mt-3">
@@ -848,9 +898,9 @@
           <div class="doctor-admin-top">
             <span class="avatar">👨‍⚕️</span>
             <div>
-              <h4>{{ doc.fullName || 'Doctor ' + doc.licenseNumber }}</h4>
-              <span class="specialty-badge">{{ doc.specialtyName || 'Medical Specialist' }}</span>
-              <p class="license">Lic: {{ doc.licenseNumber }}</p>
+              <h4>{{ doc.fullName || (translation.isArabic() ? 'طبيب ' + doc.licenseNumber : 'Doctor ' + doc.licenseNumber) }}</h4>
+              <span class="specialty-badge">{{ doc.specialtyName || (translation.isArabic() ? 'أخصائي طبي' : 'Medical Specialist') }}</span>
+              <p class="license">{{ translation.isArabic() ? 'ترخيص: ' : 'Lic: ' }}{{ doc.licenseNumber }}</p>
             </div>
           </div>
           <p class="bio">{{ doc.bio }}</p>
@@ -858,9 +908,9 @@
             <p class="bio arabic-text">{{ doc.bioAr }}</p>
           }
           <div class="meta-row">
-            <span>Duration: <strong>{{ doc.defaultSlotDurationMinutes }} mins</strong></span>
-            <span>Fee: <strong>{{ (doc.doctorClinics.length > 0 && doc.doctorClinics[0].consultationFee) ? doc.doctorClinics[0].consultationFee + ' EGP' : 'Standard' }}</strong></span>
-            <span>Branches: <strong>{{ doc.doctorClinics.length }}</strong></span>
+            <span>{{ translation.isArabic() ? 'المدة: ' : 'Duration: ' }}<strong>{{ doc.defaultSlotDurationMinutes }} {{ translation.isArabic() ? 'دقيقة' : 'mins' }}</strong></span>
+            <span>{{ translation.isArabic() ? 'الكشف: ' : 'Fee: ' }}<strong>{{ (doc.doctorClinics.length > 0 && doc.doctorClinics[0].consultationFee) ? doc.doctorClinics[0].consultationFee + ' ' + (translation.isArabic() ? 'ج.م' : 'EGP') : (translation.isArabic() ? 'افتراضي' : 'Standard') }}</strong></span>
+            <span>{{ translation.isArabic() ? 'الفروع: ' : 'Branches: ' }}<strong>{{ doc.doctorClinics.length }}</strong></span>
           </div>
         </div>
       }
@@ -871,11 +921,11 @@
   @if (activeTab() === 'clinics') {
     <div class="tab-header">
       <div>
-        <h3>Clinic Locations & Facilities</h3>
-        <p class="text-muted m-0">View and update branch addresses, working contacts, and operational status.</p>
+        <h3>{{ translation.isArabic() ? 'فروع العيادات والمراكز الطبية' : 'Clinic Locations & Facilities' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'عرض وتحديث بيانات الفروع وعناوينها وأرقام التواصل وحالة العمل.' : 'View and update branch addresses, working contacts, and operational status.' }}</p>
       </div>
       @if (auth.isAdmin()) {
-        <button (click)="openClinicModal()" class="btn btn-primary btn-sm">+ Add Clinic Branch</button>
+        <button (click)="openClinicModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إضافة فرع عيادة' : 'Add Clinic Branch' }}</button>
       }
     </div>
 
@@ -885,29 +935,26 @@
           <div class="d-flex justify-content-between align-items-start">
             <div class="card-icon">🏥</div>
             @if (c.id === assignedClinicId()) {
-              <span class="badge badge-confirmed">Your Assigned Branch</span>
+              <span class="badge badge-confirmed">{{ translation.isArabic() ? 'فرعك المعين' : 'Your Assigned Branch' }}</span>
             } @else {
               <span class="badge" [class.badge-confirmed]="c.isActive" [class.badge-cancelled]="!c.isActive">
-                {{ c.isActive ? 'Active' : 'Inactive' }}
+                {{ c.isActive ? (translation.isArabic() ? 'نشط' : 'Active') : (translation.isArabic() ? 'مغلق' : 'Inactive') }}
               </span>
             }
           </div>
 
-          <h4>{{ c.name }}</h4>
-          @if (c.nameAr) {
+          <h4>{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</h4>
+          @if (!translation.isArabic() && c.nameAr) {
             <p class="arabic-text">{{ c.nameAr }}</p>
           }
           <div class="clinic-details">
-            <p>📍 {{ c.address }}, {{ c.city }}</p>
-            @if (c.addressAr) {
-              <p class="arabic-text">📍 {{ c.addressAr }}، {{ c.cityAr }}</p>
-            }
+            <p>📍 {{ translation.isArabic() && c.addressAr ? c.addressAr : c.address }}، {{ translation.isArabic() && c.cityAr ? c.cityAr : c.city }}</p>
             <p>📞 {{ c.phoneNumber }}</p>
           </div>
 
           <div class="card-actions mt-3">
             <button (click)="openEditClinicModal(c)" class="btn btn-outline btn-sm w-100">
-              ✏️ Edit Branch Details
+              ✏️ {{ translation.isArabic() ? 'تعديل بيانات الفرع' : 'Edit Branch Details' }}
             </button>
           </div>
         </div>
@@ -919,25 +966,22 @@
   @if (activeTab() === 'specialties') {
     <div class="tab-header">
       <div>
-        <h3>Bilingual Medical Specialties</h3>
-        <p class="text-muted m-0">Specialized departments across all healthcare facilities.</p>
+        <h3>{{ translation.isArabic() ? 'التخصصات الطبية والأقسام' : 'Bilingual Medical Specialties' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'الأقسام والخدمات التخصصية المتوفرة عبر كافة الفروع والمرافق.' : 'Specialized departments across all healthcare facilities.' }}</p>
       </div>
-      <button (click)="openSpecialtyModal()" class="btn btn-primary btn-sm">+ Add Specialty</button>
+      <button (click)="openSpecialtyModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إضافة تخصص' : 'Add Specialty' }}</button>
     </div>
 
     <div class="grid-3 mt-3">
       @for (sp of specialties(); track sp.id) {
         <div class="card specialty-card-admin">
           <div class="spec-header">
-            <h4>{{ sp.name }}</h4>
-            @if (sp.nameAr) {
+            <h4>{{ translation.isArabic() && sp.nameAr ? sp.nameAr : sp.name }}</h4>
+            @if (sp.nameAr && !translation.isArabic()) {
               <span class="arabic-badge">{{ sp.nameAr }}</span>
             }
           </div>
-          <p class="desc">{{ sp.description }}</p>
-          @if (sp.descriptionAr) {
-            <p class="desc arabic-text">{{ sp.descriptionAr }}</p>
-          }
+          <p class="desc">{{ translation.isArabic() && sp.descriptionAr ? sp.descriptionAr : sp.description }}</p>
         </div>
       }
     </div>
@@ -948,37 +992,37 @@
     <div class="card">
       <div class="card-header-actions">
         <div>
-          <h3>👥 Staff Accounts & Permissions Management</h3>
-          <p class="text-muted">Configure clinic personnel, assign roles (Receptionist, Nurse, Accountant, Doctor), and grant granular screen and function permissions.</p>
+          <h3>👥 {{ translation.isArabic() ? 'إدارة حسابات وصلاحيات موظفي العيادة' : 'Staff Accounts & Permissions Management' }}</h3>
+          <p class="text-muted">{{ translation.isArabic() ? 'إعداد موظفي العيادة وتحديد الأدوار (استقبال، تمريض، كاشير، أطباء) وتخصيص صلاحيات الشاشات والوظائف.' : 'Configure clinic personnel, assign roles (Receptionist, Nurse, Accountant, Doctor), and grant granular screen and function permissions.' }}</p>
         </div>
         <button (click)="openCreateStaffModal()" class="btn btn-primary">
-          ➕ + Add Staff Member
+          ➕ + {{ translation.isArabic() ? 'إضافة موظف جديد' : 'Add Staff Member' }}
         </button>
       </div>
 
       <!-- Filters -->
       <div class="filter-bar mt-3">
         <div class="filter-group">
-          <label class="form-label">Search Staff</label>
+          <label class="form-label">{{ translation.isArabic() ? 'بحث عن موظف' : 'Search Staff' }}</label>
           <input
             type="text"
             [(ngModel)]="filterStaffSearch"
-            placeholder="Search by name, email, clinic..."
+            [placeholder]="translation.isArabic() ? 'بحث بالاسم، البريد، أو الفرع...' : 'Search by name, email, clinic...'"
             class="form-control"
           />
         </div>
 
         <div class="filter-group">
-          <label class="form-label">Filter by Role</label>
+          <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب الدور' : 'Filter by Role' }}</label>
           <select [(ngModel)]="filterStaffRole" class="form-control">
-            <option value="">All Staff Roles</option>
-            <option value="Admin">Admin</option>
-            <option value="ClinicAdmin">Clinic Admin</option>
-            <option value="Doctor">Doctor</option>
-            <option value="Receptionist">Receptionist</option>
-            <option value="Nurse">Nurse</option>
-            <option value="Accountant">Accountant / Cashier</option>
-            <option value="Staff">General Staff</option>
+            <option value="">{{ translation.isArabic() ? 'كافة الأدوار الوظيفية' : 'All Staff Roles' }}</option>
+            <option value="Admin">{{ translation.isArabic() ? 'مدير عام النظام (Admin)' : 'Admin' }}</option>
+            <option value="ClinicAdmin">{{ translation.isArabic() ? 'مدير فرع عيادة (Clinic Admin)' : 'Clinic Admin' }}</option>
+            <option value="Doctor">{{ translation.isArabic() ? 'طبيب (Doctor)' : 'Doctor' }}</option>
+            <option value="Receptionist">{{ translation.isArabic() ? 'موظف استقبال (Receptionist)' : 'Receptionist' }}</option>
+            <option value="Nurse">{{ translation.isArabic() ? 'تمريض (Nurse)' : 'Nurse' }}</option>
+            <option value="Accountant">{{ translation.isArabic() ? 'محاسب / كاشير (Accountant)' : 'Accountant / Cashier' }}</option>
+            <option value="Staff">{{ translation.isArabic() ? 'موظف عام (Staff)' : 'General Staff' }}</option>
           </select>
         </div>
       </div>
@@ -988,12 +1032,12 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Staff Member</th>
-              <th>Role</th>
-              <th>Assigned Clinic</th>
-              <th>Permissions</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>{{ translation.isArabic() ? 'الموظف' : 'Staff Member' }}</th>
+              <th>{{ translation.isArabic() ? 'الدور الوظيفي' : 'Role' }}</th>
+              <th>{{ translation.isArabic() ? 'الفرع المعين' : 'Assigned Clinic' }}</th>
+              <th>{{ translation.isArabic() ? 'الصلاحيات' : 'Permissions' }}</th>
+              <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+              <th>{{ translation.isArabic() ? 'إجراءات' : 'Actions' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -1012,25 +1056,25 @@
                   @if (staff.clinicName) {
                     <span>🏥 {{ staff.clinicName }}</span>
                   } @else {
-                    <span class="text-muted">All Branches / Global</span>
+                    <span class="text-muted">{{ translation.isArabic() ? 'كافة الفروع / عام' : 'All Branches / Global' }}</span>
                   }
                 </td>
                 <td>
-                  <span class="badge badge-scheduled" (click)="openEditStaffModal(staff)" style="cursor: pointer;" title="Click to view/edit permissions">
-                    🔑 {{ staff.permissions.length }} permissions granted
+                  <span class="badge badge-scheduled" (click)="openEditStaffModal(staff)" style="cursor: pointer;" title="{{ translation.isArabic() ? 'اضغط لعرض وتعديل الصلاحيات' : 'Click to view/edit permissions' }}">
+                    🔑 {{ staff.permissions.length }} {{ translation.isArabic() ? 'صلاحية مفعلة' : 'permissions granted' }}
                   </span>
                 </td>
                 <td>
                   @if (staff.isActive) {
-                    <span class="badge badge-confirmed">Active</span>
+                    <span class="badge badge-confirmed">{{ translation.isArabic() ? 'نشط' : 'Active' }}</span>
                   } @else {
-                    <span class="badge badge-cancelled">Suspended</span>
+                    <span class="badge badge-cancelled">{{ translation.isArabic() ? 'موقوف' : 'Suspended' }}</span>
                   }
                 </td>
                 <td>
                   <div class="action-buttons">
                     <button (click)="openEditStaffModal(staff)" class="btn btn-outline btn-xs">
-                      ⚙️ Manage Permissions
+                      ⚙️ {{ translation.isArabic() ? 'إدارة الصلاحيات' : 'Manage Permissions' }}
                     </button>
                     <button
                       (click)="toggleStaffStatus(staff)"
@@ -1038,7 +1082,7 @@
                       [class.btn-danger]="staff.isActive"
                       [class.btn-success]="!staff.isActive"
                     >
-                      {{ staff.isActive ? 'Deactivate' : 'Activate' }}
+                      {{ staff.isActive ? (translation.isArabic() ? 'تجميد' : 'Deactivate') : (translation.isArabic() ? 'تفعيل' : 'Activate') }}
                     </button>
                   </div>
                 </td>
@@ -1046,7 +1090,7 @@
             } @empty {
               <tr>
                 <td colspan="6" class="text-center text-muted py-4">
-                  No staff members match the selected criteria.
+                  {{ translation.isArabic() ? 'لا يوجد موظفون يطابقون معايير البحث المحددة.' : 'No staff members match the selected criteria.' }}
                 </td>
               </tr>
             }
@@ -1062,11 +1106,11 @@
   @if (isHistoryModalOpen) {
     <div class="modal-backdrop">
       <div class="card modal-card">
-        <h3>✏️ Edit Patient Medical Background</h3>
-        <p class="text-muted">Update blood group, drug/food allergies, and chronic medical illnesses.</p>
+        <h3>✏️ {{ translation.isArabic() ? 'تعديل السجل الطبي للمريض' : 'Edit Patient Medical Background' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'تحديث فصيلة الدم، حساسية الأدوية والأغذية، والأمراض المزمنة.' : 'Update blood group, drug/food allergies, and chronic medical illnesses.' }}</p>
 
         <div class="form-group mt-3">
-          <label class="form-label">Blood Group</label>
+          <label class="form-label">{{ translation.isArabic() ? 'فصيلة الدم' : 'Blood Group' }}</label>
           <select [(ngModel)]="historyBloodGroup" class="form-select">
             <option value="A+">A+</option>
             <option value="A-">A-</option>
@@ -1080,23 +1124,33 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Known Allergies (حساسية الأدوية والأطعمة)</label>
-          <input type="text" [(ngModel)]="historyAllergies" class="form-control" placeholder="e.g. Penicillin, NSAIDs, Peanuts..." />
+          <label class="form-label">{{ translation.isArabic() ? 'حساسية الأدوية والأغذية (Allergies)' : 'Known Allergies (حساسية الأدوية والأطعمة)' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="historyAllergies"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'مثال: بنسلين، مسكنات، مكسرات...' : 'e.g. Penicillin, NSAIDs, Peanuts...'"
+          />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Chronic Conditions (الأمراض المزمنة)</label>
-          <input type="text" [(ngModel)]="historyChronic" class="form-control" placeholder="e.g. Hypertension, Type 2 Diabetes, Asthma..." />
+          <label class="form-label">{{ translation.isArabic() ? 'الأمراض المزمنة (Chronic Conditions)' : 'Chronic Conditions (الأمراض المزمنة)' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="historyChronic"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'مثال: ضغط دم، سكري نوع 2، ربو...' : 'e.g. Hypertension, Type 2 Diabetes, Asthma...'"
+          />
         </div>
 
         <div class="form-group">
-          <label class="form-label">General Clinical Notes</label>
+          <label class="form-label">{{ translation.isArabic() ? 'ملاحظات سريرية عامة' : 'General Clinical Notes' }}</label>
           <textarea [(ngModel)]="historyNotes" rows="2" class="form-control"></textarea>
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeHistoryModal()" class="btn btn-outline">Cancel</button>
-          <button (click)="submitMedicalHistory()" class="btn btn-primary">Save Medical History</button>
+          <button (click)="closeHistoryModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitMedicalHistory()" class="btn btn-primary">{{ translation.isArabic() ? 'حفظ السجل الطبي' : 'Save Medical History' }}</button>
         </div>
       </div>
     </div>
@@ -1106,11 +1160,11 @@
   @if (isInvoiceModalOpen) {
     <div class="modal-backdrop">
       <div class="card modal-card">
-        <h3>💳 Issue Clinic Invoice</h3>
-        <p class="text-muted">Generate a billing invoice for patient consultation, lab test, or procedure.</p>
+        <h3>💳 {{ translation.isArabic() ? 'إصدار فاتورة عيادة' : 'Issue Clinic Invoice' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'إنشاء فاتورة خدمات طبية لكشف أو تحاليل أو إجراءات علاجية.' : 'Generate a billing invoice for patient consultation, lab test, or procedure.' }}</p>
 
         <div class="form-group mt-3">
-          <label class="form-label">Patient *</label>
+          <label class="form-label">{{ translation.isArabic() ? 'المريض *' : 'Patient *' }}</label>
           <select [(ngModel)]="invPatientId" class="form-select">
             @for (a of appointments(); track a.id) {
               <option [value]="a.patientId">{{ a.patientName || a.patientId.slice(0, 8) }}</option>
@@ -1119,24 +1173,43 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Payment Method</label>
+          <label class="form-label">{{ translation.isArabic() ? 'طريقة السداد' : 'Payment Method' }}</label>
           <select [(ngModel)]="invMethod" class="form-select">
-            <option [value]="1">💵 Cash (نقدي)</option>
-            <option [value]="2">💳 Credit / Debit Card (بطاقة بنكية)</option>
-            <option [value]="3">🛡️ Health Insurance (تأمين صحي)</option>
+            <option [value]="1">💵 {{ translation.isArabic() ? 'نقدي (Cash)' : 'Cash (نقدي)' }}</option>
+            <option [value]="2">💳 {{ translation.isArabic() ? 'بطاقة بنكية (Credit/Debit Card)' : 'Credit / Debit Card (بطاقة بنكية)' }}</option>
+            <option [value]="3">🛡️ {{ translation.isArabic() ? 'تأمين صحي (Insurance)' : 'Health Insurance (تأمين صحي)' }}</option>
           </select>
         </div>
 
         <div class="items-box mt-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong>Itemized Services:</strong>
-            <button (click)="addInvoiceItemRow()" class="btn btn-outline btn-sm">+ Add Line Item</button>
+            <strong>{{ translation.isArabic() ? 'بنود الخدمات الطبية:' : 'Itemized Services:' }}</strong>
+            <button (click)="addInvoiceItemRow()" class="btn btn-outline btn-sm">+ {{ translation.isArabic() ? 'إضافة بند' : 'Add Line Item' }}</button>
           </div>
           @for (it of invItems; track $index) {
             <div class="d-flex gap-2 mb-2 align-items-center">
-              <input type="text" [(ngModel)]="it.description" placeholder="Service description" class="form-control flex-grow-1" />
-              <input type="number" [(ngModel)]="it.quantity" placeholder="Qty" class="form-control" style="width: 70px;" min="1" />
-              <input type="number" [(ngModel)]="it.unitPrice" placeholder="Price" class="form-control" style="width: 100px;" min="0" />
+              <input
+                type="text"
+                [(ngModel)]="it.description"
+                [placeholder]="translation.isArabic() ? 'وصف الخدمة (مثال: كشف استشاري)' : 'Service description'"
+                class="form-control flex-grow-1"
+              />
+              <input
+                type="number"
+                [(ngModel)]="it.quantity"
+                [placeholder]="translation.isArabic() ? 'العدد' : 'Qty'"
+                class="form-control"
+                style="width: 70px;"
+                min="1"
+              />
+              <input
+                type="number"
+                [(ngModel)]="it.unitPrice"
+                [placeholder]="translation.isArabic() ? 'السعر' : 'Price'"
+                class="form-control"
+                style="width: 100px;"
+                min="0"
+              />
               @if (invItems.length > 1) {
                 <button (click)="removeInvoiceItemRow($index)" class="btn btn-outline btn-sm text-danger">✕</button>
               }
@@ -1145,9 +1218,9 @@
         </div>
 
         <div class="modal-actions mt-4">
-          <button (click)="closeInvoiceModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="closeInvoiceModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button (click)="submitInvoice()" [disabled]="!invPatientId || invItems.length === 0" class="btn btn-primary">
-            Generate Invoice
+            {{ translation.isArabic() ? 'توليد الفاتورة' : 'Generate Invoice' }}
           </button>
         </div>
       </div>
@@ -1158,45 +1231,45 @@
   @if (isDoctorModalOpen) {
     <div class="modal-backdrop">
       <div class="card modal-card modal-lg">
-        <h3>👨‍⚕️ Register New Medical Doctor</h3>
-        <p class="text-muted">Create the physician's login credentials, specialty, clinic assignment, and initial shift.</p>
+        <h3>👨‍⚕️ {{ translation.isArabic() ? 'تسجيل طبيب معالج جديد' : 'Register New Medical Doctor' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'إنشاء بيانات حساب الطبيب، تخصصه، الفرع المعين به، ومناوبته الأولى.' : 'Create the physician\'s login credentials, specialty, clinic assignment, and initial shift.' }}</p>
 
         <div class="grid-2 mt-3">
           <div class="form-group">
-            <label class="form-label">First Name *</label>
-            <input type="text" [(ngModel)]="docFirstName" class="form-control" placeholder="e.g. Sarah" />
+            <label class="form-label">{{ translation.isArabic() ? 'الاسم الأول *' : 'First Name *' }}</label>
+            <input type="text" [(ngModel)]="docFirstName" class="form-control" [placeholder]="translation.isArabic() ? 'مثال: سارة' : 'e.g. Sarah'" />
           </div>
           <div class="form-group">
-            <label class="form-label">Last Name *</label>
-            <input type="text" [(ngModel)]="docLastName" class="form-control" placeholder="e.g. Johnson" />
+            <label class="form-label">{{ translation.isArabic() ? 'اسم العائلة *' : 'Last Name *' }}</label>
+            <input type="text" [(ngModel)]="docLastName" class="form-control" [placeholder]="translation.isArabic() ? 'مثال: محمود' : 'e.g. Johnson'" />
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Login Email *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'البريد الإلكتروني للدخول *' : 'Login Email *' }}</label>
             <input type="email" [(ngModel)]="docEmail" class="form-control" placeholder="dr.johnson@clinic.com" />
           </div>
           <div class="form-group">
-            <label class="form-label">Initial Password *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'كلمة المرور الأولية *' : 'Initial Password *' }}</label>
             <input type="password" [(ngModel)]="docPassword" class="form-control" placeholder="••••••••" />
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Medical Specialty *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'التخصص الطبي *' : 'Medical Specialty *' }}</label>
             <select [(ngModel)]="docSpecialtyId" class="form-select">
               @for (sp of specialties(); track sp.id) {
-                <option [value]="sp.id">{{ sp.name }} ({{ sp.nameAr || '' }})</option>
+                <option [value]="sp.id">{{ translation.isArabic() && sp.nameAr ? sp.nameAr : sp.name }}</option>
               }
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Assigned Clinic Branch *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'الفرع المعين به الطبيب *' : 'Assigned Clinic Branch *' }}</label>
             <select [(ngModel)]="docClinicId" [disabled]="!!assignedClinicId()" class="form-select">
               @for (c of clinics(); track c.id) {
-                <option [value]="c.id">{{ c.name }} ({{ c.city }})</option>
+                <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }} ({{ translation.isArabic() && c.cityAr ? c.cityAr : c.city }})</option>
               }
             </select>
           </div>
@@ -1204,69 +1277,69 @@
 
         <div class="grid-3">
           <div class="form-group">
-            <label class="form-label">Medical License Number *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'رقم ترخيص مزاولة المهنة *' : 'Medical License Number *' }}</label>
             <input type="text" [(ngModel)]="docLicenseNumber" class="form-control" placeholder="EGY-MED-..." />
           </div>
           <div class="form-group">
-            <label class="form-label">Consultation Fee (EGP) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'سعر الكشف (ج.م) *' : 'Consultation Fee (EGP) *' }}</label>
             <input type="number" [(ngModel)]="docConsultationFee" class="form-control" min="0" step="50" />
           </div>
           <div class="form-group">
-            <label class="form-label">Slot Duration (Mins) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'مدة الكشف (بالدقائق) *' : 'Slot Duration (Mins) *' }}</label>
             <select [(ngModel)]="docSlotDuration" class="form-select">
-              <option [value]="15">15 minutes</option>
-              <option [value]="20">20 minutes</option>
-              <option [value]="30">30 minutes</option>
-              <option [value]="45">45 minutes</option>
-              <option [value]="60">60 minutes</option>
+              <option [value]="15">15 {{ translation.isArabic() ? 'دقيقة' : 'minutes' }}</option>
+              <option [value]="20">20 {{ translation.isArabic() ? 'دقيقة' : 'minutes' }}</option>
+              <option [value]="30">30 {{ translation.isArabic() ? 'دقيقة' : 'minutes' }}</option>
+              <option [value]="45">45 {{ translation.isArabic() ? 'دقيقة' : 'minutes' }}</option>
+              <option [value]="60">60 {{ translation.isArabic() ? 'دقيقة' : 'minutes' }}</option>
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Doctor Biography (English)</label>
-          <input type="text" [(ngModel)]="docBioEn" class="form-control" placeholder="Summary of expertise..." />
+          <label class="form-label">{{ translation.isArabic() ? 'نبذة عن الطبيب (بالإنجليزية)' : 'Doctor Biography (English)' }}</label>
+          <input type="text" [(ngModel)]="docBioEn" class="form-control" [placeholder]="translation.isArabic() ? 'ملخص الخبرات...' : 'Summary of expertise...'" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Doctor Biography (Arabic)</label>
+          <label class="form-label">{{ translation.isArabic() ? 'نبذة عن الطبيب (بالعربية)' : 'Doctor Biography (Arabic)' }}</label>
           <input type="text" [(ngModel)]="docBioAr" class="form-control" placeholder="نبذة عن الطبيب والتخصص باللغة العربية..." />
         </div>
 
         <div class="shift-box p-3 bg-light rounded mt-2">
-          <strong>📅 Initial Working Hours Shift:</strong>
+          <strong>📅 {{ translation.isArabic() ? 'مناوبة العمل الأولى للطبيب:' : 'Initial Working Hours Shift:' }}</strong>
           <div class="grid-3 mt-2">
             <div class="form-group mb-0">
-              <label class="form-label">Day of Week</label>
+              <label class="form-label">{{ translation.isArabic() ? 'يوم المناوبة' : 'Day of Week' }}</label>
               <select [(ngModel)]="docInitialShiftDay" class="form-select">
-                <option [value]="0">Sunday (الأحد)</option>
-                <option [value]="1">Monday (الإثنين)</option>
-                <option [value]="2">Tuesday (الثلاثاء)</option>
-                <option [value]="3">Wednesday (الأربعاء)</option>
-                <option [value]="4">Thursday (الخميس)</option>
-                <option [value]="5">Friday (الجمعة)</option>
-                <option [value]="6">Saturday (السبت)</option>
+                <option [value]="0">{{ translation.isArabic() ? 'الأحد' : 'Sunday (الأحد)' }}</option>
+                <option [value]="1">{{ translation.isArabic() ? 'الإثنين' : 'Monday (الإثنين)' }}</option>
+                <option [value]="2">{{ translation.isArabic() ? 'الثلاثاء' : 'Tuesday (الثلاثاء)' }}</option>
+                <option [value]="3">{{ translation.isArabic() ? 'الأربعاء' : 'Wednesday (الأربعاء)' }}</option>
+                <option [value]="4">{{ translation.isArabic() ? 'الخميس' : 'Thursday (الخميس)' }}</option>
+                <option [value]="5">{{ translation.isArabic() ? 'الجمعة' : 'Friday (الجمعة)' }}</option>
+                <option [value]="6">{{ translation.isArabic() ? 'السبت' : 'Saturday (السبت)' }}</option>
               </select>
             </div>
             <div class="form-group mb-0">
-              <label class="form-label">Shift Start Time</label>
+              <label class="form-label">{{ translation.isArabic() ? 'بداية المناوبة' : 'Shift Start Time' }}</label>
               <input type="text" [(ngModel)]="docInitialShiftStart" class="form-control" placeholder="09:00:00" />
             </div>
             <div class="form-group mb-0">
-              <label class="form-label">Shift End Time</label>
+              <label class="form-label">{{ translation.isArabic() ? 'نهاية المناوبة' : 'Shift End Time' }}</label>
               <input type="text" [(ngModel)]="docInitialShiftEnd" class="form-control" placeholder="17:00:00" />
             </div>
           </div>
         </div>
 
         <div class="modal-actions mt-4">
-          <button (click)="closeDoctorModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="closeDoctorModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button
             (click)="submitDoctor()"
             [disabled]="!docFirstName || !docLastName || !docEmail || !docSpecialtyId || !docLicenseNumber"
             class="btn btn-primary"
           >
-            Create & Register Doctor
+            {{ translation.isArabic() ? 'تسجيل وإنشاء حساب الطبيب' : 'Create & Register Doctor' }}
           </button>
         </div>
       </div>
@@ -1277,62 +1350,62 @@
   @if (isEditClinicModalOpen) {
     <div class="modal-backdrop">
       <div class="card modal-card">
-        <h3>✏️ Edit Clinic Branch</h3>
-        <p class="text-muted">Update operational contact information and address for this location.</p>
+        <h3>✏️ {{ translation.isArabic() ? 'تعديل بيانات فرع العيادة' : 'Edit Clinic Branch' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'تحديث أرقام التواصل وعنوان الفرع وحالة التشغيل.' : 'Update operational contact information and address for this location.' }}</p>
 
         <div class="grid-2 mt-3">
           <div class="form-group">
-            <label class="form-label">Branch Name (English) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'اسم الفرع (بالإنجليزية) *' : 'Branch Name (English) *' }}</label>
             <input type="text" [(ngModel)]="editClinicNameEn" class="form-control" />
           </div>
           <div class="form-group">
-            <label class="form-label">Branch Name (Arabic)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'اسم الفرع (بالعربية)' : 'Branch Name (Arabic)' }}</label>
             <input type="text" [(ngModel)]="editClinicNameAr" class="form-control" />
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">City (English) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'المدينة (بالإنجليزية) *' : 'City (English) *' }}</label>
             <input type="text" [(ngModel)]="editClinicCityEn" class="form-control" />
           </div>
           <div class="form-group">
-            <label class="form-label">City (Arabic)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'المدينة (بالعربية)' : 'City (Arabic)' }}</label>
             <input type="text" [(ngModel)]="editClinicCityAr" class="form-control" />
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Street Address (English) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'العنوان والشارع (بالإنجليزية) *' : 'Street Address (English) *' }}</label>
             <input type="text" [(ngModel)]="editClinicAddressEn" class="form-control" />
           </div>
           <div class="form-group">
-            <label class="form-label">Street Address (Arabic)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'العنوان والشارع (بالعربية)' : 'Street Address (Arabic)' }}</label>
             <input type="text" [(ngModel)]="editClinicAddressAr" class="form-control" />
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Phone Number *</label>
+          <label class="form-label">{{ translation.isArabic() ? 'رقم الهاتف *' : 'Phone Number *' }}</label>
           <input type="tel" [(ngModel)]="editClinicPhone" class="form-control" />
         </div>
 
         <div class="form-group">
           <label class="d-flex align-items-center gap-2">
             <input type="checkbox" [(ngModel)]="editClinicIsActive" />
-            <span>Branch is open and active for consultations</span>
+            <span>{{ translation.isArabic() ? 'الفرع مفتوح ونشط لاستقبال الحجوزات والكشوفات' : 'Branch is open and active for consultations' }}</span>
           </label>
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeEditClinicModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="closeEditClinicModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button
             (click)="submitEditClinic()"
             [disabled]="!editClinicNameEn || !editClinicCityEn || !editClinicAddressEn"
             class="btn btn-primary"
           >
-            Save Changes
+            {{ translation.isArabic() ? 'حفظ التعديلات' : 'Save Changes' }}
           </button>
         </div>
       </div>
@@ -1343,55 +1416,55 @@
   @if (isClinicModalOpen) {
     <div class="modal-backdrop">
       <div class="card modal-card">
-        <h3>Create New Clinic Branch</h3>
-        <p class="text-muted">Register a clinical facility for patient consultations.</p>
+        <h3>{{ translation.isArabic() ? 'إضافة فرع عيادة جديد' : 'Create New Clinic Branch' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'تسجيل مرفق طبي جديد لاستقبال المرضى والكشوفات.' : 'Register a clinical facility for patient consultations.' }}</p>
 
         <div class="grid-2 mt-3">
           <div class="form-group">
-            <label class="form-label">Clinic Name (English) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'اسم الفرع (بالإنجليزية) *' : 'Clinic Name (English) *' }}</label>
             <input type="text" [(ngModel)]="clinicNameEn" class="form-control" placeholder="e.g. Apex West Clinic" />
           </div>
           <div class="form-group">
-            <label class="form-label">Clinic Name (Arabic)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'اسم الفرع (بالعربية)' : 'Clinic Name (Arabic)' }}</label>
             <input type="text" [(ngModel)]="clinicNameAr" class="form-control" placeholder="مثال: عيادة أبيكس الغربية" />
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">City (English) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'المدينة (بالإنجليزية) *' : 'City (English) *' }}</label>
             <input type="text" [(ngModel)]="clinicCityEn" class="form-control" />
           </div>
           <div class="form-group">
-            <label class="form-label">City (Arabic)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'المدينة (بالعربية)' : 'City (Arabic)' }}</label>
             <input type="text" [(ngModel)]="clinicCityAr" class="form-control" />
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Street Address (English) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'العنوان والشارع (بالإنجليزية) *' : 'Street Address (English) *' }}</label>
             <input type="text" [(ngModel)]="clinicAddressEn" class="form-control" />
           </div>
           <div class="form-group">
-            <label class="form-label">Street Address (Arabic)</label>
+            <label class="form-label">{{ translation.isArabic() ? 'العنوان والشارع (بالعربية)' : 'Street Address (Arabic)' }}</label>
             <input type="text" [(ngModel)]="clinicAddressAr" class="form-control" />
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Phone Number *</label>
+          <label class="form-label">{{ translation.isArabic() ? 'رقم الهاتف *' : 'Phone Number *' }}</label>
           <input type="tel" [(ngModel)]="clinicPhone" class="form-control" />
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeClinicModal()" class="btn btn-outline">Cancel</button>
+          <button (click)="closeClinicModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button
             (click)="submitClinic()"
             [disabled]="!clinicNameEn || !clinicCityEn || !clinicAddressEn"
             class="btn btn-primary"
           >
-            Create Branch
+            {{ translation.isArabic() ? 'إنشاء الفرع' : 'Create Branch' }}
           </button>
         </div>
       </div>
@@ -1402,32 +1475,32 @@
   @if (isSpecialtyModalOpen) {
     <div class="modal-backdrop">
       <div class="card modal-card">
-        <h3>Add New Medical Specialty</h3>
-        <p class="text-muted">Register a bilingual department available across all clinic branches.</p>
+        <h3>{{ translation.isArabic() ? 'إضافة تخصص طبي جديد' : 'Add New Medical Specialty' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'تسجيل تخصص طبي ثنائي اللغة متاح عبر كافة الفروع والمرافق.' : 'Register a bilingual department available across all clinic branches.' }}</p>
 
         <div class="form-group mt-3">
-          <label class="form-label">Specialty Name (English) *</label>
+          <label class="form-label">{{ translation.isArabic() ? 'اسم التخصص (بالإنجليزية) *' : 'Specialty Name (English) *' }}</label>
           <input type="text" [(ngModel)]="specialtyNameEn" class="form-control" placeholder="e.g. Pulmonology" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Specialty Name (Arabic)</label>
+          <label class="form-label">{{ translation.isArabic() ? 'اسم التخصص (بالعربية)' : 'Specialty Name (Arabic)' }}</label>
           <input type="text" [(ngModel)]="specialtyNameAr" class="form-control" placeholder="مثال: أمراض الصدر والجهاز التنفسي" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Description (English)</label>
+          <label class="form-label">{{ translation.isArabic() ? 'الوصف (بالإنجليزية)' : 'Description (English)' }}</label>
           <input type="text" [(ngModel)]="specialtyDescEn" class="form-control" placeholder="Respiratory system care" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Description (Arabic)</label>
+          <label class="form-label">{{ translation.isArabic() ? 'الوصف (بالعربية)' : 'Description (Arabic)' }}</label>
           <input type="text" [(ngModel)]="specialtyDescAr" class="form-control" placeholder="تشخيص وعلاج أمراض الرئتين" />
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeSpecialtyModal()" class="btn btn-outline">Cancel</button>
-          <button (click)="submitSpecialty()" [disabled]="!specialtyNameEn" class="btn btn-primary">Save Specialty</button>
+          <button (click)="closeSpecialtyModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitSpecialty()" [disabled]="!specialtyNameEn" class="btn btn-primary">{{ translation.isArabic() ? 'حفظ التخصص' : 'Save Specialty' }}</button>
         </div>
       </div>
     </div>
@@ -1437,17 +1510,17 @@
   @if (cancelingAppointmentId) {
     <div class="modal-backdrop">
       <div class="card modal-card">
-        <h3>Admin Appointment Cancellation</h3>
-        <p class="text-muted">Cancel this booking as an administrator with an audit reason.</p>
+        <h3>{{ translation.isArabic() ? 'إلغاء الحجز بواسطة الإدارة' : 'Admin Appointment Cancellation' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'إلغاء هذا الحجز مع تدوين سبب الإلغاء في سجل التدقيق.' : 'Cancel this booking as an administrator with an audit reason.' }}</p>
 
         <div class="form-group mt-3">
-          <label class="form-label">Cancellation Reason</label>
-          <input type="text" [(ngModel)]="cancelReason" class="form-control" />
+          <label class="form-label">{{ translation.isArabic() ? 'سبب الإلغاء' : 'Cancellation Reason' }}</label>
+          <input type="text" [(ngModel)]="cancelReason" class="form-control" [placeholder]="translation.isArabic() ? 'اكتب سبب الإلغاء...' : 'Cancellation reason...'" />
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeCancelModal()" class="btn btn-outline">Dismiss</button>
-          <button (click)="confirmAdminCancel()" class="btn btn-danger">Confirm Cancellation</button>
+          <button (click)="closeCancelModal()" class="btn btn-outline">{{ translation.isArabic() ? 'تراجع' : 'Dismiss' }}</button>
+          <button (click)="confirmAdminCancel()" class="btn btn-danger">{{ translation.isArabic() ? 'تأكيد الإلغاء' : 'Confirm Cancellation' }}</button>
         </div>
       </div>
     </div>
@@ -1458,52 +1531,52 @@
     <div class="modal-backdrop">
       <div class="card modal-card modal-large">
         <div class="modal-header">
-          <h3>➕ Add New Clinic Staff Member</h3>
+          <h3>➕ {{ translation.isArabic() ? 'إضافة موظف جديد وتخصيص صلاحياته' : 'Add New Clinic Staff Member' }}</h3>
           <button (click)="closeCreateStaffModal()" class="close-btn">&times;</button>
         </div>
-        <p class="text-muted">Register a staff account, select their job role, and assign allowed screens and functional operations.</p>
+        <p class="text-muted">{{ translation.isArabic() ? 'تسجيل حساب الموظف، اختيار دوره الوظيفي، وتحديد شاشات وعمليات النظام المصرح بها.' : 'Register a staff account, select their job role, and assign allowed screens and functional operations.' }}</p>
 
         <!-- Basic Info Grid -->
         <div class="form-row-2 mt-3">
           <div class="form-group">
-            <label class="form-label">First Name *</label>
-            <input type="text" [(ngModel)]="newStaffFirstName" class="form-control" placeholder="e.g. Sarah" />
+            <label class="form-label">{{ translation.isArabic() ? 'الاسم الأول *' : 'First Name *' }}</label>
+            <input type="text" [(ngModel)]="newStaffFirstName" class="form-control" [placeholder]="translation.isArabic() ? 'مثال: سارة' : 'e.g. Sarah'" />
           </div>
           <div class="form-group">
-            <label class="form-label">Last Name *</label>
-            <input type="text" [(ngModel)]="newStaffLastName" class="form-control" placeholder="e.g. Connor" />
+            <label class="form-label">{{ translation.isArabic() ? 'اسم العائلة *' : 'Last Name *' }}</label>
+            <input type="text" [(ngModel)]="newStaffLastName" class="form-control" [placeholder]="translation.isArabic() ? 'مثال: علي' : 'e.g. Connor'" />
           </div>
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">Email Address (Login) *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'البريد الإلكتروني للدخول *' : 'Email Address (Login) *' }}</label>
             <input type="email" [(ngModel)]="newStaffEmail" class="form-control" placeholder="staff@clinic.com" />
           </div>
           <div class="form-group">
-            <label class="form-label">Initial Password *</label>
-            <input type="password" [(ngModel)]="newStaffPassword" class="form-control" placeholder="Minimum 6 characters" />
+            <label class="form-label">{{ translation.isArabic() ? 'كلمة المرور الأولية *' : 'Initial Password *' }}</label>
+            <input type="password" [(ngModel)]="newStaffPassword" class="form-control" [placeholder]="translation.isArabic() ? '6 أحرف على الأقل' : 'Minimum 6 characters'" />
           </div>
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">Staff Role *</label>
+            <label class="form-label">{{ translation.isArabic() ? 'الدور الوظيفي *' : 'Staff Role *' }}</label>
             <select [(ngModel)]="newStaffRole" (ngModelChange)="applyCreatePreset($event)" class="form-control">
-              <option value="Receptionist">Receptionist (موظف استقبال)</option>
-              <option value="Nurse">Nurse (تمريض)</option>
-              <option value="Accountant">Accountant / Cashier (محاسب / كاشير)</option>
-              <option value="Doctor">Doctor (طبيب)</option>
-              <option value="Staff">General Staff (موظف عام)</option>
-              <option value="ClinicAdmin">Clinic Admin (مدير فرع عيادة)</option>
+              <option value="Receptionist">{{ translation.isArabic() ? 'موظف استقبال (Receptionist)' : 'Receptionist (موظف استقبال)' }}</option>
+              <option value="Nurse">{{ translation.isArabic() ? 'تمريض (Nurse)' : 'Nurse (تمريض)' }}</option>
+              <option value="Accountant">{{ translation.isArabic() ? 'محاسب / كاشير (Accountant)' : 'Accountant / Cashier (محاسب / كاشير)' }}</option>
+              <option value="Doctor">{{ translation.isArabic() ? 'طبيب (Doctor)' : 'Doctor (طبيب)' }}</option>
+              <option value="Staff">{{ translation.isArabic() ? 'موظف عام (Staff)' : 'General Staff (موظف عام)' }}</option>
+              <option value="ClinicAdmin">{{ translation.isArabic() ? 'مدير فرع عيادة (Clinic Admin)' : 'Clinic Admin (مدير فرع عيادة)' }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Assigned Clinic Branch</label>
+            <label class="form-label">{{ translation.isArabic() ? 'فرع العيادة المعين له' : 'Assigned Clinic Branch' }}</label>
             <select [(ngModel)]="newStaffClinicId" class="form-control">
-              <option value="">All Branches / Global</option>
+              <option value="">{{ translation.isArabic() ? 'كافة الفروع / عام' : 'All Branches / Global' }}</option>
               @for (clinic of clinics(); track clinic.id) {
-                <option [value]="clinic.id">{{ clinic.name }}</option>
+                <option [value]="clinic.id">{{ translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name }}</option>
               }
             </select>
           </div>
@@ -1511,13 +1584,13 @@
 
         <!-- Quick Preset Buttons -->
         <div class="permission-presets-bar mt-3">
-          <span class="preset-label">⚡ Quick Role Presets:</span>
-          <button (click)="applyCreatePreset('Receptionist')" type="button" class="btn btn-outline btn-xs">👤 Receptionist Preset</button>
-          <button (click)="applyCreatePreset('Nurse')" type="button" class="btn btn-outline btn-xs">🩺 Nurse Preset</button>
-          <button (click)="applyCreatePreset('Accountant')" type="button" class="btn btn-outline btn-xs">💰 Cashier/Accountant</button>
-          <button (click)="applyCreatePreset('Doctor')" type="button" class="btn btn-outline btn-xs">👨‍⚕️ Doctor Preset</button>
-          <button (click)="selectAllCreatePermissions()" type="button" class="btn btn-outline btn-xs">✅ Select All</button>
-          <button (click)="clearAllCreatePermissions()" type="button" class="btn btn-outline btn-xs">❌ Clear All</button>
+          <span class="preset-label">⚡ {{ translation.isArabic() ? 'قوالب صلاحيات جاهزة:' : 'Quick Role Presets:' }}</span>
+          <button (click)="applyCreatePreset('Receptionist')" type="button" class="btn btn-outline btn-xs">👤 {{ translation.isArabic() ? 'استقبال' : 'Receptionist Preset' }}</button>
+          <button (click)="applyCreatePreset('Nurse')" type="button" class="btn btn-outline btn-xs">🩺 {{ translation.isArabic() ? 'تمريض' : 'Nurse Preset' }}</button>
+          <button (click)="applyCreatePreset('Accountant')" type="button" class="btn btn-outline btn-xs">💰 {{ translation.isArabic() ? 'كاشير/محاسب' : 'Cashier/Accountant' }}</button>
+          <button (click)="applyCreatePreset('Doctor')" type="button" class="btn btn-outline btn-xs">👨‍⚕️ {{ translation.isArabic() ? 'طبيب' : 'Doctor Preset' }}</button>
+          <button (click)="selectAllCreatePermissions()" type="button" class="btn btn-outline btn-xs">✅ {{ translation.isArabic() ? 'تحديد الكل' : 'Select All' }}</button>
+          <button (click)="clearAllCreatePermissions()" type="button" class="btn btn-outline btn-xs">❌ {{ translation.isArabic() ? 'إلغاء الكل' : 'Clear All' }}</button>
         </div>
 
         <!-- Permissions Matrix -->
@@ -1525,8 +1598,8 @@
           <!-- Section 1: Screens -->
           <div class="permissions-section">
             <div class="section-title-bar">
-              <h4>🖥️ Allowed Screens & Navigation (الشاشات المصرح بها)</h4>
-              <button (click)="selectAllCreatePermissions('Screens')" type="button" class="btn-link-xs">Select All Screens</button>
+              <h4>🖥️ {{ translation.isArabic() ? 'الشاشات المسموح بفتحها والتنقل إليها' : 'Allowed Screens & Navigation (الشاشات المصرح بها)' }}</h4>
+              <button (click)="selectAllCreatePermissions('Screens')" type="button" class="btn-link-xs">{{ translation.isArabic() ? 'تحديد كافة الشاشات' : 'Select All Screens' }}</button>
             </div>
             <div class="permissions-grid">
               @for (perm of screenPermissions(); track perm.key) {
@@ -1537,7 +1610,7 @@
                     (change)="toggleCreatePermission(perm.key)"
                   />
                   <div>
-                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-title">{{ translation.isArabic() ? perm.nameAr : (perm.nameEn + ' / ' + perm.nameAr) }}</div>
                     <div class="perm-desc">{{ perm.description }}</div>
                   </div>
                 </label>
@@ -1548,8 +1621,8 @@
           <!-- Section 2: Functional Actions -->
           <div class="permissions-section mt-4">
             <div class="section-title-bar">
-              <h4>⚡ Functional Actions & Operations (الصلاحيات والعمليات المصرح بها)</h4>
-              <button (click)="selectAllCreatePermissions('Functions')" type="button" class="btn-link-xs">Select All Functions</button>
+              <h4>⚡ {{ translation.isArabic() ? 'الصلاحيات والعمليات التنفيذية المصرح بها' : 'Functional Actions & Operations (الصلاحيات والعمليات المصرح بها)' }}</h4>
+              <button (click)="selectAllCreatePermissions('Functions')" type="button" class="btn-link-xs">{{ translation.isArabic() ? 'تحديد كافة العمليات' : 'Select All Functions' }}</button>
             </div>
             <div class="permissions-grid">
               @for (perm of functionPermissions(); track perm.key) {
@@ -1560,7 +1633,7 @@
                     (change)="toggleCreatePermission(perm.key)"
                   />
                   <div>
-                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-title">{{ translation.isArabic() ? perm.nameAr : (perm.nameEn + ' / ' + perm.nameAr) }}</div>
                     <div class="perm-desc">{{ perm.description }}</div>
                   </div>
                 </label>
@@ -1570,8 +1643,8 @@
         </div>
 
         <div class="modal-actions mt-4">
-          <button (click)="closeCreateStaffModal()" class="btn btn-outline">Cancel</button>
-          <button (click)="submitCreateStaff()" class="btn btn-primary">Save Staff Member</button>
+          <button (click)="closeCreateStaffModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitCreateStaff()" class="btn btn-primary">{{ translation.isArabic() ? 'حفظ بيانات وصلاحيات الموظف' : 'Save Staff Member' }}</button>
         </div>
       </div>
     </div>
@@ -1582,30 +1655,30 @@
     <div class="modal-backdrop">
       <div class="card modal-card modal-large">
         <div class="modal-header">
-          <h3>⚙️ Manage Staff Permissions: {{ editingStaffFullName }}</h3>
+          <h3>⚙️ {{ translation.isArabic() ? 'إدارة صلاحيات الموظف: ' : 'Manage Staff Permissions: ' }}{{ editingStaffFullName }}</h3>
           <button (click)="closeEditStaffModal()" class="close-btn">&times;</button>
         </div>
-        <p class="text-muted">Adjust assigned role, clinic location, and granular screen/function permissions for {{ editingStaffEmail }}.</p>
+        <p class="text-muted">{{ translation.isArabic() ? 'تعديل الدور المعين والفرع والصلاحيات الدقيقة لحساب ' + editingStaffEmail : ('Adjust assigned role, clinic location, and granular screen/function permissions for ' + editingStaffEmail) }}</p>
 
         <!-- Role & Clinic Select -->
         <div class="form-row-2 mt-3">
           <div class="form-group">
-            <label class="form-label">Role</label>
+            <label class="form-label">{{ translation.isArabic() ? 'الدور الوظيفي' : 'Role' }}</label>
             <select [(ngModel)]="editingStaffRole" class="form-control">
-              <option value="Receptionist">Receptionist (موظف استقبال)</option>
-              <option value="Nurse">Nurse (تمريض)</option>
-              <option value="Accountant">Accountant / Cashier (محاسب / كاشير)</option>
-              <option value="Doctor">Doctor (طبيب)</option>
-              <option value="Staff">General Staff (موظف عام)</option>
-              <option value="ClinicAdmin">Clinic Admin (مدير فرع عيادة)</option>
+              <option value="Receptionist">{{ translation.isArabic() ? 'موظف استقبال (Receptionist)' : 'Receptionist (موظف استقبال)' }}</option>
+              <option value="Nurse">{{ translation.isArabic() ? 'تمريض (Nurse)' : 'Nurse (تمريض)' }}</option>
+              <option value="Accountant">{{ translation.isArabic() ? 'محاسب / كاشير (Accountant)' : 'Accountant / Cashier (محاسب / كاشير)' }}</option>
+              <option value="Doctor">{{ translation.isArabic() ? 'طبيب (Doctor)' : 'Doctor (طبيب)' }}</option>
+              <option value="Staff">{{ translation.isArabic() ? 'موظف عام (Staff)' : 'General Staff (موظف عام)' }}</option>
+              <option value="ClinicAdmin">{{ translation.isArabic() ? 'مدير فرع عيادة (Clinic Admin)' : 'Clinic Admin (مدير فرع عيادة)' }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Assigned Clinic Branch</label>
+            <label class="form-label">{{ translation.isArabic() ? 'فرع العيادة المعين له' : 'Assigned Clinic Branch' }}</label>
             <select [(ngModel)]="editingStaffClinicId" class="form-control">
-              <option value="">All Branches / Global</option>
+              <option value="">{{ translation.isArabic() ? 'كافة الفروع / عام' : 'All Branches / Global' }}</option>
               @for (clinic of clinics(); track clinic.id) {
-                <option [value]="clinic.id">{{ clinic.name }}</option>
+                <option [value]="clinic.id">{{ translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name }}</option>
               }
             </select>
           </div>
@@ -1613,13 +1686,13 @@
 
         <!-- Quick Preset Buttons -->
         <div class="permission-presets-bar mt-3">
-          <span class="preset-label">⚡ Apply Preset:</span>
-          <button (click)="applyEditPreset('Receptionist')" type="button" class="btn btn-outline btn-xs">👤 Receptionist</button>
-          <button (click)="applyEditPreset('Nurse')" type="button" class="btn btn-outline btn-xs">🩺 Nurse</button>
-          <button (click)="applyEditPreset('Accountant')" type="button" class="btn btn-outline btn-xs">💰 Cashier/Accountant</button>
-          <button (click)="applyEditPreset('Doctor')" type="button" class="btn btn-outline btn-xs">👨‍⚕️ Doctor</button>
-          <button (click)="selectAllEditPermissions()" type="button" class="btn btn-outline btn-xs">✅ Select All</button>
-          <button (click)="clearAllEditPermissions()" type="button" class="btn btn-outline btn-xs">❌ Clear All</button>
+          <span class="preset-label">⚡ {{ translation.isArabic() ? 'تطبيق قالب جاهز:' : 'Apply Preset:' }}</span>
+          <button (click)="applyEditPreset('Receptionist')" type="button" class="btn btn-outline btn-xs">👤 {{ translation.isArabic() ? 'استقبال' : 'Receptionist' }}</button>
+          <button (click)="applyEditPreset('Nurse')" type="button" class="btn btn-outline btn-xs">🩺 {{ translation.isArabic() ? 'تمريض' : 'Nurse' }}</button>
+          <button (click)="applyEditPreset('Accountant')" type="button" class="btn btn-outline btn-xs">💰 {{ translation.isArabic() ? 'كاشير/محاسب' : 'Cashier/Accountant' }}</button>
+          <button (click)="applyEditPreset('Doctor')" type="button" class="btn btn-outline btn-xs">👨‍⚕️ {{ translation.isArabic() ? 'طبيب' : 'Doctor' }}</button>
+          <button (click)="selectAllEditPermissions()" type="button" class="btn btn-outline btn-xs">✅ {{ translation.isArabic() ? 'تحديد الكل' : 'Select All' }}</button>
+          <button (click)="clearAllEditPermissions()" type="button" class="btn btn-outline btn-xs">❌ {{ translation.isArabic() ? 'إلغاء الكل' : 'Clear All' }}</button>
         </div>
 
         <!-- Permissions Matrix -->
@@ -1627,8 +1700,8 @@
           <!-- Section 1: Screens -->
           <div class="permissions-section">
             <div class="section-title-bar">
-              <h4>🖥️ Allowed Screens & Navigation (الشاشات المصرح بها)</h4>
-              <button (click)="selectAllEditPermissions('Screens')" type="button" class="btn-link-xs">Select All Screens</button>
+              <h4>🖥️ {{ translation.isArabic() ? 'الشاشات المسموح بفتحها والتنقل إليها' : 'Allowed Screens & Navigation (الشاشات المصرح بها)' }}</h4>
+              <button (click)="selectAllEditPermissions('Screens')" type="button" class="btn-link-xs">{{ translation.isArabic() ? 'تحديد كافة الشاشات' : 'Select All Screens' }}</button>
             </div>
             <div class="permissions-grid">
               @for (perm of screenPermissions(); track perm.key) {
@@ -1639,7 +1712,7 @@
                     (change)="toggleEditPermission(perm.key)"
                   />
                   <div>
-                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-title">{{ translation.isArabic() ? perm.nameAr : (perm.nameEn + ' / ' + perm.nameAr) }}</div>
                     <div class="perm-desc">{{ perm.description }}</div>
                   </div>
                 </label>
@@ -1650,8 +1723,8 @@
           <!-- Section 2: Functional Actions -->
           <div class="permissions-section mt-4">
             <div class="section-title-bar">
-              <h4>⚡ Functional Actions & Operations (الصلاحيات والعمليات المصرح بها)</h4>
-              <button (click)="selectAllEditPermissions('Functions')" type="button" class="btn-link-xs">Select All Functions</button>
+              <h4>⚡ {{ translation.isArabic() ? 'الصلاحيات والعمليات التنفيذية المصرح بها' : 'Functional Actions & Operations (الصلاحيات والعمليات المصرح بها)' }}</h4>
+              <button (click)="selectAllEditPermissions('Functions')" type="button" class="btn-link-xs">{{ translation.isArabic() ? 'تحديد كافة العمليات' : 'Select All Functions' }}</button>
             </div>
             <div class="permissions-grid">
               @for (perm of functionPermissions(); track perm.key) {
@@ -1662,7 +1735,7 @@
                     (change)="toggleEditPermission(perm.key)"
                   />
                   <div>
-                    <div class="perm-title">{{ perm.nameEn }} / {{ perm.nameAr }}</div>
+                    <div class="perm-title">{{ translation.isArabic() ? perm.nameAr : (perm.nameEn + ' / ' + perm.nameAr) }}</div>
                     <div class="perm-desc">{{ perm.description }}</div>
                   </div>
                 </label>
@@ -1672,8 +1745,8 @@
         </div>
 
         <div class="modal-actions mt-4">
-          <button (click)="closeEditStaffModal()" class="btn btn-outline">Cancel</button>
-          <button (click)="submitUpdateStaffPermissions()" class="btn btn-primary">Save Changes</button>
+          <button (click)="closeEditStaffModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitUpdateStaffPermissions()" class="btn btn-primary">{{ translation.isArabic() ? 'حفظ التعديلات' : 'Save Changes' }}</button>
         </div>
       </div>
     </div>

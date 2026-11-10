@@ -10,7 +10,7 @@
     <div class="filter-grid">
       <!-- Search input -->
       <div class="form-group mb-0">
-        <label class="form-label">Search</label>
+        <label class="form-label">{{ translation.isArabic() ? 'بحث' : 'Search' }}</label>
         <input
           type="text"
           [(ngModel)]="searchTerm"
@@ -35,7 +35,7 @@
 
       <!-- Clinic select -->
       <div class="form-group mb-0">
-        <label class="form-label">Clinic</label>
+        <label class="form-label">{{ translation.isArabic() ? 'العيادة' : 'Clinic' }}</label>
         <select [(ngModel)]="selectedClinic" (change)="applyFilters()" class="form-select">
           <option value="">{{ 'doctors.filter_clinic' | translate }}</option>
           @for (c of clinics(); track c.id) {
@@ -51,13 +51,13 @@
   <!-- Doctor Cards Grid -->
   @if (loading()) {
     <div class="loading-state">
-      <p>Loading doctors...</p>
+      <p>{{ translation.isArabic() ? 'جاري تحميل قائمة الأطباء...' : 'Loading doctors...' }}</p>
     </div>
   } @else if (doctors().length === 0) {
     <div class="empty-state card">
       <span class="empty-icon">🔍</span>
       <h3>{{ 'doctors.no_doctors' | translate }}</h3>
-      <p class="text-muted">Try adjusting your filters or search keywords.</p>
+      <p class="text-muted">{{ translation.isArabic() ? 'جرّب تغيير معايير البحث أو اختيار تخصص آخر.' : 'Try adjusting your filters or search keywords.' }}</p>
     </div>
   } @else {
     <div class="grid-3 doctor-grid">
@@ -70,7 +70,7 @@
           <div class="doctor-info">
             <span class="specialty-badge">{{ doc.specialtyName }}</span>
             <h3 class="doctor-name">{{ doc.fullName }}</h3>
-            <p class="doctor-license">Lic: {{ doc.licenseNumber }}</p>
+            <p class="doctor-license">{{ translation.isArabic() ? 'ترخيص: ' : 'Lic: ' }}{{ doc.licenseNumber }}</p>
             <p class="doctor-bio">
               {{ translation.isArabic() && doc.bioAr ? doc.bioAr : doc.bio }}
             </p>
@@ -84,7 +84,7 @@
             @if (doc.doctorClinics.length > 0 && doc.doctorClinics[0].consultationFee) {
               <div class="meta-item">
                 <span class="meta-label">{{ 'doctors.fee' | translate }}</span>
-                <span class="meta-val fee">{{ doc.doctorClinics[0].consultationFee }} EGP</span>
+                <span class="meta-val fee">{{ doc.doctorClinics[0].consultationFee }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</span>
               </div>
             }
           </div>
