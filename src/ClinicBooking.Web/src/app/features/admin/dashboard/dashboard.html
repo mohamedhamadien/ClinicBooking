@@ -281,6 +281,16 @@
     <div class="cms-screen-viewport">
       <!-- TAB 1: OVERVIEW -->
   @if (activeTab() === 'overview') {
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="m-0">{{ translation.isArabic() ? '📊 مؤشرات الأداء والتشغيل الطبي العام' : '📊 Executive Performance & Operational Analytics' }}</h3>
+        <p class="text-muted m-0 small">{{ translation.isArabic() ? 'ملخص إحصائي شامل لنشاط العيادات والحجوزات ومعدلات إتمام الكشوفات' : 'Statistical overview of patient visits, doctor loads, and completion rates' }}</p>
+      </div>
+      <button (click)="printExecutiveReport()" class="btn btn-outline btn-sm">
+        🖨️ {{ translation.isArabic() ? 'طباعة تقرير الأداء الشامل' : 'Print Executive Report' }}
+      </button>
+    </div>
+
     @if (stats(); as s) {
       <div class="grid-4 stats-grid">
         <div class="card stat-card">
@@ -364,7 +374,13 @@
             }
           </select>
         }
-        <button (click)="loadQueue()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث الطابور' : '🔄 Refresh Queue' }}</button>
+        <button (click)="printQueueReport()" class="btn btn-outline btn-sm">
+          🖨️ {{ translation.isArabic() ? 'طباعة كشف الانتظار' : 'Print Queue Sheet' }}
+        </button>
+        <button (click)="exportQueueCsv()" class="btn btn-outline btn-sm">
+          📥 {{ translation.isArabic() ? 'تصدير CSV' : 'Export CSV' }}
+        </button>
+        <button (click)="loadQueue()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث' : '🔄 Refresh' }}</button>
       </div>
     </div>
 
@@ -618,6 +634,9 @@
                 }
               </ul>
             </div>
+            <button (click)="printPrescription(rx)" class="btn btn-primary btn-sm mt-3 w-100">
+              🖨️ {{ translation.isArabic() ? 'طباعة الروشتة المعتمدة رسمياً (Rx)' : 'Print Official Prescription (Rx)' }}
+            </button>
           </div>
         }
       </div>
@@ -653,9 +672,14 @@
               <span>{{ translation.isArabic() ? 'فصيلة الدم: ' : 'Blood Group: ' }}<strong class="text-danger">{{ rec.bloodGroup || (translation.isArabic() ? 'غير محدد' : 'Not Specified') }}</strong></span>
             </div>
           </div>
-          <button (click)="openEditHistoryModal(rec)" class="btn btn-outline btn-sm">
-            ✏️ {{ translation.isArabic() ? 'تعديل التاريخ المرضي' : 'Edit Medical Background' }}
-          </button>
+          <div class="d-flex gap-2">
+            <button (click)="printPatientEmr()" class="btn btn-primary btn-sm">
+              📄 {{ translation.isArabic() ? 'طباعة الملف الطبي الشامل' : 'Print Complete EMR Dossier' }}
+            </button>
+            <button (click)="openEditHistoryModal(rec)" class="btn btn-outline btn-sm">
+              ✏️ {{ translation.isArabic() ? 'تعديل التاريخ المرضي' : 'Edit Medical Background' }}
+            </button>
+          </div>
         </div>
 
         <!-- Alerts: Allergies & Chronic Conditions -->
@@ -699,9 +723,14 @@
             <div class="mt-2">
               @for (p of rec.prescriptions; track p.id) {
                 <div class="card p-3 mb-2 border">
-                  <div class="d-flex justify-content-between">
-                    <strong>{{ p.prescriptionNumber }}</strong>
-                    <small class="text-muted">{{ p.issuedAtUtc | date:'mediumDate' }}</small>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ p.prescriptionNumber }}</strong>
+                      <span class="text-muted ms-2 small">{{ p.issuedAtUtc | date:'mediumDate' }}</span>
+                    </div>
+                    <button (click)="printPrescription(p)" class="btn btn-outline btn-xs">
+                      🖨️ {{ translation.isArabic() ? 'طباعة' : 'Print' }}
+                    </button>
                   </div>
                   <small class="text-muted">{{ translation.isArabic() ? 'التشخيص: ' : 'Diagnosis: ' }}{{ p.diagnosis }}</small>
                   <ul class="m-0 mt-2 pl-3">
@@ -734,6 +763,9 @@
         <p class="text-muted m-0">{{ translation.isArabic() ? 'إصدار فواتير الكشف والخدمات، تسجيل التحصيل نقداً أو بالبطاقة، ومتابعة سجلات الحسابات.' : 'Issue itemized consultation bills, record cash/card payments, and audit financial records.' }}</p>
       </div>
       <div class="d-flex gap-2">
+        <button (click)="exportInvoicesCsv()" class="btn btn-outline btn-sm">
+          📥 {{ translation.isArabic() ? 'تصدير دفتر الفواتير CSV' : 'Export Invoices Ledger (CSV)' }}
+        </button>
         <button (click)="openInvoiceModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إصدار فاتورة' : 'Issue Invoice' }}</button>
         <button (click)="loadInvoices()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث' : '🔄 Refresh' }}</button>
       </div>
@@ -769,13 +801,18 @@
                   </span>
                 </td>
                 <td>
-                  @if (inv.status === 'Pending') {
-                    <button (click)="payInvoice(inv.id, 1)" class="btn btn-primary btn-sm">
-                      💵 {{ translation.isArabic() ? 'تحصيل نقدي' : 'Collect Cash' }}
+                  <div class="d-flex gap-1 align-items-center">
+                    <button (click)="printInvoiceReceipt(inv)" class="btn btn-outline btn-xs" title="{{ translation.isArabic() ? 'طباعة إيصال الفاتورة' : 'Print Invoice Receipt' }}">
+                      🧾 {{ translation.isArabic() ? 'طباعة' : 'Print' }}
                     </button>
-                  } @else {
-                    <span class="text-muted">{{ translation.isArabic() ? 'سُددت بتاريخ ' : 'Paid on ' }}{{ inv.paidAtUtc | date:'shortDate' }}</span>
-                  }
+                    @if (inv.status === 'Pending') {
+                      <button (click)="payInvoice(inv.id, 1)" class="btn btn-primary btn-xs">
+                        💵 {{ translation.isArabic() ? 'تحصيل' : 'Collect' }}
+                      </button>
+                    } @else {
+                      <span class="text-muted small">{{ translation.isArabic() ? 'سُددت' : 'Paid' }}</span>
+                    }
+                  </div>
                 </td>
               </tr>
             } @empty {
@@ -791,6 +828,21 @@
 
   <!-- TAB 6: APPOINTMENTS MASTER ROSTER -->
   @if (activeTab() === 'appointments') {
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="m-0">📅 {{ translation.isArabic() ? 'سجل وجدول المواعيد العام' : 'Appointments Master Roster' }}</h3>
+        <p class="text-muted m-0 small">{{ translation.isArabic() ? 'جدول المواعيد لجميع العيادات والأطباء مع أدوات الفلترة والبحث' : 'Clinic appointment schedule with search and filtering' }}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button (click)="printAppointmentsSchedule()" class="btn btn-outline btn-sm">
+          🖨️ {{ translation.isArabic() ? 'طباعة جدول المواعيد' : 'Print Schedule' }}
+        </button>
+        <button (click)="exportAppointmentsCsv()" class="btn btn-outline btn-sm">
+          📥 {{ translation.isArabic() ? 'تصدير المواعيد CSV' : 'Export CSV' }}
+        </button>
+      </div>
+    </div>
+
     <div class="card filter-card">
       <div class="filter-grid">
         <div class="form-group mb-0">
@@ -889,7 +941,12 @@
         <h3>{{ translation.isArabic() ? 'الفريق الطبي والأطباء المعتمدون' : 'Medical Staff & Practicing Doctors' }}</h3>
         <p class="text-muted m-0">{{ translation.isArabic() ? 'إدارة ملفات الأطباء، أسعار الكشف، وجداول المناوبات في الفروع.' : 'Manage doctor profiles, consultation fees, and clinic assignments.' }}</p>
       </div>
-      <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">👨‍⚕️ + {{ translation.isArabic() ? 'إضافة طبيب' : 'Add Doctor' }}</button>
+      <div class="d-flex gap-2">
+        <button (click)="exportDoctorsCsv()" class="btn btn-outline btn-sm">
+          📥 {{ translation.isArabic() ? 'تصدير دليل الأطباء CSV' : 'Export Directory CSV' }}
+        </button>
+        <button (click)="openDoctorModal()" class="btn btn-primary btn-sm">👨‍⚕️ + {{ translation.isArabic() ? 'إضافة طبيب' : 'Add Doctor' }}</button>
+      </div>
     </div>
 
     <div class="grid-3 mt-3">
@@ -995,9 +1052,14 @@
           <h3>👥 {{ translation.isArabic() ? 'إدارة حسابات وصلاحيات موظفي العيادة' : 'Staff Accounts & Permissions Management' }}</h3>
           <p class="text-muted">{{ translation.isArabic() ? 'إعداد موظفي العيادة وتحديد الأدوار (استقبال، تمريض، كاشير، أطباء) وتخصيص صلاحيات الشاشات والوظائف.' : 'Configure clinic personnel, assign roles (Receptionist, Nurse, Accountant, Doctor), and grant granular screen and function permissions.' }}</p>
         </div>
-        <button (click)="openCreateStaffModal()" class="btn btn-primary">
-          ➕ + {{ translation.isArabic() ? 'إضافة موظف جديد' : 'Add Staff Member' }}
-        </button>
+        <div class="d-flex gap-2">
+          <button (click)="exportStaffCsv()" class="btn btn-outline btn-sm">
+            🛡️ {{ translation.isArabic() ? 'تصدير سجل تدقيق الصلاحيات CSV' : 'Export Audit CSV' }}
+          </button>
+          <button (click)="openCreateStaffModal()" class="btn btn-primary">
+            ➕ + {{ translation.isArabic() ? 'إضافة موظف جديد' : 'Add Staff Member' }}
+          </button>
+        </div>
       </div>
 
       <!-- Filters -->

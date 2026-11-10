@@ -7,6 +7,7 @@ import { ClinicalService } from '../../../core/services/clinical.service';
 import { StaffService } from '../../../core/services/staff.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService } from '../../../core/services/translation.service';
+import { ReportingService } from '../../../core/services/reporting.service';
 import { TranslatePipe } from '../../../core/pipes/translate.pipe';
 import { DashboardStatsDto } from '../../../core/models/dashboard.models';
 import { AppointmentDto, AppointmentStatus } from '../../../core/models/appointment.models';
@@ -52,6 +53,7 @@ export class DashboardComponent implements OnInit {
   private readonly staffService = inject(StaffService);
   protected readonly auth = inject(AuthService);
   protected readonly translation = inject(TranslationService);
+  protected readonly reporting = inject(ReportingService);
 
   // Active Tab & Sidebar State
   protected activeTab = signal<AdminTab>('overview');
@@ -1042,5 +1044,63 @@ export class DashboardComponent implements OnInit {
   private showMessage(msg: string): void {
     this.actionMessage.set(msg);
     setTimeout(() => this.actionMessage.set(null), 4000);
+  }
+
+  // =========================================================================
+  // REPORTING & EXPORT ACTIONS
+  // =========================================================================
+
+  protected printExecutiveReport(): void {
+    this.reporting.printExecutiveSummary(
+      this.stats(),
+      this.doctors().length,
+      this.clinics().length,
+      this.appointments().length
+    );
+  }
+
+  protected printQueueReport(): void {
+    const clinicName = this.assignedClinic()?.name || (this.clinics().length > 0 ? this.clinics()[0].name : undefined);
+    this.reporting.printQueueReport(this.queueItems(), clinicName);
+  }
+
+  protected exportQueueCsv(): void {
+    this.reporting.exportQueueCsv(this.queueItems());
+  }
+
+  protected printPrescription(rx: PrescriptionDto): void {
+    const clinicName = this.assignedClinic()?.name || rx.clinicName;
+    this.reporting.printPrescription(rx, clinicName);
+  }
+
+  protected printPatientEmr(): void {
+    const rec = this.patientRecord();
+    if (rec) {
+      this.reporting.printPatientEmr(rec);
+    }
+  }
+
+  protected printInvoiceReceipt(inv: InvoiceDto): void {
+    this.reporting.printInvoiceReceipt(inv);
+  }
+
+  protected exportInvoicesCsv(): void {
+    this.reporting.exportInvoicesCsv(this.invoices());
+  }
+
+  protected printAppointmentsSchedule(): void {
+    this.reporting.printAppointmentsSchedule(this.filteredAppointments());
+  }
+
+  protected exportAppointmentsCsv(): void {
+    this.reporting.exportAppointmentsCsv(this.filteredAppointments());
+  }
+
+  protected exportDoctorsCsv(): void {
+    this.reporting.exportDoctorsCsv(this.doctors());
+  }
+
+  protected exportStaffCsv(): void {
+    this.reporting.exportStaffCsv(this.filteredStaff());
   }
 }

@@ -59,13 +59,16 @@
                   </span>
                 </td>
                 <td>
-                  @if (canCancel(appt.status)) {
-                    <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
-                      {{ 'appointments.cancel_btn' | translate }}
+                  <div class="d-flex gap-1 align-items-center">
+                    <button (click)="printSlip(appt)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'طباعة بطاقة تأكيد الحجز' : 'Print Booking Confirmation Slip' }}">
+                      🖨️ {{ translation.isArabic() ? 'بطاقة الحجز' : 'Slip' }}
                     </button>
-                  } @else {
-                    <span class="text-muted">-</span>
-                  }
+                    @if (canCancel(appt.status)) {
+                      <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
+                        {{ 'appointments.cancel_btn' | translate }}
+                      </button>
+                    }
+                  </div>
                 </td>
               </tr>
             }
