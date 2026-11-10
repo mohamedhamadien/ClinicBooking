@@ -53,8 +53,29 @@ export class DashboardComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly translation = inject(TranslationService);
 
-  // Active Tab
+  // Active Tab & Sidebar State
   protected activeTab = signal<AdminTab>('overview');
+  protected isSidebarCollapsed = signal(false);
+
+  protected toggleSidebar(): void {
+    this.isSidebarCollapsed.update((v) => !v);
+  }
+
+  protected getTabTitle(tab: AdminTab): string {
+    switch (tab) {
+      case 'overview': return '📊 System Overview & Operational Metrics';
+      case 'queue': return '🛎️ Reception & Patient Waiting Queue';
+      case 'consultation': return '📋 Clinical Examination (SOAP) & Prescriptions';
+      case 'records': return '🗂️ Patient Medical History & EMR Charts';
+      case 'billing': return '💳 Clinic Invoices, Billing & Payments';
+      case 'appointments': return '📅 Patient Appointments Management';
+      case 'doctors': return '👨‍⚕️ Doctors Directory & Weekly Schedules';
+      case 'clinics': return '🏥 Clinic Facilities & Branch Management';
+      case 'specialties': return '🩺 Medical Specialties & Departments';
+      case 'staff': return '👥 Staff Accounts & Granular Permissions';
+      default: return 'Management Console';
+    }
+  }
 
   // Loaded Data Signals
   protected readonly stats = signal<DashboardStatsDto | null>(null);

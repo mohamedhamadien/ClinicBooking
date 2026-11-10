@@ -1,151 +1,280 @@
-<div class="container dashboard-container">
-  <!-- Top Admin Bar -->
-  <div class="card admin-identity-card">
-    <div class="identity-info">
-      <div class="admin-shield">{{ auth.isClinicAdmin() ? '🏥' : '🛡️' }}</div>
-      <div>
-        <div class="badge-role">
-          @if (auth.isClinicAdmin()) {
-            <span class="badge badge-confirmed">Clinic Administrator</span>
-            @if (assignedClinic(); as ac) {
-              <span class="tenant-tag">Branch: {{ ac.name }}</span>
+<div class="cms-layout">
+  <!-- 1. VERTICAL SIDEBAR FOR ALL SCREENS -->
+  <aside class="cms-sidebar" [class.collapsed]="isSidebarCollapsed()">
+    <!-- Sidebar Header / Branding -->
+    <div class="sidebar-header">
+      <div class="sidebar-brand-box">
+        <span class="brand-avatar">{{ auth.isClinicAdmin() ? '🏥' : '🛡️' }}</span>
+        @if (!isSidebarCollapsed()) {
+          <div class="brand-text">
+            <h3 class="brand-title">
+              @if (auth.isClinicAdmin() && assignedClinic(); as ac) {
+                {{ ac.name }}
+              } @else {
+                Apex Clinic OS
+              }
+            </h3>
+            <span class="brand-subtitle">{{ auth.currentUser()?.role }} Console</span>
+          </div>
+        }
+      </div>
+      <button (click)="toggleSidebar()" class="sidebar-toggle-btn" title="Toggle Sidebar">
+        {{ isSidebarCollapsed() ? '▶' : '◀' }}
+      </button>
+    </div>
+
+    <!-- User Profile Strip in Sidebar -->
+    @if (!isSidebarCollapsed()) {
+      <div class="sidebar-user-card">
+        <div class="user-avatar-circle">
+          {{ auth.currentUser()?.firstName?.charAt(0) || 'U' }}
+        </div>
+        <div class="user-meta">
+          <div class="user-fullname">{{ auth.currentUser()?.firstName }} {{ auth.currentUser()?.lastName }}</div>
+          <div class="user-role-badge">
+            <span class="badge" [class]="getStaffRoleBadgeClass(auth.currentUser()?.role || '')">
+              {{ auth.currentUser()?.role }}
+            </span>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Vertical Navigation Menu with Grouped Sections -->
+    <nav class="sidebar-nav-menu">
+      <!-- Section: Clinical & Reception -->
+      <div class="nav-category-header">
+        @if (!isSidebarCollapsed()) { <span>CLINICAL & RECEPTION</span> }
+      </div>
+
+      @if (canAccessTab('overview')) {
+        <button
+          (click)="setTab('overview')"
+          [class.active]="activeTab() === 'overview'"
+          class="sidebar-nav-item"
+          title="Overview"
+        >
+          <span class="nav-icon">📊</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Overview</span>
+          }
+        </button>
+      }
+
+      @if (canAccessTab('queue')) {
+        <button
+          (click)="setTab('queue')"
+          [class.active]="activeTab() === 'queue'"
+          class="sidebar-nav-item"
+          title="Waiting Queue"
+        >
+          <span class="nav-icon">🛎️</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Waiting Queue</span>
+            @if (queueItems().length > 0) {
+              <span class="nav-counter">{{ queueItems().length }}</span>
             }
+          }
+        </button>
+      }
+
+      @if (canAccessTab('consultation')) {
+        <button
+          (click)="setTab('consultation')"
+          [class.active]="activeTab() === 'consultation'"
+          class="sidebar-nav-item"
+          title="Consultation & Rx"
+        >
+          <span class="nav-icon">📋</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Consultation & Rx</span>
+          }
+        </button>
+      }
+
+      @if (canAccessTab('records')) {
+        <button
+          (click)="setTab('records')"
+          [class.active]="activeTab() === 'records'"
+          class="sidebar-nav-item"
+          title="Patient EMR Charts"
+        >
+          <span class="nav-icon">🗂️</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Patient EMR Charts</span>
+          }
+        </button>
+      }
+
+      <!-- Section: Operations & Finance -->
+      <div class="nav-category-header">
+        @if (!isSidebarCollapsed()) { <span>OPERATIONS & FINANCE</span> }
+      </div>
+
+      @if (canAccessTab('billing')) {
+        <button
+          (click)="setTab('billing')"
+          [class.active]="activeTab() === 'billing'"
+          class="sidebar-nav-item"
+          title="Billing & Finance"
+        >
+          <span class="nav-icon">💳</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Billing & Invoices</span>
+            @if (invoices().length > 0) {
+              <span class="nav-counter">{{ invoices().length }}</span>
+            }
+          }
+        </button>
+      }
+
+      @if (canAccessTab('appointments')) {
+        <button
+          (click)="setTab('appointments')"
+          [class.active]="activeTab() === 'appointments'"
+          class="sidebar-nav-item"
+          title="Appointments"
+        >
+          <span class="nav-icon">📅</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Appointments</span>
+            @if (appointments().length > 0) {
+              <span class="nav-counter">{{ appointments().length }}</span>
+            }
+          }
+        </button>
+      }
+
+      <!-- Section: Clinic & Personnel Setup -->
+      <div class="nav-category-header">
+        @if (!isSidebarCollapsed()) { <span>ADMINISTRATION</span> }
+      </div>
+
+      @if (canAccessTab('doctors')) {
+        <button
+          (click)="setTab('doctors')"
+          [class.active]="activeTab() === 'doctors'"
+          class="sidebar-nav-item"
+          title="Doctors"
+        >
+          <span class="nav-icon">👨‍⚕️</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Doctors ({{ doctors().length }})</span>
+          }
+        </button>
+      }
+
+      @if (canAccessTab('clinics')) {
+        <button
+          (click)="setTab('clinics')"
+          [class.active]="activeTab() === 'clinics'"
+          class="sidebar-nav-item"
+          title="Clinics"
+        >
+          <span class="nav-icon">🏥</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Clinics ({{ clinics().length }})</span>
+          }
+        </button>
+      }
+
+      @if (canAccessTab('specialties')) {
+        <button
+          (click)="setTab('specialties')"
+          [class.active]="activeTab() === 'specialties'"
+          class="sidebar-nav-item"
+          title="Specialties"
+        >
+          <span class="nav-icon">🩺</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Specialties ({{ specialties().length }})</span>
+          }
+        </button>
+      }
+
+      @if (canAccessTab('staff')) {
+        <button
+          (click)="setTab('staff')"
+          [class.active]="activeTab() === 'staff'"
+          class="sidebar-nav-item"
+          title="Staff & Permissions"
+        >
+          <span class="nav-icon">👥</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">Staff & Permissions</span>
+            @if (staffMembers().length > 0) {
+              <span class="nav-counter">{{ staffMembers().length }}</span>
+            }
+          }
+        </button>
+      }
+    </nav>
+
+    <!-- Sidebar Quick Info / Branch selector -->
+    @if (!isSidebarCollapsed()) {
+      <div class="sidebar-footer-box">
+        <div class="footer-branch-label">ACTIVE FACILITY</div>
+        <div class="footer-branch-name">
+          @if (assignedClinic(); as ac) {
+            {{ ac.name }}
+          } @else if (clinics().length > 0) {
+            {{ clinics()[0].name }}
           } @else {
-            <span class="badge badge-confirmed">System Administrator</span>
-            <span class="tenant-tag">Tenant: {{ auth.currentUser()?.tenantId ? 'apex-health' : 'apex-health' }}</span>
+            Central Healthcare Clinic
           }
         </div>
-        <h2>
-          @if (auth.isClinicAdmin() && assignedClinic(); as ac) {
-            {{ ac.name }} &mdash; Management Console
-          } @else {
-            Healthcare Network Management Console
-          }
-        </h2>
-        <p class="admin-email">Logged in as: <strong>{{ auth.currentUser()?.email }}</strong></p>
       </div>
+    }
+  </aside>
+
+  <!-- 2. MAIN WORKSPACE CONTENT AREA -->
+  <main class="cms-main-area">
+    <!-- Top Header Bar with Breadcrumb and Context Actions -->
+    <header class="cms-topbar">
+      <div class="topbar-title-box">
+        <h2 class="current-screen-title">
+          {{ getTabTitle(activeTab()) }}
+        </h2>
+        <span class="topbar-breadcrumb">Console &rsaquo; {{ activeTab() }}</span>
+      </div>
+
+      <div class="topbar-actions">
+        @if (canAccessTab('consultation')) {
+          <button (click)="setTab('consultation')" class="btn btn-primary btn-sm">
+            🩺 Start Consultation
+          </button>
+        }
+        @if (canAccessTab('billing')) {
+          <button (click)="openInvoiceModal()" class="btn btn-outline btn-sm">
+            💳 Issue Invoice
+          </button>
+        }
+        @if (canAccessTab('doctors')) {
+          <button (click)="openDoctorModal()" class="btn btn-outline btn-sm">
+            👨‍⚕️ + Add Doctor
+          </button>
+        }
+      </div>
+    </header>
+
+    <!-- Alert Messages Area -->
+    <div class="cms-alerts-container">
+      @if (actionMessage()) {
+        <div class="alert alert-success">
+          ✅ {{ actionMessage() }}
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div class="alert alert-danger">
+          ⚠️ {{ errorMessage() }}
+        </div>
+      }
     </div>
 
-    <div class="identity-actions">
-      <button (click)="setTab('consultation')" class="btn btn-primary btn-sm">
-        🩺 Start Consultation
-      </button>
-      <button (click)="openInvoiceModal()" class="btn btn-outline btn-sm">
-        💳 Issue Invoice
-      </button>
-      <button (click)="openDoctorModal()" class="btn btn-outline btn-sm">
-        👨‍⚕️ + Add Doctor
-      </button>
-    </div>
-  </div>
-
-  @if (actionMessage()) {
-    <div class="alert alert-success">
-      ✅ {{ actionMessage() }}
-    </div>
-  }
-
-  @if (errorMessage()) {
-    <div class="alert alert-danger">
-      ⚠️ {{ errorMessage() }}
-    </div>
-  }
-
-  <!-- Admin Tab Bar -->
-  <div class="admin-tabs">
-    @if (canAccessTab('overview')) {
-      <button
-        (click)="setTab('overview')"
-        [class.active]="activeTab() === 'overview'"
-        class="tab-btn"
-      >
-        📊 Overview
-      </button>
-    }
-    @if (canAccessTab('queue')) {
-      <button
-        (click)="setTab('queue')"
-        [class.active]="activeTab() === 'queue'"
-        class="tab-btn"
-      >
-        🛎️ Waiting Queue ({{ queueItems().length }})
-      </button>
-    }
-    @if (canAccessTab('consultation')) {
-      <button
-        (click)="setTab('consultation')"
-        [class.active]="activeTab() === 'consultation'"
-        class="tab-btn"
-      >
-        📋 Consultation & Rx
-      </button>
-    }
-    @if (canAccessTab('records')) {
-      <button
-        (click)="setTab('records')"
-        [class.active]="activeTab() === 'records'"
-        class="tab-btn"
-      >
-        🗂️ Patient EMR Charts
-      </button>
-    }
-    @if (canAccessTab('billing')) {
-      <button
-        (click)="setTab('billing')"
-        [class.active]="activeTab() === 'billing'"
-        class="tab-btn"
-      >
-        💳 Billing & Finance ({{ invoices().length }})
-      </button>
-    }
-    @if (canAccessTab('appointments')) {
-      <button
-        (click)="setTab('appointments')"
-        [class.active]="activeTab() === 'appointments'"
-        class="tab-btn"
-      >
-        📅 Appointments ({{ appointments().length }})
-      </button>
-    }
-    @if (canAccessTab('doctors')) {
-      <button
-        (click)="setTab('doctors')"
-        [class.active]="activeTab() === 'doctors'"
-        class="tab-btn"
-      >
-        👨‍⚕️ Doctors ({{ doctors().length }})
-      </button>
-    }
-    @if (canAccessTab('clinics')) {
-      <button
-        (click)="setTab('clinics')"
-        [class.active]="activeTab() === 'clinics'"
-        class="tab-btn"
-      >
-        🏥 Clinics ({{ clinics().length }})
-      </button>
-    }
-    @if (canAccessTab('specialties')) {
-      <button
-        (click)="setTab('specialties')"
-        [class.active]="activeTab() === 'specialties'"
-        class="tab-btn"
-      >
-        🩺 Specialties ({{ specialties().length }})
-      </button>
-    }
-    @if (canAccessTab('staff')) {
-      <button
-        (click)="setTab('staff')"
-        [class.active]="activeTab() === 'staff'"
-        class="tab-btn"
-      >
-        👥 Staff & Permissions ({{ staffMembers().length }})
-      </button>
-    }
-  </div>
-
-  <!-- TAB 1: OVERVIEW -->
+    <!-- Active Tab Screens Container -->
+    <div class="cms-screen-viewport">
+      <!-- TAB 1: OVERVIEW -->
   @if (activeTab() === 'overview') {
     @if (stats(); as s) {
       <div class="grid-4 stats-grid">
@@ -926,6 +1055,8 @@
       </div>
     </div>
   }
+    </div> <!-- /cms-screen-viewport -->
+  </main> <!-- /cms-main-area -->
 
   <!-- MODAL: EDIT PATIENT MEDICAL HISTORY -->
   @if (isHistoryModalOpen) {

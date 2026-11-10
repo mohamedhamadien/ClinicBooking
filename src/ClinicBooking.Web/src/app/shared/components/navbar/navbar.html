@@ -21,7 +21,7 @@
             {{ 'nav.my_appointments' | translate }}
           </a>
         }
-        @if (auth.isAdmin()) {
+        @if (auth.isAnyStaffOrAdmin()) {
           <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-link">
             {{ 'nav.dashboard' | translate }}
           </a>
