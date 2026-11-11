@@ -995,7 +995,7 @@ export class DashboardComponent implements OnInit {
         this.previewSlots.set(slots);
         if (slots.length === 0) {
           const doc = this.selectedScheduleDoctor();
-          const targetDate = new Date(this.previewSlotDate);
+          const targetDate = new Date(this.previewSlotDate + 'T00:00:00');
           const dayOfWeek = targetDate.getDay();
           const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
           const isException = doc?.exceptions?.some((e) => {
@@ -1041,9 +1041,10 @@ export class DashboardComponent implements OnInit {
     this.bookDoctorId = doctorId || (this.doctors().length > 0 ? this.doctors()[0].id : '');
     this.bookClinicId = this.assignedClinicId() || (this.clinics().length > 0 ? this.clinics()[0].id : '');
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    this.bookDate = tomorrow.toISOString().split('T')[0];
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+    this.bookDate = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
 
     this.bookSelectedSlot = null;
     this.bookNotes = '';
@@ -1077,7 +1078,7 @@ export class DashboardComponent implements OnInit {
         this.bookSlots.set(slots);
         if (slots.length === 0) {
           const doc = this.doctors().find((d) => d.id === this.bookDoctorId);
-          const targetDate = new Date(this.bookDate);
+          const targetDate = new Date(this.bookDate + 'T00:00:00');
           const dayOfWeek = targetDate.getDay();
           const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
           const isBlocked = doc?.exceptions?.some((e) => {

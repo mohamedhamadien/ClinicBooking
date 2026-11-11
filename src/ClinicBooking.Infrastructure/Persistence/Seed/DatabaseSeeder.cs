@@ -219,7 +219,37 @@ public sealed class DatabaseSeeder
                 .Include(d => d.Availabilities)
                 .FirstOrDefaultAsync(d => d.UserId == user.Id, cancellationToken);
 
-            if (existing is not null) return existing;
+            if (existing is not null)
+            {
+                var workDays = new[]
+                {
+                    DayOfWeek.Sunday,
+                    DayOfWeek.Monday,
+                    DayOfWeek.Tuesday,
+                    DayOfWeek.Wednesday,
+                    DayOfWeek.Thursday,
+                    DayOfWeek.Saturday
+                };
+
+                bool changed = false;
+                foreach (var day in workDays)
+                {
+                    if (!existing.Availabilities.Any(a => a.ClinicId == clinicId && a.DayOfWeek == day && a.IsActive))
+                    {
+                        var start = day == DayOfWeek.Saturday ? new TimeOnly(10, 0) : new TimeOnly(9, 0);
+                        var end = day == DayOfWeek.Saturday ? new TimeOnly(16, 0) : new TimeOnly(15, 0);
+                        existing.AddAvailability(clinicId, day, start, end);
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+
+                return existing;
+            }
 
             var doctor = Doctor.Create(
                 defaultTenant.Id,
@@ -229,9 +259,12 @@ public sealed class DatabaseSeeder
                 bio,
                 defaultSlotDurationMinutes: 30);
 
-            // Add Availabilities across multiple days
+            // Add Availabilities across all standard clinic working days (Sunday through Thursday + Saturday)
+            doctor.AddAvailability(clinicId, DayOfWeek.Sunday, new TimeOnly(9, 0), new TimeOnly(15, 0));
             doctor.AddAvailability(clinicId, DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(15, 0));
+            doctor.AddAvailability(clinicId, DayOfWeek.Tuesday, new TimeOnly(9, 0), new TimeOnly(15, 0));
             doctor.AddAvailability(clinicId, DayOfWeek.Wednesday, new TimeOnly(9, 0), new TimeOnly(15, 0));
+            doctor.AddAvailability(clinicId, DayOfWeek.Thursday, new TimeOnly(9, 0), new TimeOnly(15, 0));
             doctor.AddAvailability(clinicId, DayOfWeek.Saturday, new TimeOnly(10, 0), new TimeOnly(16, 0));
 
             await _dbContext.Doctors.AddAsync(doctor, cancellationToken);

@@ -32,10 +32,14 @@ public sealed class AppointmentsController : ApiControllerBase
         [FromQuery] Guid doctorId,
         [FromQuery] Guid clinicId,
         [FromQuery] DateOnly date,
+        [FromQuery] Guid? tenantId,
         CancellationToken cancellationToken)
     {
-        var tenantId = _tenantContext.TenantId ?? Guid.Empty;
-        var query = new GetAvailableSlotsQuery(tenantId, doctorId, clinicId, date);
+        var effectiveTenantId = tenantId.HasValue && tenantId.Value != Guid.Empty
+            ? tenantId.Value
+            : (_tenantContext.TenantId ?? Guid.Empty);
+
+        var query = new GetAvailableSlotsQuery(effectiveTenantId, doctorId, clinicId, date);
         var result = await Mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }

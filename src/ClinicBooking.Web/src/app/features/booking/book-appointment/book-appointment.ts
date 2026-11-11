@@ -49,9 +49,10 @@ export class BookAppointmentComponent implements OnInit {
     }
 
     // Set default date to tomorrow in YYYY-MM-DD
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    this.selectedDate = tomorrow.toISOString().split('T')[0];
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+    this.selectedDate = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
 
     // Load Doctor details and Clinics
     this.doctorService.getDoctorById(doctorId).subscribe({

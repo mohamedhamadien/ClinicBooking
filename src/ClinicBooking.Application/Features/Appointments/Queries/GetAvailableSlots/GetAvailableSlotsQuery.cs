@@ -19,7 +19,6 @@ public sealed class GetAvailableSlotsQueryValidator : AbstractValidator<GetAvail
 {
     public GetAvailableSlotsQueryValidator()
     {
-        RuleFor(x => x.TenantId).NotEmpty().WithMessage("TenantId is required.");
         RuleFor(x => x.DoctorId).NotEmpty().WithMessage("DoctorId is required.");
         RuleFor(x => x.ClinicId).NotEmpty().WithMessage("ClinicId is required.");
     }
@@ -47,10 +46,12 @@ public sealed class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailable
     public async Task<Result<IReadOnlyList<AvailableSlotDto>>> Handle(GetAvailableSlotsQuery request, CancellationToken cancellationToken)
     {
         var doctor = await _doctorRepository.GetByIdWithSchedulesAsync(request.DoctorId, cancellationToken);
-        if (doctor is null || !doctor.IsActive || doctor.TenantId != request.TenantId)
+        if (doctor is null || !doctor.IsActive || (request.TenantId != Guid.Empty && doctor.TenantId != request.TenantId))
         {
             return Result.Failure<IReadOnlyList<AvailableSlotDto>>(Error.NotFound("Doctor", request.DoctorId));
         }
+
+        var effectiveTenantId = request.TenantId != Guid.Empty ? request.TenantId : doctor.TenantId;
 
         var dayOfWeek = request.Date.DayOfWeek;
         var shifts = doctor.Availabilities
@@ -67,7 +68,7 @@ public sealed class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailable
         var dayEndUtc = request.Date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
         var existingAppointments = await _appointmentRepository.GetActiveAppointmentsForDoctorAsync(
-            request.TenantId,
+            effectiveTenantId,
             request.DoctorId,
             dayStartUtc,
             dayEndUtc,

@@ -82,10 +82,15 @@ export interface DoctorDto {
 }
 
 export interface AvailableSlotDto {
+  doctorId?: string;
+  clinicId?: string;
+  startUtc?: string;
+  endUtc?: string;
   startTimeUtc: string;
   endTimeUtc: string;
   startLocal: string;
   endLocal: string;
   durationMinutes: number;
   isAvailable: boolean;
+  dayOfWeekName?: string;
 }

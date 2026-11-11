@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AddAvailabilityExceptionRequest,
@@ -52,10 +52,39 @@ export class DoctorService {
       .set('clinicId', clinicId)
       .set('date', date);
 
-    return this.http.get<AvailableSlotDto[]>(
-      `${environment.apiUrl}/appointments/available-slots`,
-      { params }
-    );
+    return this.http
+      .get<any[]>(`${environment.apiUrl}/appointments/available-slots`, { params })
+      .pipe(
+        map((slots) =>
+          (slots || []).map((s) => {
+            const startUtc = s.startTimeUtc || s.startUtc;
+            const endUtc = s.endTimeUtc || s.endUtc;
+            const startDate = new Date(startUtc);
+            const endDate = new Date(endUtc);
+            const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+            const startLocal =
+              s.startLocal ||
+              `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`;
+            const endLocal =
+              s.endLocal ||
+              `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+
+            return {
+              doctorId: s.doctorId,
+              clinicId: s.clinicId,
+              startUtc,
+              endUtc,
+              startTimeUtc: startUtc,
+              endTimeUtc: endUtc,
+              startLocal,
+              endLocal,
+              durationMinutes: s.durationMinutes,
+              isAvailable: s.isAvailable !== undefined ? s.isAvailable : true,
+              dayOfWeekName: s.dayOfWeekName
+            } as AvailableSlotDto;
+          })
+        )
+      );
   }
 
   public setDoctorAvailability(

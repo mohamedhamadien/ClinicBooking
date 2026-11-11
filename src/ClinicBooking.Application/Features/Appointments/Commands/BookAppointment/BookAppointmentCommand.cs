@@ -136,7 +136,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         // 4. Check for patient active appointment collision
         var patientHasConflict = await _appointmentRepository.HasConflictingAppointmentForPatientAsync(
             request.TenantId,
-            request.PatientId,
+            patient.Id,
             request.StartTimeUtc,
             request.EndTimeUtc,
             excludeAppointmentId: null,
@@ -154,7 +154,7 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
         var appointment = Appointment.Create(
             request.TenantId,
             request.DoctorId,
-            request.PatientId,
+            patient.Id,
             request.ClinicId,
             requestedRange,
             currentUtc,
