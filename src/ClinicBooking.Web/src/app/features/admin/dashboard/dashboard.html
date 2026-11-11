@@ -466,6 +466,9 @@
         <button (click)="openAddPatientModal()" class="btn btn-success btn-sm">
           ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد' : 'Register Walk-in Patient' }}
         </button>
+        <button (click)="openBookAppointmentModal()" class="btn btn-primary btn-sm">
+          📅 {{ translation.isArabic() ? 'حجز كشف' : '+ Book Visit' }}
+        </button>
         <button (click)="printQueueReport()" class="btn btn-outline btn-sm">
           🖨️ {{ translation.isArabic() ? 'طباعة كشف الانتظار' : 'Print Queue Sheet' }}
         </button>
@@ -820,6 +823,9 @@
             </div>
           </div>
           <div class="d-flex gap-2">
+            <button (click)="openBookAppointmentModal(rec.patientId)" class="btn btn-success btn-sm">
+              📅 {{ translation.isArabic() ? 'حجز موعد كشف' : '+ Book Visit' }}
+            </button>
             <button (click)="printPatientEmr()" class="btn btn-primary btn-sm">
               📄 {{ translation.isArabic() ? 'طباعة الملف الطبي الشامل' : 'Print Complete EMR Dossier' }}
             </button>
@@ -1321,7 +1327,10 @@
             📅 {{ translation.isArabic() ? 'التقويم المرئي' : 'Calendar View' }}
           </button>
         </div>
-        <button (click)="openAddPatientModal()" class="btn btn-primary btn-sm">
+        <button (click)="openBookAppointmentModal()" class="btn btn-primary btn-sm">
+          📅 {{ translation.isArabic() ? 'حجز موعد كشف لمريض' : '+ Book Appointment' }}
+        </button>
+        <button (click)="openAddPatientModal()" class="btn btn-outline btn-sm">
           ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد' : '+ Register Patient' }}
         </button>
         <button (click)="printAppointmentsSchedule()" class="btn btn-outline btn-sm">
@@ -4110,6 +4119,166 @@
             </button>
             <button type="submit" [disabled]="isSubmittingPatient() || !patFirstName || !patLastName || !patDob" class="btn btn-primary">
               💾 {{ isSubmittingPatient() ? (translation.isArabic() ? 'جاري الحفظ...' : 'Saving...') : (translation.isArabic() ? 'تسجيل المريض وحفظ الملف' : 'Register Patient & Open Chart') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: BOOK APPOINTMENT FOR PATIENT (Staff / Desk) -->
+  @if (isBookAppointmentModalOpen()) {
+    <div class="modal-backdrop">
+      <div class="card modal-card" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+          <div>
+            <h3 class="m-0">📅 {{ translation.isArabic() ? 'حجز موعد كشف لمريض' : 'Book Appointment for Patient' }}</h3>
+            <p class="text-muted m-0 small">{{ translation.isArabic() ? 'اختيار المريض والطبيب والفرع وتحديد شريحة موعد متاحة وفق جدول ورديات الطبيب.' : 'Select patient, doctor, clinic branch, and an available slot according to doctor shifts.' }}</p>
+          </div>
+          <button (click)="closeBookAppointmentModal()" class="btn btn-outline btn-xs" title="Close">✕</button>
+        </div>
+
+        <form (ngSubmit)="submitBookAppointment()">
+          <!-- Patient Selection -->
+          <div class="form-group mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label m-0">
+                👤 {{ translation.isArabic() ? 'اختر المريض' : 'Select Patient' }} <span class="text-danger">*</span>
+              </label>
+              <button type="button" (click)="closeBookAppointmentModal(); openAddPatientModal()" class="btn btn-outline btn-xs text-primary">
+                ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد' : '+ Register New Patient' }}
+              </button>
+            </div>
+            <select [(ngModel)]="bookPatientId" name="bookPatientId" class="form-select" required>
+              <option value="">{{ translation.isArabic() ? '-- اختر المريض من القائمة --' : '-- Select Patient --' }}</option>
+              @for (p of patients(); track p.id) {
+                <option [value]="p.id">{{ p.fullName }} ({{ p.phoneNumber || p.email }})</option>
+              }
+            </select>
+          </div>
+
+          <!-- Doctor & Clinic Selection -->
+          <div class="grid-2 gap-2 mb-3">
+            <div class="form-group mb-0">
+              <label class="form-label small">
+                🩺 {{ translation.isArabic() ? 'الطبيب المعالج' : 'Doctor' }} <span class="text-danger">*</span>
+              </label>
+              <select [(ngModel)]="bookDoctorId" name="bookDoctorId" (change)="loadBookSlots()" class="form-select" required>
+                <option value="">{{ translation.isArabic() ? '-- اختر الطبيب --' : '-- Select Doctor --' }}</option>
+                @for (d of doctors(); track d.id) {
+                  <option [value]="d.id">👨‍⚕️ {{ d.fullName }} ({{ d.specialtyName || 'Doctor' }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group mb-0">
+              <label class="form-label small">
+                🏥 {{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }} <span class="text-danger">*</span>
+              </label>
+              <select [(ngModel)]="bookClinicId" name="bookClinicId" (change)="loadBookSlots()" class="form-select" required>
+                <option value="">{{ translation.isArabic() ? '-- اختر الفرع --' : '-- Select Branch --' }}</option>
+                @for (c of clinics(); track c.id) {
+                  <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Appointment Date Selection -->
+          <div class="form-group mb-3">
+            <label class="form-label small">
+              📆 {{ translation.isArabic() ? 'تاريخ الموعد' : 'Appointment Date' }} <span class="text-danger">*</span>
+            </label>
+            <input
+              type="date"
+              [(ngModel)]="bookDate"
+              name="bookDate"
+              (change)="loadBookSlots()"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <!-- Slots Container -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label m-0 small">
+                🕒 {{ translation.isArabic() ? 'الشرائح والمواعيد المتاحة للحجز' : 'Available Time Slots' }} <span class="text-danger">*</span>
+              </label>
+              @if (isLoadingBookSlots()) {
+                <span class="small text-muted">⏳ {{ translation.isArabic() ? 'جاري التحقق من التوافر...' : 'Checking availability...' }}</span>
+              }
+            </div>
+
+            @if (bookSlotsError()) {
+              <div class="alert alert-warning py-2 px-3 small">
+                {{ bookSlotsError() }}
+              </div>
+            }
+
+            @if (bookSlots().length > 0) {
+              <div class="d-flex flex-wrap gap-2 p-2 bg-light rounded border" style="max-height: 160px; overflow-y: auto;">
+                @for (slot of bookSlots(); track slot.startTimeUtc) {
+                  <button
+                    type="button"
+                    (click)="selectBookSlot(slot)"
+                    [disabled]="!slot.isAvailable"
+                    class="btn btn-sm"
+                    [class.btn-primary]="bookSelectedSlot?.startTimeUtc === slot.startTimeUtc"
+                    [class.btn-outline]="bookSelectedSlot?.startTimeUtc !== slot.startTimeUtc && slot.isAvailable"
+                    [class.btn-secondary]="!slot.isAvailable"
+                    style="font-size: 0.85rem;"
+                  >
+                    🕒 {{ slot.startLocal }} - {{ slot.endLocal }}
+                    @if (bookSelectedSlot?.startTimeUtc === slot.startTimeUtc) {
+                      <span> ✓</span>
+                    }
+                  </button>
+                }
+              </div>
+            } @else if (!bookSlotsError() && !isLoadingBookSlots()) {
+              <div class="p-3 text-center text-muted bg-light rounded border small">
+                {{ translation.isArabic() ? 'يرجى تحديد الطبيب والفرع والتاريخ لتحميل المواعيد المتاحة.' : 'Select doctor, clinic, and date to display available slots.' }}
+              </div>
+            }
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group mb-3">
+            <label class="form-label small">
+              📝 {{ translation.isArabic() ? 'ملاحظات الحجز أو شكوى المريض' : 'Booking Notes / Chief Complaint' }}
+            </label>
+            <textarea
+              [(ngModel)]="bookNotes"
+              name="bookNotes"
+              rows="2"
+              class="form-control"
+              [placeholder]="translation.isArabic() ? 'مثال: كشف متابعة، يعاني من ارتفاع حرارة...' : 'e.g. Follow-up consultation, fever symptoms...'"
+            ></textarea>
+          </div>
+
+          <!-- Immediate Check-in Option -->
+          <div class="form-check mb-3">
+            <label class="d-flex align-items-center gap-2" style="cursor: pointer;">
+              <input type="checkbox" [(ngModel)]="bookImmediateCheckIn" name="bookImmediateCheckIn" />
+              <span>
+                🎟️ <strong>{{ translation.isArabic() ? 'تسجيل حضور فوري في صالة الانتظار' : 'Immediate Reception Check-In' }}</strong>
+                <small class="text-muted d-block">{{ translation.isArabic() ? 'يقوم بإدراج المريض فوراً في طابور الانتظار وتوليد رقم التذكرة.' : 'Places patient immediately into queue with a ticket number.' }}</small>
+              </span>
+            </label>
+          </div>
+
+          <!-- Modal Footer Actions -->
+          <div class="modal-actions mt-3">
+            <button type="button" (click)="closeBookAppointmentModal()" class="btn btn-outline">
+              {{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}
+            </button>
+            <button
+              type="submit"
+              [disabled]="isBookingAppointment() || !bookPatientId || !bookDoctorId || !bookClinicId || !bookSelectedSlot"
+              class="btn btn-primary"
+            >
+              💾 {{ isBookingAppointment() ? (translation.isArabic() ? 'جاري الحجز...' : 'Booking...') : (translation.isArabic() ? 'تأكيد الحجز لمريض' : 'Confirm & Book Visit') }}
             </button>
           </div>
         </form>

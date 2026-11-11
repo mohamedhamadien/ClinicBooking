@@ -87,7 +87,8 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
             return Result.Failure<AppointmentDto>(Error.NotFound("Doctor", request.DoctorId));
         }
 
-        var patient = await _patientRepository.GetByIdAsync(request.PatientId, cancellationToken);
+        var patient = await _patientRepository.GetByIdAsync(request.PatientId, cancellationToken)
+            ?? await _patientRepository.GetByUserIdAsync(request.PatientId, cancellationToken);
         if (patient is null || patient.TenantId != request.TenantId)
         {
             return Result.Failure<AppointmentDto>(Error.NotFound("Patient", request.PatientId));

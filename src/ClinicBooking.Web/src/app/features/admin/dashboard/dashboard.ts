@@ -209,6 +209,20 @@ export class DashboardComponent implements OnInit {
 
   protected readonly isScheduleModalOpen = signal(false);
 
+  // Staff / Reception Booking State
+  protected readonly isBookAppointmentModalOpen = signal(false);
+  protected readonly isBookingAppointment = signal(false);
+  protected bookPatientId = '';
+  protected bookDoctorId = '';
+  protected bookClinicId = '';
+  protected bookDate = '';
+  protected bookSelectedSlot: AvailableSlotDto | null = null;
+  protected bookNotes = '';
+  protected bookImmediateCheckIn = false;
+  protected readonly bookSlots = signal<AvailableSlotDto[]>([]);
+  protected readonly isLoadingBookSlots = signal(false);
+  protected readonly bookSlotsError = signal<string | null>(null);
+
   // Feature 2: Patient Attachments State
   protected readonly patientAttachments = signal<MedicalAttachmentDto[]>([]);
   protected isAttachmentModalOpen = false;
@@ -1019,6 +1033,145 @@ export class DashboardComponent implements OnInit {
         );
       }
     });
+  }
+
+  // --- Staff / Reception Booking Actions ---
+  protected openBookAppointmentModal(patientId?: string, doctorId?: string): void {
+    this.bookPatientId = patientId || (this.patients().length > 0 ? this.patients()[0].id : '');
+    this.bookDoctorId = doctorId || (this.doctors().length > 0 ? this.doctors()[0].id : '');
+    this.bookClinicId = this.assignedClinicId() || (this.clinics().length > 0 ? this.clinics()[0].id : '');
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    this.bookDate = tomorrow.toISOString().split('T')[0];
+
+    this.bookSelectedSlot = null;
+    this.bookNotes = '';
+    this.bookImmediateCheckIn = false;
+    this.bookSlots.set([]);
+    this.bookSlotsError.set(null);
+    this.isBookAppointmentModalOpen.set(true);
+
+    if (this.bookDoctorId && this.bookClinicId && this.bookDate) {
+      this.loadBookSlots();
+    }
+  }
+
+  protected closeBookAppointmentModal(): void {
+    this.isBookAppointmentModalOpen.set(false);
+  }
+
+  protected loadBookSlots(): void {
+    if (!this.bookDoctorId || !this.bookClinicId || !this.bookDate) {
+      this.bookSlots.set([]);
+      return;
+    }
+
+    this.isLoadingBookSlots.set(true);
+    this.bookSlotsError.set(null);
+    this.bookSelectedSlot = null;
+
+    this.doctorService.getAvailableSlots(this.bookDoctorId, this.bookClinicId, this.bookDate).subscribe({
+      next: (slots) => {
+        this.isLoadingBookSlots.set(false);
+        this.bookSlots.set(slots);
+        if (slots.length === 0) {
+          const doc = this.doctors().find((d) => d.id === this.bookDoctorId);
+          const targetDate = new Date(this.bookDate);
+          const dayOfWeek = targetDate.getDay();
+          const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+          const isBlocked = doc?.exceptions?.some((e) => {
+            const s = new Date(e.startUtc);
+            const en = new Date(e.endUtc);
+            return targetDate >= s && targetDate <= en;
+          });
+
+          if (isBlocked) {
+            this.bookSlotsError.set(
+              this.translation.isArabic()
+                ? '🛑 لا يمكن الحجز: هذا التاريخ مسجل كإجازة رسمية / عطلة محظورة للطبيب.'
+                : '🛑 Cannot book: Doctor has an official holiday on this date.'
+            );
+          } else if (isWeekend) {
+            this.bookSlotsError.set(
+              this.translation.isArabic()
+                ? '🌴 لا يمكن الحجز: هذا التاريخ عطلة أسبوعية للطبيب ولا توجد وردية عمل مسجلة.'
+                : '🌴 Cannot book: Weekend day with no active working shift scheduled.'
+            );
+          } else {
+            this.bookSlotsError.set(
+              this.translation.isArabic()
+                ? 'ℹ️ لا توجد شرائح مواعيد شاغرة في هذا اليوم.'
+                : 'ℹ️ No available slots on this date.'
+            );
+          }
+        }
+      },
+      error: (err) => {
+        this.isLoadingBookSlots.set(false);
+        this.bookSlots.set([]);
+        this.bookSlotsError.set(
+          err.error?.detail ||
+            (this.translation.isArabic() ? 'تعذر تحميل المواعيد المتاحة.' : 'Failed to load slots.')
+        );
+      }
+    });
+  }
+
+  protected selectBookSlot(slot: AvailableSlotDto): void {
+    if (!slot.isAvailable) return;
+    this.bookSelectedSlot = slot;
+  }
+
+  protected submitBookAppointment(): void {
+    if (!this.bookPatientId || !this.bookDoctorId || !this.bookClinicId || !this.bookSelectedSlot) {
+      this.errorMessage.set(
+        this.translation.isArabic()
+          ? 'يرجى اختيار المريض والطبيب والفرع وتحديد شريحة الموعد المتاحة.'
+          : 'Please select patient, doctor, clinic, and appointment slot.'
+      );
+      return;
+    }
+
+    const doc = this.doctors().find((d) => d.id === this.bookDoctorId);
+    const tenantId = doc?.tenantId || (this.auth.currentUser()?.tenantId ?? '');
+
+    this.isBookingAppointment.set(true);
+    this.appointmentService
+      .bookAppointment({
+        tenantId,
+        doctorId: this.bookDoctorId,
+        patientId: this.bookPatientId,
+        clinicId: this.bookClinicId,
+        startTimeUtc: this.bookSelectedSlot.startTimeUtc,
+        endTimeUtc: this.bookSelectedSlot.endTimeUtc,
+        notes: this.bookNotes.trim() || undefined
+      })
+      .subscribe({
+        next: (appt) => {
+          this.isBookingAppointment.set(false);
+          this.isBookAppointmentModalOpen.set(false);
+          this.showMessage(
+            this.translation.isArabic()
+              ? 'تم حجز الموعد بنجاح للمريض!'
+              : 'Appointment successfully booked for patient!'
+          );
+          this.loadAllData();
+
+          if (this.bookImmediateCheckIn && appt?.id) {
+            this.checkInPatient(appt.id);
+          }
+        },
+        error: (err) => {
+          this.isBookingAppointment.set(false);
+          this.errorMessage.set(
+            err.error?.detail ||
+              (this.translation.isArabic()
+                ? 'فشل حجز الموعد، يرجى المحاولة مرة أخرى.'
+                : 'Booking failed. Please try again.')
+          );
+        }
+      });
   }
 
   protected loadQueue(): void {
