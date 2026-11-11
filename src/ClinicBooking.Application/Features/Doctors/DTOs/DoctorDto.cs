@@ -22,6 +22,13 @@ public sealed record DoctorClinicDto(
     decimal ConsultationFee,
     bool IsPrimary = false);
 
+public sealed record DoctorAvailabilityExceptionDto(
+    Guid Id,
+    DateTime StartUtc,
+    DateTime EndUtc,
+    string Reason,
+    bool IsBlocked);
+
 public sealed record DoctorDto(
     Guid Id,
     Guid TenantId,
@@ -38,4 +45,5 @@ public sealed record DoctorDto(
     string? FullName = null,
     string? Email = null,
     string? SpecialtyName = null,
-    IReadOnlyList<DoctorClinicDto>? DoctorClinics = null);
+    IReadOnlyList<DoctorClinicDto>? DoctorClinics = null,
+    IReadOnlyList<DoctorAvailabilityExceptionDto>? Exceptions = null);

@@ -417,8 +417,8 @@ public sealed class DatabaseSeeder
                 patientSarah.Id,
                 nileClinic.Id,
                 DateTimeRange.Create(startCancelled, startCancelled.AddMinutes(30)),
-                now.AddDays(-6));
-            apptCancelled.CancelByPatient("Work schedule conflict", 24, now.AddDays(-5));
+                now.AddDays(-7));
+            apptCancelled.CancelByPatient("Work schedule conflict", 24, now.AddDays(-6));
             await _dbContext.Appointments.AddAsync(apptCancelled, cancellationToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);

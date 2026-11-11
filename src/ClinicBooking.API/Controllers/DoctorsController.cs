@@ -3,6 +3,8 @@ using ClinicBooking.Application.Features.Doctors.Commands.AddAvailabilityExcepti
 using ClinicBooking.Application.Features.Doctors.Commands.AssignDoctorToClinic;
 using ClinicBooking.Application.Features.Doctors.Commands.CreateDoctor;
 using ClinicBooking.Application.Features.Doctors.Commands.RegisterDoctor;
+using ClinicBooking.Application.Features.Doctors.Commands.RemoveAvailabilityException;
+using ClinicBooking.Application.Features.Doctors.Commands.RemoveDoctorAvailability;
 using ClinicBooking.Application.Features.Doctors.Commands.RemoveDoctorFromClinic;
 using ClinicBooking.Application.Features.Doctors.Commands.SetDoctorAvailability;
 using ClinicBooking.Application.Features.Doctors.DTOs;
@@ -160,6 +162,40 @@ public sealed class DoctorsController : ApiControllerBase
             request.EndUtc,
             request.Reason);
 
+        var result = await Mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Remove an availability shift for a doctor (Doctor, Admin, or ClinicAdmin).
+    /// </summary>
+    [HttpDelete("{id:guid}/availability/{availabilityId:guid}")]
+    [Authorize(Roles = "Doctor,Admin,ClinicAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RemoveAvailability(
+        [FromRoute] Guid id,
+        [FromRoute] Guid availabilityId,
+        CancellationToken cancellationToken)
+    {
+        var command = new RemoveDoctorAvailabilityCommand(id, availabilityId);
+        var result = await Mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Remove an availability exception / holiday block for a doctor (Doctor, Admin, or ClinicAdmin).
+    /// </summary>
+    [HttpDelete("{id:guid}/availability-exceptions/{exceptionId:guid}")]
+    [Authorize(Roles = "Doctor,Admin,ClinicAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RemoveAvailabilityException(
+        [FromRoute] Guid id,
+        [FromRoute] Guid exceptionId,
+        CancellationToken cancellationToken)
+    {
+        var command = new RemoveAvailabilityExceptionCommand(id, exceptionId);
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

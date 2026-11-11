@@ -98,6 +98,13 @@ public sealed class GetDoctorsQueryHandler : IRequestHandler<GetDoctorsQuery, Re
                     new DoctorShiftDto(a.Shift.StartTime, a.Shift.EndTime));
             }).ToList();
 
+            var exceptions = d.Exceptions.Select(e => new DoctorAvailabilityExceptionDto(
+                e.Id,
+                e.Range.StartUtc,
+                e.Range.EndUtc,
+                e.Reason,
+                e.IsBlocked)).ToList();
+
             dtos.Add(new DoctorDto(
                 d.Id,
                 d.TenantId,
@@ -114,7 +121,8 @@ public sealed class GetDoctorsQueryHandler : IRequestHandler<GetDoctorsQuery, Re
                 fullName,
                 email,
                 specialtyName,
-                docClinics));
+                docClinics,
+                exceptions));
         }
 
         return Result.Success<IReadOnlyList<DoctorDto>>(dtos);

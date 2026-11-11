@@ -16,7 +16,14 @@ import { ReportingService } from '../../../core/services/reporting.service';
 import { TranslatePipe } from '../../../core/pipes/translate.pipe';
 import { DashboardStatsDto } from '../../../core/models/dashboard.models';
 import { AppointmentDto, AppointmentStatus } from '../../../core/models/appointment.models';
-import { ClinicDto, DoctorDto, SpecialtyDto } from '../../../core/models/doctor.models';
+import {
+  AvailableSlotDto,
+  ClinicDto,
+  DoctorDto,
+  SpecialtyDto,
+  SetDoctorAvailabilityRequest,
+  AddAvailabilityExceptionRequest
+} from '../../../core/models/doctor.models';
 import {
   ConsultationDto,
   InvoiceDto,
@@ -56,6 +63,7 @@ export type AdminTab =
   | 'billing'
   | 'appointments'
   | 'doctors'
+  | 'schedules'
   | 'clinics'
   | 'specialties'
   | 'staff'
@@ -109,7 +117,9 @@ export class DashboardComponent implements OnInit {
       case 'appointments':
         return isAr ? '📅 إدارة وجدول المواعيد والحجوزات' : '📅 Patient Appointments Management';
       case 'doctors':
-        return isAr ? '👨‍⚕️ دليل الأطباء ومواعيد العمل' : '👨‍⚕️ Doctors Directory & Weekly Schedules';
+        return isAr ? '👨‍⚕️ دليل الأطباء والكوادر الطبية' : '👨‍⚕️ Doctors & Medical Staff Directory';
+      case 'schedules':
+        return isAr ? '⏱️ جداول ومواعيد عمل الأطباء والعطلات الرسمية' : '⏱️ Doctor Working Schedules, Shifts & Holidays';
       case 'clinics':
         return isAr ? '🏥 الفروع والمراكز والعيادات' : '🏥 Clinic Facilities & Branch Management';
       case 'specialties':
@@ -161,6 +171,43 @@ export class DashboardComponent implements OnInit {
   protected patChronicConditions = '';
   protected patEmergencyContact = '';
   protected patPassword = '';
+
+  // Feature: Doctor Schedules, Shifts & Holidays State
+  protected readonly selectedScheduleDoctorId = signal<string>('');
+  protected readonly selectedScheduleDoctor = computed(() => {
+    return this.doctors().find((d) => d.id === this.selectedScheduleDoctorId()) || null;
+  });
+
+  protected readonly weekDays = [
+    { value: 0, nameEn: 'Sunday', nameAr: 'الأحد', isWeekend: false },
+    { value: 1, nameEn: 'Monday', nameAr: 'الإثنين', isWeekend: false },
+    { value: 2, nameEn: 'Tuesday', nameAr: 'الثلاثاء', isWeekend: false },
+    { value: 3, nameEn: 'Wednesday', nameAr: 'الأربعاء', isWeekend: false },
+    { value: 4, nameEn: 'Thursday', nameAr: 'الخميس', isWeekend: false },
+    { value: 5, nameEn: 'Friday', nameAr: 'الجمعة (عطلة نهاية الأسبوع)', isWeekend: true },
+    { value: 6, nameEn: 'Saturday', nameAr: 'السبت (عطلة نهاية الأسبوع)', isWeekend: true },
+  ];
+
+  protected scheduleClinicId = '';
+  protected scheduleDayOfWeek = 0;
+  protected scheduleStartTime = '09:00';
+  protected scheduleEndTime = '15:00';
+  protected readonly isSavingSchedule = signal(false);
+
+  // Holiday / Blackout Exception Form
+  protected holidayStartDate = '';
+  protected holidayEndDate = '';
+  protected holidayReason = 'إجازة رسمية / Official Holiday';
+  protected readonly isSavingHoliday = signal(false);
+
+  // Available Slots Live Calculator
+  protected previewSlotDate = '';
+  protected previewClinicId = '';
+  protected readonly previewSlots = signal<AvailableSlotDto[]>([]);
+  protected readonly isCheckingSlots = signal(false);
+  protected readonly previewSlotStatusMessage = signal<string | null>(null);
+
+  protected readonly isScheduleModalOpen = signal(false);
 
   // Feature 2: Patient Attachments State
   protected readonly patientAttachments = signal<MedicalAttachmentDto[]>([]);
@@ -269,6 +316,7 @@ export class DashboardComponent implements OnInit {
     billing: 'Screen.Billing',
     appointments: 'Screen.Appointments',
     doctors: 'Screen.Doctors',
+    schedules: 'Screen.Doctors',
     clinics: 'Screen.Clinics',
     specialties: 'Screen.Specialties',
     staff: 'Screen.Staff',
@@ -282,6 +330,9 @@ export class DashboardComponent implements OnInit {
     if (this.auth.isAdmin() || this.auth.isClinicAdmin()) return true;
     if (tab === 'reports' || tab === 'overview') {
       if (this.auth.isDoctor() || this.auth.isReceptionist()) return true;
+    }
+    if (tab === 'schedules' || tab === 'doctors') {
+      if (this.auth.isDoctor()) return true;
     }
     return this.auth.canAccessScreen(this.tabPermissions[tab]);
   }
@@ -603,7 +654,22 @@ export class DashboardComponent implements OnInit {
     });
 
     this.doctorService.getSpecialties().subscribe((sp) => this.specialties.set(sp));
-    this.doctorService.getDoctors(undefined, clinicId).subscribe((d) => this.doctors.set(d));
+    this.doctorService.getDoctors(undefined, clinicId).subscribe((d) => {
+      this.doctors.set(d);
+      if (d.length > 0 && !this.selectedScheduleDoctorId()) {
+        const user = this.auth.currentUser();
+        const myDoc = d.find((doc) => doc.userId === user?.id);
+        const targetDoc = myDoc || d[0];
+        this.selectedScheduleDoctorId.set(targetDoc.id);
+        if (targetDoc.doctorClinics && targetDoc.doctorClinics.length > 0) {
+          this.scheduleClinicId = targetDoc.doctorClinics[0].clinicId;
+          this.previewClinicId = targetDoc.doctorClinics[0].clinicId;
+        } else if (this.clinics().length > 0) {
+          this.scheduleClinicId = this.clinics()[0].id;
+          this.previewClinicId = this.clinics()[0].id;
+        }
+      }
+    });
 
     if (this.canAccessTab('staff')) {
       this.loadStaff();
@@ -697,6 +763,259 @@ export class DashboardComponent implements OnInit {
         this.errorMessage.set(
           err.error?.detail ||
             (this.translation.isArabic() ? 'فشل تسجيل المريض.' : 'Failed to register patient.')
+        );
+      }
+    });
+  }
+
+  // --- Doctor Schedules & Holidays Actions ---
+  protected openDoctorSchedule(doc: DoctorDto): void {
+    this.selectedScheduleDoctorId.set(doc.id);
+    if (doc.doctorClinics && doc.doctorClinics.length > 0) {
+      this.scheduleClinicId = doc.doctorClinics[0].clinicId;
+      this.previewClinicId = doc.doctorClinics[0].clinicId;
+    } else if (this.clinics().length > 0) {
+      this.scheduleClinicId = this.clinics()[0].id;
+      this.previewClinicId = this.clinics()[0].id;
+    }
+    this.refreshDoctorDetails(doc.id);
+    this.setTab('schedules');
+  }
+
+  protected openDoctorScheduleModal(doc: DoctorDto): void {
+    this.selectedScheduleDoctorId.set(doc.id);
+    if (doc.doctorClinics && doc.doctorClinics.length > 0) {
+      this.scheduleClinicId = doc.doctorClinics[0].clinicId;
+      this.previewClinicId = doc.doctorClinics[0].clinicId;
+    } else if (this.clinics().length > 0) {
+      this.scheduleClinicId = this.clinics()[0].id;
+      this.previewClinicId = this.clinics()[0].id;
+    }
+    this.refreshDoctorDetails(doc.id);
+    this.isScheduleModalOpen.set(true);
+  }
+
+  protected closeDoctorScheduleModal(): void {
+    this.isScheduleModalOpen.set(false);
+  }
+
+  protected refreshDoctorDetails(doctorId: string): void {
+    this.doctorService.getDoctorById(doctorId).subscribe({
+      next: (fullDoc) => {
+        this.doctors.update((prev) => prev.map((d) => (d.id === doctorId ? fullDoc : d)));
+      },
+      error: () => {}
+    });
+  }
+
+  protected onSelectScheduleDoctor(doctorId: string): void {
+    this.selectedScheduleDoctorId.set(doctorId);
+    const doc = this.doctors().find((d) => d.id === doctorId);
+    if (doc && doc.doctorClinics && doc.doctorClinics.length > 0) {
+      this.scheduleClinicId = doc.doctorClinics[0].clinicId;
+      this.previewClinicId = doc.doctorClinics[0].clinicId;
+    }
+    this.refreshDoctorDetails(doctorId);
+  }
+
+  protected saveDoctorAvailability(): void {
+    const docId = this.selectedScheduleDoctorId();
+    if (!docId || !this.scheduleClinicId) {
+      this.errorMessage.set(
+        this.translation.isArabic()
+          ? 'يرجى اختيار الطبيب والفرع لإضافة المناوبة.'
+          : 'Please select doctor and clinic branch.'
+      );
+      return;
+    }
+
+    if (this.scheduleStartTime >= this.scheduleEndTime) {
+      this.errorMessage.set(
+        this.translation.isArabic()
+          ? 'وقت بداية المناوبة يجب أن يكون قبل وقت نهايتها.'
+          : 'Shift start time must be earlier than end time.'
+      );
+      return;
+    }
+
+    this.isSavingSchedule.set(true);
+    const formattedStart = this.scheduleStartTime.length === 5 ? `${this.scheduleStartTime}:00` : this.scheduleStartTime;
+    const formattedEnd = this.scheduleEndTime.length === 5 ? `${this.scheduleEndTime}:00` : this.scheduleEndTime;
+
+    const req: SetDoctorAvailabilityRequest = {
+      clinicId: this.scheduleClinicId,
+      dayOfWeek: Number(this.scheduleDayOfWeek),
+      startTime: formattedStart,
+      endTime: formattedEnd
+    };
+
+    this.doctorService.setDoctorAvailability(docId, req).subscribe({
+      next: () => {
+        this.isSavingSchedule.set(false);
+        this.showMessage(
+          this.translation.isArabic()
+            ? 'تم إضافة وردية العمل الأسبوعية بنجاح!'
+            : 'Weekly shift scheduled successfully!'
+        );
+        this.refreshDoctorDetails(docId);
+      },
+      error: (err) => {
+        this.isSavingSchedule.set(false);
+        this.errorMessage.set(
+          err.error?.detail ||
+            (this.translation.isArabic()
+              ? 'فشل إضافة الوردية أو يوجد تعارض في ساعات العمل.'
+              : 'Failed to add shift or time overlap.')
+        );
+      }
+    });
+  }
+
+  protected deleteDoctorAvailability(availabilityId: string): void {
+    const docId = this.selectedScheduleDoctorId();
+    if (!docId || !availabilityId) return;
+
+    this.doctorService.removeDoctorAvailability(docId, availabilityId).subscribe({
+      next: () => {
+        this.showMessage(
+          this.translation.isArabic() ? 'تم إلغاء وردية العمل بنجاح.' : 'Shift removed successfully.'
+        );
+        this.refreshDoctorDetails(docId);
+      },
+      error: () =>
+        this.errorMessage.set(
+          this.translation.isArabic() ? 'فشل إلغاء الوردية.' : 'Failed to delete shift.'
+        )
+    });
+  }
+
+  protected saveDoctorHolidayException(): void {
+    const docId = this.selectedScheduleDoctorId();
+    if (!docId || !this.holidayStartDate || !this.holidayEndDate || !this.holidayReason.trim()) {
+      this.errorMessage.set(
+        this.translation.isArabic()
+          ? 'يرجى تحديد فترة الإجازة الرسمية (من/إلى) وكتابة سببها.'
+          : 'Please enter holiday start, end, and reason.'
+      );
+      return;
+    }
+
+    if (new Date(this.holidayStartDate) >= new Date(this.holidayEndDate)) {
+      this.errorMessage.set(
+        this.translation.isArabic()
+          ? 'تاريخ بداية الإجازة يجب أن يكون قبل تاريخ نهايتها.'
+          : 'Holiday start date must be earlier than end date.'
+      );
+      return;
+    }
+
+    this.isSavingHoliday.set(true);
+    const req: AddAvailabilityExceptionRequest = {
+      startUtc: new Date(this.holidayStartDate).toISOString(),
+      endUtc: new Date(this.holidayEndDate).toISOString(),
+      reason: this.holidayReason.trim()
+    };
+
+    this.doctorService.addAvailabilityException(docId, req).subscribe({
+      next: () => {
+        this.isSavingHoliday.set(false);
+        this.holidayStartDate = '';
+        this.holidayEndDate = '';
+        this.showMessage(
+          this.translation.isArabic()
+            ? 'تم اعتماد استثناء الإجازة/العطلة الرسمية وحظر الحجز في هذه الفترة!'
+            : 'Holiday exception added and booking blocked successfully!'
+        );
+        this.refreshDoctorDetails(docId);
+      },
+      error: (err) => {
+        this.isSavingHoliday.set(false);
+        this.errorMessage.set(
+          err.error?.detail ||
+            (this.translation.isArabic()
+              ? 'فشل تسجيل الإجازة.'
+              : 'Failed to record holiday exception.')
+        );
+      }
+    });
+  }
+
+  protected deleteDoctorHolidayException(exceptionId: string): void {
+    const docId = this.selectedScheduleDoctorId();
+    if (!docId || !exceptionId) return;
+
+    this.doctorService.removeAvailabilityException(docId, exceptionId).subscribe({
+      next: () => {
+        this.showMessage(
+          this.translation.isArabic()
+            ? 'تم إزالة استثناء الإجازة واستئناف العمل بشكل طبيعي.'
+            : 'Holiday exception removed.'
+        );
+        this.refreshDoctorDetails(docId);
+      },
+      error: () =>
+        this.errorMessage.set(
+          this.translation.isArabic() ? 'فشل إزالة الإجازة.' : 'Failed to remove holiday exception.'
+        )
+    });
+  }
+
+  protected testAvailableSlots(): void {
+    const docId = this.selectedScheduleDoctorId();
+    if (!docId || !this.previewClinicId || !this.previewSlotDate) {
+      this.previewSlotStatusMessage.set(
+        this.translation.isArabic()
+          ? 'يرجى اختيار الفرع والتاريخ لفحص المواعيد المتاحة.'
+          : 'Please choose clinic and date.'
+      );
+      return;
+    }
+
+    this.isCheckingSlots.set(true);
+    this.previewSlotStatusMessage.set(null);
+    this.previewSlots.set([]);
+
+    this.doctorService.getAvailableSlots(docId, this.previewClinicId, this.previewSlotDate).subscribe({
+      next: (slots) => {
+        this.isCheckingSlots.set(false);
+        this.previewSlots.set(slots);
+        if (slots.length === 0) {
+          const doc = this.selectedScheduleDoctor();
+          const targetDate = new Date(this.previewSlotDate);
+          const dayOfWeek = targetDate.getDay();
+          const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+          const isException = doc?.exceptions?.some((e) => {
+            const s = new Date(e.startUtc);
+            const en = new Date(e.endUtc);
+            return targetDate >= s && targetDate <= en;
+          });
+
+          if (isException) {
+            this.previewSlotStatusMessage.set(
+              this.translation.isArabic()
+                ? '🛑 لا توجد مواعيد: هذا التاريخ مسجل كإجازة رسمية / عطلة محظورة للطبيب.'
+                : '🛑 No slots: This date is blocked as an official holiday / exception.'
+            );
+          } else if (isWeekend) {
+            this.previewSlotStatusMessage.set(
+              this.translation.isArabic()
+                ? '🌴 لا توجد مواعيد: هذا التاريخ عطلة أسبوعية للطبيب (لم تسجل وردية عمل يوم الجمعة أو السبت).'
+                : '🌴 No slots: Weekend day with no active shift scheduled.'
+            );
+          } else {
+            this.previewSlotStatusMessage.set(
+              this.translation.isArabic()
+                ? 'ℹ️ لا توجد شرائح مواعيد متاحة في هذا اليوم (قد تكون جميعها محجوزة أو خارج ساعات العمل).'
+                : 'ℹ️ No available slots on this day.'
+            );
+          }
+        }
+      },
+      error: (err) => {
+        this.isCheckingSlots.set(false);
+        this.previewSlotStatusMessage.set(
+          err.error?.detail ||
+            (this.translation.isArabic() ? 'تعذر جلب المواعيد.' : 'Failed to query slots.')
         );
       }
     });

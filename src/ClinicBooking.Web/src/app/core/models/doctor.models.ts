@@ -41,6 +41,27 @@ export interface DoctorClinicDto {
   consultationFee?: number;
 }
 
+export interface DoctorAvailabilityExceptionDto {
+  id: string;
+  startUtc: string;
+  endUtc: string;
+  reason: string;
+  isBlocked: boolean;
+}
+
+export interface SetDoctorAvailabilityRequest {
+  clinicId: string;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
+  startTime: string; // HH:mm:ss
+  endTime: string;   // HH:mm:ss
+}
+
+export interface AddAvailabilityExceptionRequest {
+  startUtc: string;
+  endUtc: string;
+  reason: string;
+}
+
 export interface DoctorDto {
   id: string;
   userId: string;
@@ -57,6 +78,7 @@ export interface DoctorDto {
   isActive: boolean;
   doctorClinics: DoctorClinicDto[];
   availabilities: DoctorAvailabilityDto[];
+  exceptions?: DoctorAvailabilityExceptionDto[];
 }
 
 export interface AvailableSlotDto {

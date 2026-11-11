@@ -3,9 +3,11 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  AddAvailabilityExceptionRequest,
   AvailableSlotDto,
   ClinicDto,
   DoctorDto,
+  SetDoctorAvailabilityRequest,
   SpecialtyDto
 } from '../models/doctor.models';
 
@@ -53,6 +55,44 @@ export class DoctorService {
     return this.http.get<AvailableSlotDto[]>(
       `${environment.apiUrl}/appointments/available-slots`,
       { params }
+    );
+  }
+
+  public setDoctorAvailability(
+    doctorId: string,
+    request: SetDoctorAvailabilityRequest
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/doctors/${doctorId}/availability`,
+      request
+    );
+  }
+
+  public removeDoctorAvailability(
+    doctorId: string,
+    availabilityId: string
+  ): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/doctors/${doctorId}/availability/${availabilityId}`
+    );
+  }
+
+  public addAvailabilityException(
+    doctorId: string,
+    request: AddAvailabilityExceptionRequest
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/doctors/${doctorId}/availability-exceptions`,
+      request
+    );
+  }
+
+  public removeAvailabilityException(
+    doctorId: string,
+    exceptionId: string
+  ): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/doctors/${doctorId}/availability-exceptions/${exceptionId}`
     );
   }
 }

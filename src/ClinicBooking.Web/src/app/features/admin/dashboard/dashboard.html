@@ -217,6 +217,20 @@
         </button>
       }
 
+      @if (canAccessTab('schedules')) {
+        <button
+          (click)="setTab('schedules')"
+          [class.active]="activeTab() === 'schedules'"
+          class="sidebar-nav-item"
+          title="{{ translation.isArabic() ? 'مواعيد وجداول الأطباء والإجازات الرسمية' : 'Doctor Schedules & Holidays' }}"
+        >
+          <span class="nav-icon">⏱️</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">{{ translation.isArabic() ? 'مواعيد وجداول الأطباء' : 'Doctor Schedules' }}</span>
+          }
+        </button>
+      }
+
       @if (canAccessTab('clinics')) {
         <button
           (click)="setTab('clinics')"
@@ -1498,9 +1512,323 @@
             <span>{{ translation.isArabic() ? 'الكشف: ' : 'Fee: ' }}<strong>{{ (doc.doctorClinics.length > 0 && doc.doctorClinics[0].consultationFee) ? doc.doctorClinics[0].consultationFee + ' ' + (translation.isArabic() ? 'ج.م' : 'EGP') : (translation.isArabic() ? 'افتراضي' : 'Standard') }}</strong></span>
             <span>{{ translation.isArabic() ? 'الفروع: ' : 'Branches: ' }}<strong>{{ doc.doctorClinics.length }}</strong></span>
           </div>
+
+          <div class="card-actions mt-3">
+            <button (click)="openDoctorSchedule(doc)" class="btn btn-outline btn-sm w-100">
+              ⏱️ {{ translation.isArabic() ? 'إدارة المواعيد والورديات والعطلات' : 'Manage Shifts & Holidays' }}
+            </button>
+          </div>
         </div>
       }
     </div>
+  }
+
+  <!-- TAB: DOCTOR SCHEDULES, SHIFTS & HOLIDAYS -->
+  @if (activeTab() === 'schedules') {
+    <div class="tab-header">
+      <div>
+        <h3>⏱️ {{ translation.isArabic() ? 'إدارة مواعيد وجداول عمل الأطباء والإجازات الرسمية' : 'Doctor Working Schedules, Shifts & Official Holidays' }}</h3>
+        <p class="text-muted m-0">
+          {{ translation.isArabic()
+            ? 'تحديد الورديات وساعات العمل الأسبوعية (مع إمكانية العمل أو التعطيل في العطلات الأسبوعية الجمعة والسبت)، وتسجيل الإجازات الرسمية والسنوية وحظر الحجز.'
+            : 'Configure weekly shifts (including weekend work on Friday/Saturday or off), and record official holidays, leaves, and blackout periods.' }}
+        </p>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <select
+          [ngModel]="selectedScheduleDoctorId()"
+          (ngModelChange)="onSelectScheduleDoctor($event)"
+          class="form-select form-select-sm"
+          style="min-width: 260px;"
+        >
+          @for (d of doctors(); track d.id) {
+            <option [value]="d.id">👨‍⚕️ {{ d.fullName }} ({{ d.specialtyName || 'Doctor' }})</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (selectedScheduleDoctor(); as doc) {
+      <!-- Doctor Profile Summary Pill -->
+      <div class="card p-3 mt-3 border bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <span style="font-size: 2.2rem;">👨‍⚕️</span>
+          <div>
+            <h4 class="m-0">{{ doc.fullName }}</h4>
+            <div class="text-muted small">
+              <span>🩺 {{ doc.specialtyName }}</span> &bull;
+              <span>🆔 {{ translation.isArabic() ? 'ترخيص: ' : 'Lic: ' }}{{ doc.licenseNumber }}</span> &bull;
+              <span>⏳ {{ translation.isArabic() ? 'مدة الكشف الافتراضية: ' : 'Slot Duration: ' }}<strong>{{ doc.defaultSlotDurationMinutes }} {{ translation.isArabic() ? 'دقيقة' : 'mins' }}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <span class="badge badge-confirmed">
+            🏥 {{ doc.doctorClinics.length || 0 }} {{ translation.isArabic() ? 'فروع معتمدة' : 'Branches' }}
+          </span>
+          <span class="badge badge-in-consultation">
+            ⏱️ {{ doc.availabilities.length || 0 }} {{ translation.isArabic() ? 'ورديات أسبوعية' : 'Shifts' }}
+          </span>
+          <span class="badge" [class.badge-cancelled]="(doc.exceptions?.length || 0) > 0" [class.badge-scheduled]="(doc.exceptions?.length || 0) === 0">
+            🛑 {{ doc.exceptions?.length || 0 }} {{ translation.isArabic() ? 'إجازات معتمدة' : 'Holidays' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="grid-2 mt-4 gap-4">
+        <!-- LEFT COLUMN: WEEKLY SHIFTS & WEEKEND RULES -->
+        <div class="card p-4">
+          <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <div>
+              <h4 class="m-0">📅 {{ translation.isArabic() ? 'الورديات ومواعيد العمل الأسبوعية' : 'Weekly Shifts & Schedule' }}</h4>
+              <p class="text-muted m-0 small">{{ translation.isArabic() ? 'حدد مواعيد البداية والنهاية لكل يوم (بما في ذلك الجمعة والسبت إن وجد عمل).' : 'Set shifts across weekdays and weekends (Friday & Saturday).' }}</p>
+            </div>
+          </div>
+
+          <!-- Add Shift Form -->
+          <form (ngSubmit)="saveDoctorAvailability()" class="p-3 bg-light rounded border mb-4">
+            <h5 class="mb-3 text-primary">➕ {{ translation.isArabic() ? 'إضافة وردية عمل أسبوعية جديدة' : 'Add New Weekly Shift' }}</h5>
+            <div class="grid-2 gap-2">
+              <div class="form-group mb-2">
+                <label class="form-label small">{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }}</label>
+                <select [(ngModel)]="scheduleClinicId" name="scheduleClinicId" class="form-select form-select-sm" required>
+                  @for (c of clinics(); track c.id) {
+                    <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group mb-2">
+                <label class="form-label small">
+                  {{ translation.isArabic() ? 'يوم الأسبوع' : 'Day of Week' }}
+                </label>
+                <select [(ngModel)]="scheduleDayOfWeek" name="scheduleDayOfWeek" class="form-select form-select-sm" required>
+                  @for (w of weekDays; track w.value) {
+                    <option [value]="w.value">
+                      {{ translation.isArabic() ? w.nameAr : w.nameEn }}
+                    </option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2 gap-2 mt-2">
+              <div class="form-group mb-2">
+                <label class="form-label small">{{ translation.isArabic() ? 'وقت البدء' : 'Shift Start Time' }}</label>
+                <input type="time" [(ngModel)]="scheduleStartTime" name="scheduleStartTime" class="form-control form-control-sm" required />
+              </div>
+
+              <div class="form-group mb-2">
+                <label class="form-label small">{{ translation.isArabic() ? 'وقت الانتهاء' : 'Shift End Time' }}</label>
+                <input type="time" [(ngModel)]="scheduleEndTime" name="scheduleEndTime" class="form-control form-control-sm" required />
+              </div>
+            </div>
+
+            <!-- Weekend Alert Note -->
+            @if (scheduleDayOfWeek == 5 || scheduleDayOfWeek == 6) {
+              <div class="alert alert-info py-1 px-2 mt-2 small" style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 6px;">
+                💡 <strong>{{ translation.isArabic() ? 'تنبيه العطلة الأسبوعية:' : 'Weekend Notice:' }}</strong>
+                {{ translation.isArabic()
+                  ? 'أنت بصدد تفعيل وردية عمل في يوم عطلة أسبوعية (الجمعة أو السبت). سيتمكن المرضى من حجز مواعيد في هذا اليوم وفقاً لهذه الساعات.'
+                  : 'You are scheduling a working shift on a weekend (Friday or Saturday). Patients will be able to book slots during these hours.' }}
+              </div>
+            }
+
+            <button type="submit" [disabled]="isSavingSchedule() || !scheduleClinicId" class="btn btn-primary btn-sm w-100 mt-3">
+              💾 {{ isSavingSchedule() ? (translation.isArabic() ? 'جاري الحفظ...' : 'Saving...') : (translation.isArabic() ? 'اعتماد وحفظ الوردية الأسبوعية' : 'Save Weekly Shift') }}
+            </button>
+          </form>
+
+          <!-- Current Active Shifts Table -->
+          <h5 class="mb-2">📋 {{ translation.isArabic() ? 'جدول الورديات الأسبوعية المعتمدة' : 'Active Weekly Schedule' }}</h5>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{{ translation.isArabic() ? 'اليوم' : 'Day' }}</th>
+                  <th>{{ translation.isArabic() ? 'نوع اليوم' : 'Day Type' }}</th>
+                  <th>{{ translation.isArabic() ? 'الفرع' : 'Clinic' }}</th>
+                  <th>{{ translation.isArabic() ? 'ساعات العمل' : 'Hours' }}</th>
+                  <th>{{ translation.isArabic() ? 'إجراء' : 'Action' }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of doc.availabilities; track a.id) {
+                  <tr>
+                    <td><strong>{{ a.dayName || (translation.isArabic() ? weekDays[a.dayOfWeek].nameAr : weekDays[a.dayOfWeek].nameEn) }}</strong></td>
+                    <td>
+                      @if (a.dayOfWeek === 5 || a.dayOfWeek === 6) {
+                        <span class="badge badge-in-consultation">✨ {{ translation.isArabic() ? 'عمل في العطلة الأسبوعية' : 'Weekend Shift' }}</span>
+                      } @else {
+                        <span class="badge badge-scheduled">{{ translation.isArabic() ? 'يوم عمل عادي' : 'Regular Weekday' }}</span>
+                      }
+                    </td>
+                    <td>{{ a.clinicName || 'Clinic Branch' }}</td>
+                    <td><strong class="text-primary">{{ a.shift.startTime }} &mdash; {{ a.shift.endTime }}</strong></td>
+                    <td>
+                      <button (click)="deleteDoctorAvailability(a.id)" class="btn btn-outline btn-xs text-danger" title="{{ translation.isArabic() ? 'إلغاء الوردية' : 'Remove' }}">
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                      {{ translation.isArabic() ? 'لا توجد ورديات عمل مسجلة لهذا الطبيب حتى الآن. استخدم النموذج أعلاه لإضافة ساعات العمل.' : 'No weekly shifts scheduled yet. Use form above to add shifts.' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: OFFICIAL HOLIDAYS, LEAVES & LIVE CHECKER -->
+        <div class="d-flex flex-column gap-4">
+          <!-- 1. OFFICIAL HOLIDAYS & BLACKOUT EXCEPTIONS -->
+          <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+              <div>
+                <h4 class="m-0">🛑 {{ translation.isArabic() ? 'استثناءات الإجازات الرسمية والعطلات والغياب' : 'Official Holidays & Vacation Blackouts' }}</h4>
+                <p class="text-muted m-0 small">{{ translation.isArabic() ? 'تسجيل إجازات رسمية (أعياد، مناسبات وطنية، إجازات سنوية) لحظر الحجز تلقائياً.' : 'Block bookings during official state holidays, annual leaves, and emergency closures.' }}</p>
+              </div>
+            </div>
+
+            <!-- Add Exception Form -->
+            <form (ngSubmit)="saveDoctorHolidayException()" class="p-3 bg-light rounded border mb-3">
+              <h5 class="mb-3 text-danger">🛑 {{ translation.isArabic() ? 'إضافة استثناء إجازة رسمية / حظر حجز' : 'Add Official Holiday / Block' }}</h5>
+              <div class="grid-2 gap-2">
+                <div class="form-group mb-2">
+                  <label class="form-label small">{{ translation.isArabic() ? 'بداية الإجازة' : 'Holiday Start Date/Time' }} <span class="text-danger">*</span></label>
+                  <input type="datetime-local" [(ngModel)]="holidayStartDate" name="holidayStartDate" class="form-control form-control-sm" required />
+                </div>
+
+                <div class="form-group mb-2">
+                  <label class="form-label small">{{ translation.isArabic() ? 'نهاية الإجازة' : 'Holiday End Date/Time' }} <span class="text-danger">*</span></label>
+                  <input type="datetime-local" [(ngModel)]="holidayEndDate" name="holidayEndDate" class="form-control form-control-sm" required />
+                </div>
+              </div>
+
+              <div class="form-group mb-2 mt-1">
+                <label class="form-label small">{{ translation.isArabic() ? 'سبب الإجازة / اسم المناسبة الرسمية' : 'Holiday Reason / Title' }} <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  [(ngModel)]="holidayReason"
+                  name="holidayReason"
+                  class="form-control form-control-sm"
+                  [placeholder]="translation.isArabic() ? 'مثال: إجازة عيد الفطر المبارك / 6 أكتوبر / إجازة سنوية' : 'e.g. Eid Official Holiday / Annual Leave'"
+                  required
+                />
+              </div>
+
+              <button type="submit" [disabled]="isSavingHoliday() || !holidayStartDate || !holidayEndDate || !holidayReason" class="btn btn-danger btn-sm w-100 mt-2">
+                🛑 {{ isSavingHoliday() ? (translation.isArabic() ? 'جاري التسجيل...' : 'Saving...') : (translation.isArabic() ? 'حظر المواعيد وإقرار الإجازة الرسمية' : 'Block Bookings & Confirm Holiday') }}
+              </button>
+            </form>
+
+            <!-- Active Holidays & Exceptions Table -->
+            <h5 class="mb-2">🏖️ {{ translation.isArabic() ? 'الإجازات والعطلات المسجلة' : 'Recorded Holidays & Blackouts' }}</h5>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>{{ translation.isArabic() ? 'المناسبة / السبب' : 'Holiday / Reason' }}</th>
+                    <th>{{ translation.isArabic() ? 'من' : 'From' }}</th>
+                    <th>{{ translation.isArabic() ? 'إلى' : 'To' }}</th>
+                    <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+                    <th>{{ translation.isArabic() ? 'إجراء' : 'Action' }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ex of doc.exceptions; track ex.id) {
+                    <tr>
+                      <td><strong>{{ ex.reason }}</strong></td>
+                      <td><small>{{ ex.startUtc | date:'short' }}</small></td>
+                      <td><small>{{ ex.endUtc | date:'short' }}</small></td>
+                      <td>
+                        <span class="badge badge-cancelled">🛑 {{ translation.isArabic() ? 'محظور الحجز' : 'Blocked' }}</span>
+                      </td>
+                      <td>
+                        <button (click)="deleteDoctorHolidayException(ex.id)" class="btn btn-outline btn-xs text-danger" title="{{ translation.isArabic() ? 'إلغاء الإجازة واستئناف العمل' : 'Remove' }}">
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="text-center py-3 text-muted">
+                        {{ translation.isArabic() ? 'لا توجد إجازات رسمية أو استثناءات مسجلة حالياً.' : 'No active holidays or blackout exceptions on file.' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 2. LIVE AVAILABLE SLOTS PREVIEW & TESTER -->
+          <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+              <div>
+                <h4 class="m-0">🔍 {{ translation.isArabic() ? 'مستكشف واختبار المواعيد المتاحة للحجز' : 'Live Available Slots Simulator' }}</h4>
+                <p class="text-muted m-0 small">{{ translation.isArabic() ? 'اختر تاريخاً وفرعاً للتحقق من المواعيد الناتجة مع مراعاة العطلات الأسبوعية والإجازات الرسمية.' : 'Test slots generation for any future date with weekend & holiday rule evaluation.' }}</p>
+              </div>
+            </div>
+
+            <div class="grid-2 gap-2 mb-3">
+              <div class="form-group mb-0">
+                <label class="form-label small">{{ translation.isArabic() ? 'اختر الفرع' : 'Select Branch' }}</label>
+                <select [(ngModel)]="previewClinicId" class="form-select form-select-sm">
+                  @for (c of clinics(); track c.id) {
+                    <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group mb-0">
+                <label class="form-label small">{{ translation.isArabic() ? 'اختر تاريخ اليوم' : 'Select Date' }}</label>
+                <input type="date" [(ngModel)]="previewSlotDate" class="form-control form-control-sm" />
+              </div>
+            </div>
+
+            <button (click)="testAvailableSlots()" [disabled]="isCheckingSlots() || !previewClinicId || !previewSlotDate" class="btn btn-primary btn-sm w-100">
+              ⚡ {{ isCheckingSlots() ? (translation.isArabic() ? 'جاري الفحص والتوليد...' : 'Evaluating...') : (translation.isArabic() ? 'فحص واختبار المواعيد المتاحة لهذا اليوم' : 'Check & Preview Available Slots') }}
+            </button>
+
+            @if (previewSlotStatusMessage()) {
+              <div class="alert alert-warning mt-3 p-2 small">
+                {{ previewSlotStatusMessage() }}
+              </div>
+            }
+
+            @if (previewSlots().length > 0) {
+              <div class="mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <strong class="text-success small">
+                    ✓ {{ previewSlots().length }} {{ translation.isArabic() ? 'موعد متاح للحجز' : 'Slots Available' }}
+                  </strong>
+                  <span class="small text-muted">{{ translation.isArabic() ? 'مدة الكشف: ' : 'Duration: ' }}{{ doc.defaultSlotDurationMinutes }} {{ translation.isArabic() ? 'دقيقة' : 'mins' }}</span>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2" style="max-height: 180px; overflow-y: auto;">
+                  @for (s of previewSlots(); track s.startTimeUtc) {
+                    <span class="badge" [class.badge-confirmed]="s.isAvailable" [class.badge-cancelled]="!s.isAvailable" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+                      🕒 {{ s.startLocal }} - {{ s.endLocal }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="card text-center py-5 mt-3">
+        <span style="font-size: 3rem;">👨‍⚕️</span>
+        <h4 class="mt-2">{{ translation.isArabic() ? 'يرجى اختيار طبيب لعرض جدول عمله وإجازاته' : 'Select a doctor to manage their schedule & holidays' }}</h4>
+      </div>
+    }
   }
 
   <!-- TAB 8: CLINICS -->

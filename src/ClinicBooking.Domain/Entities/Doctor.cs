@@ -153,6 +153,24 @@ public sealed class Doctor : AggregateRoot<Guid>, IAuditableEntity, IMustHaveTen
         _exceptions.Add(exception);
     }
 
+    public void RemoveAvailability(Guid availabilityId)
+    {
+        var existing = _availabilities.FirstOrDefault(a => a.Id == availabilityId);
+        if (existing is not null)
+        {
+            _availabilities.Remove(existing);
+        }
+    }
+
+    public void RemoveBlackoutException(Guid exceptionId)
+    {
+        var existing = _exceptions.FirstOrDefault(e => e.Id == exceptionId);
+        if (existing is not null)
+        {
+            _exceptions.Remove(existing);
+        }
+    }
+
     public bool IsBlockedAt(DateTimeRange range)
     {
         return _exceptions.Any(e => e.IsBlocked && e.Range.OverlapsWith(range));

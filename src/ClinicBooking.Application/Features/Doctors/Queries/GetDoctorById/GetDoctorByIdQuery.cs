@@ -87,6 +87,13 @@ public sealed class GetDoctorByIdQueryHandler : IRequestHandler<GetDoctorByIdQue
                 new DoctorShiftDto(a.Shift.StartTime, a.Shift.EndTime));
         }).ToList();
 
+        var exceptions = doctor.Exceptions.Select(e => new DoctorAvailabilityExceptionDto(
+            e.Id,
+            e.Range.StartUtc,
+            e.Range.EndUtc,
+            e.Reason,
+            e.IsBlocked)).ToList();
+
         var dto = new DoctorDto(
             doctor.Id,
             doctor.TenantId,
@@ -103,7 +110,8 @@ public sealed class GetDoctorByIdQueryHandler : IRequestHandler<GetDoctorByIdQue
             fullName,
             email,
             specialtyName,
-            docClinics);
+            docClinics,
+            exceptions);
 
         return Result.Success(dto);
     }
