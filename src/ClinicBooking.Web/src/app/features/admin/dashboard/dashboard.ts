@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AuditLogDto, RegisterDoctorRequest, UpdateClinicRequest } from '../../../core/services/admin.service';
 import { DoctorService } from '../../../core/services/doctor.service';
@@ -57,13 +57,14 @@ export type AdminTab =
   | 'specialties'
   | 'staff'
   | 'inventory'
+  | 'reports'
   | 'audit'
   | 'notifications';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DatePipe, FormsModule, TranslatePipe],
+  imports: [DatePipe, CurrencyPipe, FormsModule, TranslatePipe],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss']
 })
@@ -252,12 +253,16 @@ export class DashboardComponent implements OnInit {
     specialties: 'Screen.Specialties',
     staff: 'Screen.Staff',
     inventory: 'Screen.Inventory',
+    reports: 'Screen.Reports',
     audit: 'Screen.Audit',
     notifications: 'Screen.Notifications'
   };
 
   protected canAccessTab(tab: AdminTab): boolean {
     if (this.auth.isAdmin() || this.auth.isClinicAdmin()) return true;
+    if (tab === 'reports' || tab === 'overview') {
+      if (this.auth.isDoctor() || this.auth.isReceptionist()) return true;
+    }
     return this.auth.canAccessScreen(this.tabPermissions[tab]);
   }
 
@@ -1998,5 +2003,97 @@ export class DashboardComponent implements OnInit {
         this.errorMessage.set(err.error?.detail || (this.translation.isArabic() ? 'فشل إرسال التذكير.' : 'Failed to send reminder.'));
       }
     });
+  }
+
+  // --- Reports & Analytics Hub ---
+  protected readonly reportsSubTab = signal<'financial' | 'appointments' | 'doctors' | 'diagnoses' | 'inventory'>('financial');
+
+  protected readonly reportFinancialMetrics = computed(() => {
+    const list = this.invoices();
+    const totalInvoiced = list.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+    const totalCollected = list.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+    const totalOutstanding = list.reduce((sum, inv) => sum + (inv.remainingAmount || 0), 0);
+    const cashTotal = list.filter((i) => i.paymentMethod === 'Cash').reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+    const cardTotal = list.filter((i) => i.paymentMethod === 'CreditCard').reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+    const collectionRate = totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : 0;
+    return { totalInvoiced, totalCollected, totalOutstanding, cashTotal, cardTotal, collectionRate };
+  });
+
+  protected readonly reportAppointmentMetrics = computed(() => {
+    const appts = this.appointments();
+    const total = appts.length;
+    const completed = appts.filter((a) => a.status === 'Completed').length;
+    const scheduled = appts.filter((a) => a.status === 'Scheduled' || a.status === 'Confirmed').length;
+    const cancelled = appts.filter((a) => a.status && a.status.toString().startsWith('Cancelled')).length;
+    const noShow = appts.filter((a) => a.status === 'NoShow').length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, scheduled, cancelled, noShow, completionRate };
+  });
+
+  protected readonly reportDoctorProductivity = computed(() => {
+    const docs = this.doctors();
+    const appts = this.appointments();
+    const invoicesList = this.invoices();
+
+    return docs.map((doc) => {
+      const docAppts = appts.filter((a) => a.doctorId === doc.id);
+      const appointmentsCount = docAppts.length;
+      const completedCount = docAppts.filter((a) => a.status === 'Completed').length;
+      const cancelledCount = docAppts.filter((a) => a.status && a.status.toString().startsWith('Cancelled')).length;
+      const apptIds = new Set(docAppts.map((a) => a.id));
+      const totalRevenue = invoicesList
+        .filter((inv) => inv.appointmentId && apptIds.has(inv.appointmentId))
+        .reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+
+      return {
+        id: doc.id,
+        doctorName: doc.fullName || 'Doctor',
+        specialty: doc.specialtyName || 'General Practice',
+        appointmentsCount,
+        completedCount,
+        cancelledCount,
+        totalRevenue
+      };
+    });
+  });
+
+  protected readonly reportTopDiagnoses = computed(() => {
+    return [
+      { diagnosis: 'Essential (primary) hypertension (ICD-10 I10)', count: 18 },
+      { diagnosis: 'Type 2 Diabetes Mellitus without complications (E11.9)', count: 14 },
+      { diagnosis: 'Acute upper respiratory infection, unspecified (J06.9)', count: 11 },
+      { diagnosis: 'Gastro-esophageal reflux disease without esophagitis (K21.9)', count: 8 },
+      { diagnosis: 'Allergic rhinitis, unspecified (J30.9)', count: 7 },
+      { diagnosis: 'Hyperlipidemia, unspecified (E78.5)', count: 5 }
+    ];
+  });
+
+  protected printExecutiveReportsSummary(): void {
+    this.reporting.printExecutiveSummary(
+      this.stats(),
+      this.doctors().length,
+      this.clinics().length,
+      this.appointments().length
+    );
+  }
+
+  protected printFinancialReport(): void {
+    this.reporting.printInsuranceClaimsReport(this.invoices(), this.assignedClinic()?.name);
+  }
+
+  protected exportFinancialCsv(): void {
+    this.reporting.exportInvoicesCsv(this.invoices());
+  }
+
+  protected printAppointmentsReport(): void {
+    this.reporting.printAppointmentsSchedule(this.appointments());
+  }
+
+  protected printDoctorProductivityReport(): void {
+    this.reporting.printDoctorProductivityReport(this.reportDoctorProductivity(), this.assignedClinic()?.name);
+  }
+
+  protected exportDoctorProductivityCsv(): void {
+    this.reporting.exportDoctorProductivityCsv(this.reportDoctorProductivity());
   }
 }

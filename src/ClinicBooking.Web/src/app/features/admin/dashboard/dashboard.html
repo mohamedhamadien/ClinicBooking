@@ -145,6 +145,59 @@
         </button>
       }
 
+      <!-- Section: Reports & Analytics (Dedicated Split Category) -->
+      <div class="nav-category-header">
+        @if (!isSidebarCollapsed()) { <span>{{ translation.isArabic() ? 'التقارير والإحصائيات' : 'REPORTS & ANALYTICS' }}</span> }
+      </div>
+
+      @if (canAccessTab('reports')) {
+        <button
+          (click)="setTab('reports')"
+          [class.active]="activeTab() === 'reports'"
+          class="sidebar-nav-item"
+          title="{{ translation.isArabic() ? 'التقارير والإحصائيات الشاملة' : 'Reports & Analytics Hub' }}"
+        >
+          <span class="nav-icon">📈</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">{{ translation.isArabic() ? 'مركز التقارير التحليلية' : 'Reports & Analytics' }}</span>
+          }
+        </button>
+      }
+
+      @if (canAccessTab('audit')) {
+        <button
+          (click)="setTab('audit')"
+          [class.active]="activeTab() === 'audit'"
+          class="sidebar-nav-item"
+          title="{{ translation.isArabic() ? 'سجل الرقابة والتدقيق' : 'Audit Trail & Compliance' }}"
+        >
+          <span class="nav-icon">🛡️</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">{{ translation.isArabic() ? 'سجل الرقابة والتدقيق' : 'Audit Trail' }}</span>
+            @if (auditLogs().length > 0) {
+              <span class="nav-counter" style="background: #6366f1; color: #fff;">{{ auditLogs().length }}</span>
+            }
+          }
+        </button>
+      }
+
+      @if (canAccessTab('notifications')) {
+        <button
+          (click)="setTab('notifications')"
+          [class.active]="activeTab() === 'notifications'"
+          class="sidebar-nav-item"
+          title="{{ translation.isArabic() ? 'التنبيهات ورسائل التذكير' : 'Notifications & Reminders' }}"
+        >
+          <span class="nav-icon">💬</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">{{ translation.isArabic() ? 'سجل التنبيهات والتذكير' : 'Notifications' }}</span>
+            @if (notificationLogs().length > 0) {
+              <span class="nav-counter" style="background: #10b981; color: #fff;">{{ notificationLogs().length }}</span>
+            }
+          }
+        </button>
+      }
+
       <!-- Section: Clinic & Personnel Setup -->
       <div class="nav-category-header">
         @if (!isSidebarCollapsed()) { <span>{{ translation.isArabic() ? 'الإدارة والإعدادات' : 'ADMINISTRATION' }}</span> }
@@ -223,40 +276,6 @@
               <span class="nav-counter" style="background: #ef4444; color: #fff;" title="Low stock alert">{{ lowStockCount() }}</span>
             } @else if (inventoryItems().length > 0) {
               <span class="nav-counter">{{ inventoryItems().length }}</span>
-            }
-          }
-        </button>
-      }
-
-      @if (canAccessTab('audit')) {
-        <button
-          (click)="setTab('audit')"
-          [class.active]="activeTab() === 'audit'"
-          class="sidebar-nav-item"
-          title="{{ translation.isArabic() ? 'سجل الرقابة والتدقيق' : 'Audit Trail & Compliance' }}"
-        >
-          <span class="nav-icon">🛡️</span>
-          @if (!isSidebarCollapsed()) {
-            <span class="nav-text">{{ translation.isArabic() ? 'سجل الرقابة والتدقيق' : 'Audit Trail' }}</span>
-            @if (auditLogs().length > 0) {
-              <span class="nav-counter" style="background: #6366f1; color: #fff;">{{ auditLogs().length }}</span>
-            }
-          }
-        </button>
-      }
-
-      @if (canAccessTab('notifications')) {
-        <button
-          (click)="setTab('notifications')"
-          [class.active]="activeTab() === 'notifications'"
-          class="sidebar-nav-item"
-          title="{{ translation.isArabic() ? 'التنبيهات ورسائل التذكير' : 'Notifications & Reminders' }}"
-        >
-          <span class="nav-icon">💬</span>
-          @if (!isSidebarCollapsed()) {
-            <span class="nav-text">{{ translation.isArabic() ? 'التنبيهات والتذكير' : 'Notifications' }}</span>
-            @if (notificationLogs().length > 0) {
-              <span class="nav-counter" style="background: #10b981; color: #fff;">{{ notificationLogs().length }}</span>
             }
           }
         </button>
@@ -1722,6 +1741,302 @@
         </table>
       </div>
     </div>
+  }
+
+  <!-- TAB: REPORTS & ANALYTICS HUB -->
+  @if (activeTab() === 'reports') {
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="m-0">📈 {{ translation.isArabic() ? 'مركز التقارير والإحصائيات التحليلية' : 'Reports & Analytical Intelligence Hub' }}</h3>
+        <p class="text-muted m-0 small">{{ translation.isArabic() ? 'لوحة تحكم تنفيذية موحدة لتقارير الإيرادات المالية، تدفق المرضى، إنتاجية الكادر الطبي، ومؤشرات التشخيص السريري.' : 'Unified executive hub for financial revenue statements, patient flow manifests, doctor clinical productivity, and diagnosis indices.' }}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button (click)="printExecutiveReportsSummary()" class="btn btn-primary btn-sm">
+          🖨️ {{ translation.isArabic() ? 'طباعة التقرير التنفيذي الشامل (PDF)' : 'Print Executive Summary (PDF)' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Reports Hub Sub-Navigation Pills -->
+    <div class="card p-2 mb-3">
+      <div class="d-flex gap-2 flex-wrap">
+        <button
+          (click)="reportsSubTab.set('financial')"
+          [class.btn-primary]="reportsSubTab() === 'financial'"
+          [class.btn-outline]="reportsSubTab() !== 'financial'"
+          class="btn btn-sm"
+        >
+          💰 {{ translation.isArabic() ? 'الإيرادات والتحصيل المالي' : 'Financial Revenue' }}
+        </button>
+        <button
+          (click)="reportsSubTab.set('appointments')"
+          [class.btn-primary]="reportsSubTab() === 'appointments'"
+          [class.btn-outline]="reportsSubTab() !== 'appointments'"
+          class="btn btn-sm"
+        >
+          📅 {{ translation.isArabic() ? 'تدفق المواعيد والكشوفات' : 'Appointments & Patient Flow' }}
+        </button>
+        <button
+          (click)="reportsSubTab.set('doctors')"
+          [class.btn-primary]="reportsSubTab() === 'doctors'"
+          [class.btn-outline]="reportsSubTab() !== 'doctors'"
+          class="btn btn-sm"
+        >
+          👨‍⚕️ {{ translation.isArabic() ? 'إنتاجية الأطباء والاستشارات' : 'Doctor Productivity' }}
+        </button>
+        <button
+          (click)="reportsSubTab.set('diagnoses')"
+          [class.btn-primary]="reportsSubTab() === 'diagnoses'"
+          [class.btn-outline]="reportsSubTab() !== 'diagnoses'"
+          class="btn btn-sm"
+        >
+          🩺 {{ translation.isArabic() ? 'التشخيصات والأمراض الشائعة' : 'Top Clinical Diagnoses' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- SUB-TAB 1: FINANCIAL & REVENUE -->
+    @if (reportsSubTab() === 'financial') {
+      <div class="stats-grid mb-3">
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">💳</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'إجمالي المطالبات والفواتير' : 'Total Invoiced' }}</span>
+            <span class="stat-value">{{ reportFinancialMetrics().totalInvoiced | currency:'EGP ':'symbol':'1.0-0' }}</span>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(22, 163, 74, 0.1); color: #16a34a;">💵</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'إجمالي التحصيل الفعلي' : 'Total Collected' }}</span>
+            <span class="stat-value text-success">{{ reportFinancialMetrics().totalCollected | currency:'EGP ':'symbol':'1.0-0' }}</span>
+            <small class="text-muted">{{ reportFinancialMetrics().collectionRate }}% {{ translation.isArabic() ? 'نسبة التحصيل' : 'Collection Rate' }}</small>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;">⏳</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'المستحقات المتبقية غير المسددة' : 'Outstanding Balance' }}</span>
+            <span class="stat-value text-danger">{{ reportFinancialMetrics().totalOutstanding | currency:'EGP ':'symbol':'1.0-0' }}</span>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">🏧</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'نقد (كاش) / بطاقات إلكترونية' : 'Cash / Electronic Card' }}</span>
+            <span class="stat-value small">{{ reportFinancialMetrics().cashTotal | currency:'EGP ':'symbol':'1.0-0' }} / {{ reportFinancialMetrics().cardTotal | currency:'EGP ':'symbol':'1.0-0' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="card-header d-flex justify-content-between align-items-center p-3">
+          <strong>{{ translation.isArabic() ? 'بيان فواتير الخدمات والتحصيل' : 'Billing & Collections Detailed Statement' }}</strong>
+          <div class="d-flex gap-2">
+            <button (click)="printFinancialReport()" class="btn btn-outline btn-sm">
+              🖨️ {{ translation.isArabic() ? 'طباعة التقرير المالي' : 'Print Statement' }}
+            </button>
+            <button (click)="exportFinancialCsv()" class="btn btn-outline btn-sm">
+              📥 {{ translation.isArabic() ? 'تصدير إكسل CSV' : 'Export CSV' }}
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ translation.isArabic() ? 'رقم الفاتورة' : 'Invoice #' }}</th>
+                <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
+                <th>{{ translation.isArabic() ? 'الإجمالي' : 'Total' }}</th>
+                <th>{{ translation.isArabic() ? 'المسدد' : 'Paid' }}</th>
+                <th>{{ translation.isArabic() ? 'المتبقي' : 'Balance' }}</th>
+                <th>{{ translation.isArabic() ? 'طريقة الدفع' : 'Payment Method' }}</th>
+                <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+                <th>{{ translation.isArabic() ? 'تاريخ الإصدار' : 'Issued Date' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (inv of invoices(); track inv.id) {
+                <tr>
+                  <td><strong>{{ inv.invoiceNumber }}</strong></td>
+                  <td>{{ inv.patientName || 'Patient' }}</td>
+                  <td>{{ inv.totalAmount | currency:'EGP ':'symbol':'1.2-2' }}</td>
+                  <td class="text-success font-weight-bold">{{ inv.paidAmount | currency:'EGP ':'symbol':'1.2-2' }}</td>
+                  <td [class.text-danger]="(inv.remainingAmount || 0) > 0">
+                    {{ (inv.remainingAmount || 0) | currency:'EGP ':'symbol':'1.2-2' }}
+                  </td>
+                  <td>{{ inv.paymentMethod }}</td>
+                  <td>
+                    <span class="badge" [class]="inv.status === 'Paid' ? 'badge-confirmed' : inv.status === 'PartiallyPaid' ? 'badge-in-consultation' : 'badge-scheduled'">
+                      {{ inv.status === 'Paid' ? (translation.isArabic() ? 'مدفوع بالكامل' : 'Paid in Full') : inv.status === 'PartiallyPaid' ? (translation.isArabic() ? 'مدفوع جزئياً' : 'Partially Paid') : (translation.isArabic() ? 'قيد السداد' : 'Pending') }}
+                    </span>
+                  </td>
+                  <td><small class="text-muted">{{ inv.issuedAtUtc | date:'mediumDate' }}</small></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- SUB-TAB 2: APPOINTMENTS & FLOW -->
+    @if (reportsSubTab() === 'appointments') {
+      <div class="stats-grid mb-3">
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">🗓️</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'إجمالي الحجوزات المسجلة' : 'Total Appointments' }}</span>
+            <span class="stat-value">{{ reportAppointmentMetrics().total }}</span>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(22, 163, 74, 0.1); color: #16a34a;">✅</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'الكشوفات المكتملة' : 'Completed Consultations' }}</span>
+            <span class="stat-value text-success">{{ reportAppointmentMetrics().completed }}</span>
+            <small class="text-muted">{{ reportAppointmentMetrics().completionRate }}% {{ translation.isArabic() ? 'نسبة الإنجاز' : 'Completion Rate' }}</small>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(234, 179, 8, 0.1); color: #ca8a04;">⏰</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'المواعيد القادمة والمؤكدة' : 'Upcoming & Scheduled' }}</span>
+            <span class="stat-value text-warning">{{ reportAppointmentMetrics().scheduled }}</span>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">🚫</div>
+          <div class="stat-data">
+            <span class="stat-label">{{ translation.isArabic() ? 'الإلغاءات والتغيب' : 'Cancelled / No-Show' }}</span>
+            <span class="stat-value text-danger">{{ reportAppointmentMetrics().cancelled + reportAppointmentMetrics().noShow }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="card-header d-flex justify-content-between align-items-center p-3">
+          <strong>{{ translation.isArabic() ? 'جدول المواعيد وسجل التدفق السريري' : 'Appointments Schedule & Manifest' }}</strong>
+          <div class="d-flex gap-2">
+            <button (click)="printAppointmentsReport()" class="btn btn-outline btn-sm">
+              🖨️ {{ translation.isArabic() ? 'طباعة بيان المواعيد' : 'Print Manifest' }}
+            </button>
+            <button (click)="exportAppointmentsCsv()" class="btn btn-outline btn-sm">
+              📥 {{ translation.isArabic() ? 'تصدير إكسل CSV' : 'Export CSV' }}
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
+                <th>{{ translation.isArabic() ? 'الطبيب' : 'Doctor' }}</th>
+                <th>{{ translation.isArabic() ? 'العيادة / الفرع' : 'Clinic Branch' }}</th>
+                <th>{{ translation.isArabic() ? 'التاريخ والوقت' : 'Date & Time' }}</th>
+                <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+                <th>{{ translation.isArabic() ? 'سبب الزيارة' : 'Reason' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (appt of appointments(); track appt.id) {
+                <tr>
+                  <td><strong>{{ appt.patientName || 'Patient' }}</strong></td>
+                  <td>{{ appt.doctorName || 'Doctor' }}</td>
+                  <td>{{ appt.clinicName || 'Clinic' }}</td>
+                  <td>
+                    <div>{{ appt.startTimeUtc | date:'mediumDate' }}</div>
+                    <small class="text-muted">{{ appt.startTimeUtc | date:'shortTime' }}</small>
+                  </td>
+                  <td>
+                    <span class="badge" [class]="getBadgeClass(appt.status)">{{ appt.status }}</span>
+                  </td>
+                  <td><small>{{ appt.notes || '-' }}</small></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- SUB-TAB 3: DOCTOR PRODUCTIVITY -->
+    @if (reportsSubTab() === 'doctors') {
+      <div class="card table-card">
+        <div class="card-header d-flex justify-content-between align-items-center p-3">
+          <strong>{{ translation.isArabic() ? 'تقرير إنتاجية الأطباء وحجم الاستشارات' : 'Doctor Clinical Productivity & Performance' }}</strong>
+          <div class="d-flex gap-2">
+            <button (click)="printDoctorProductivityReport()" class="btn btn-outline btn-sm">
+              🖨️ {{ translation.isArabic() ? 'طباعة تقرير الإنتاجية' : 'Print Report' }}
+            </button>
+            <button (click)="exportDoctorProductivityCsv()" class="btn btn-outline btn-sm">
+              📥 {{ translation.isArabic() ? 'تصدير إكسل CSV' : 'Export CSV' }}
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{{ translation.isArabic() ? 'اسم الطبيب' : 'Doctor Name' }}</th>
+                <th>{{ translation.isArabic() ? 'التخصص الطبي' : 'Specialty' }}</th>
+                <th class="text-center">{{ translation.isArabic() ? 'إجمالي الحجوزات' : 'Total Bookings' }}</th>
+                <th class="text-center">{{ translation.isArabic() ? 'الكشوفات المكتملة' : 'Completed' }}</th>
+                <th class="text-center">{{ translation.isArabic() ? 'الملغاة / المتغيب' : 'Cancelled/No-show' }}</th>
+                <th class="text-end">{{ translation.isArabic() ? 'الإيرادات المحصلة' : 'Revenue Generated' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of reportDoctorProductivity(); track d.id; let idx = $index) {
+                <tr>
+                  <td><strong>{{ idx + 1 }}</strong></td>
+                  <td><strong>{{ d.doctorName }}</strong></td>
+                  <td><span class="badge badge-scheduled">{{ d.specialty }}</span></td>
+                  <td class="text-center">{{ d.appointmentsCount }}</td>
+                  <td class="text-center text-success font-weight-bold">{{ d.completedCount }}</td>
+                  <td class="text-center text-danger">{{ d.cancelledCount }}</td>
+                  <td class="text-end font-weight-bold">{{ d.totalRevenue | currency:'EGP ':'symbol':'1.0-0' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- SUB-TAB 4: TOP DIAGNOSES -->
+    @if (reportsSubTab() === 'diagnoses') {
+      <div class="card p-3">
+        <h4 class="mb-3">🩺 {{ translation.isArabic() ? 'مؤشر التشخيصات الطبية والأمراض الأكثر شيوعاً' : 'Clinical Morbidity & Top Diagnoses Index' }}</h4>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{{ translation.isArabic() ? 'التشخيص الطبي السريري (ICD-10)' : 'Clinical Diagnosis' }}</th>
+                <th class="text-center">{{ translation.isArabic() ? 'عدد الحالات المسجلة' : 'Frequency / Cases' }}</th>
+                <th>{{ translation.isArabic() ? 'المعدل النسبي' : 'Relative Frequency' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (diag of reportTopDiagnoses(); track diag.diagnosis; let idx = $index) {
+                <tr>
+                  <td>{{ idx + 1 }}</td>
+                  <td><strong>{{ diag.diagnosis }}</strong></td>
+                  <td class="text-center"><span class="badge badge-confirmed">{{ diag.count }}</span></td>
+                  <td style="width: 40%;">
+                    <div style="background: #e2e8f0; height: 10px; border-radius: 5px; overflow: hidden;">
+                      <div [style.width.%]="(diag.count / reportTopDiagnoses()[0].count) * 100" style="background: linear-gradient(90deg, #2563eb, #38bdf8); height: 100%;"></div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
   }
 
   <!-- TAB 12: AUDIT LOGS & COMPLIANCE -->

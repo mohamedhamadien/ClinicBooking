@@ -1312,4 +1312,74 @@ export class ReportingService {
 
     this.downloadCsv(`clinic_services_pricelist_${new Date().toISOString().slice(0, 10)}`, headers, rows);
   }
+
+  public printDoctorProductivityReport(doctorsData: any[], clinicName?: string): void {
+    const isAr = this.translation.isArabic();
+    const title = isAr ? 'تقرير إنتاجية الأطباء والاستشارات' : 'Doctor Clinical Productivity Report';
+
+    const rowsHtml = doctorsData
+      .map(
+        (d, idx) => `
+        <tr>
+          <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
+          <td><strong>${d.doctorName}</strong></td>
+          <td>${d.specialty}</td>
+          <td style="text-align: center;">${d.appointmentsCount}</td>
+          <td style="text-align: center; color: #16a34a; font-weight: bold;">${d.completedCount}</td>
+          <td style="text-align: center; color: #dc2626;">${d.cancelledCount}</td>
+          <td style="text-align: right; font-weight: bold;">${d.totalRevenue.toFixed(2)} EGP</td>
+        </tr>
+      `
+      )
+      .join('');
+
+    const bodyHtml = `
+      <div style="margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #2563eb; display: flex; justify-content: space-between;">
+        <div>
+          <h2 style="margin: 0; color: #1e3a8a;">${title}</h2>
+          <p style="margin: 4px 0 0; color: #64748b;">${clinicName || (isAr ? 'المركز الطبي العام' : 'General Medical Center')}</p>
+        </div>
+        <div style="text-align: right; font-size: 12px; color: #64748b;">
+          <div>${isAr ? 'تاريخ التقرير:' : 'Generated At:'} ${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</div>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+            <th style="padding: 10px; border: 1px solid #e2e8f0;">#</th>
+            <th style="padding: 10px; border: 1px solid #e2e8f0;">${isAr ? 'اسم الطبيب' : 'Doctor Name'}</th>
+            <th style="padding: 10px; border: 1px solid #e2e8f0;">${isAr ? 'التخصص' : 'Specialty'}</th>
+            <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;">${isAr ? 'إجمالي الحجوزات' : 'Total Bookings'}</th>
+            <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;">${isAr ? 'الكشوفات المكتملة' : 'Completed'}</th>
+            <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;">${isAr ? 'الملغاة / المتغيب' : 'Cancelled/No-show'}</th>
+            <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: right;">${isAr ? 'إجمالي الإيرادات' : 'Revenue'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml || `<tr><td colspan="7" style="text-align: center; padding: 20px;">${isAr ? 'لا توجد بيانات متاحة' : 'No doctor records found'}</td></tr>`}
+        </tbody>
+      </table>
+    `;
+
+    this.printHtmlReport(title, bodyHtml);
+  }
+
+  public exportDoctorProductivityCsv(doctorsData: any[]): void {
+    const isAr = this.translation.isArabic();
+    const headers = isAr
+      ? ['اسم الطبيب', 'التخصص', 'إجمالي الحجوزات', 'الكشوفات المكتملة', 'الملغاة', 'إجمالي الإيرادات (ج.م)']
+      : ['Doctor Name', 'Specialty', 'Total Bookings', 'Completed', 'Cancelled', 'Revenue (EGP)'];
+
+    const rows = doctorsData.map((d) => [
+      d.doctorName,
+      d.specialty,
+      d.appointmentsCount,
+      d.completedCount,
+      d.cancelledCount,
+      d.totalRevenue
+    ]);
+
+    this.downloadCsv(`doctor_productivity_report_${new Date().toISOString().slice(0, 10)}`, headers, rows);
+  }
 }
