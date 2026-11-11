@@ -81,7 +81,9 @@ public sealed class AppointmentRepository : IAppointmentRepository
         Guid? clinicId = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.Appointments.Where(a => a.TenantId == tenantId);
+        var query = tenantId == Guid.Empty
+            ? _dbContext.Appointments.AsQueryable()
+            : _dbContext.Appointments.Where(a => a.TenantId == tenantId);
 
         if (clinicId.HasValue)
         {

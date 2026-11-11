@@ -35,8 +35,12 @@ public sealed class GetClinicQueueQueryHandler : IRequestHandler<GetClinicQueueQ
         var targetDate = request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow.Date;
         var nextDate = targetDate.AddDays(1);
 
+        var clinic = await _clinicRepository.GetByIdAsync(request.ClinicId, cancellationToken);
+        var clinicName = clinic?.NameEn ?? "Clinic";
+        var effectiveTenantId = request.TenantId != Guid.Empty ? request.TenantId : (clinic?.TenantId ?? Guid.Empty);
+
         var appointments = await _appointmentRepository.GetAllAppointmentsAsync(
-            request.TenantId,
+            effectiveTenantId,
             targetDate,
             nextDate,
             null,
@@ -53,9 +57,6 @@ public sealed class GetClinicQueueQueryHandler : IRequestHandler<GetClinicQueueQ
             .OrderBy(a => a.QueueNumber ?? 999)
             .ThenBy(a => a.StartTimeUtc)
             .ToList();
-
-        var clinic = await _clinicRepository.GetByIdAsync(request.ClinicId, cancellationToken);
-        var clinicName = clinic?.NameEn ?? "Clinic";
 
         var dtos = new List<QueueItemDto>();
 

@@ -22,7 +22,7 @@ public sealed class ClinicRepository : IClinicRepository
     {
         return await _dbContext.Clinics
             .AsNoTracking()
-            .Where(c => c.TenantId == tenantId && c.IsActive)
+            .Where(c => (tenantId == Guid.Empty || c.TenantId == tenantId) && c.IsActive)
             .OrderBy(c => c.NameEn)
             .ToListAsync(cancellationToken);
     }

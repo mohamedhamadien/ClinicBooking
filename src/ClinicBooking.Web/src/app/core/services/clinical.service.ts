@@ -6,6 +6,8 @@ import {
   ConsultationDto,
   InvoiceDto,
   PatientMedicalRecordDto,
+  PatientSummaryDto,
+  CreatePatientRequest,
   PaymentMethod,
   PrescriptionDto,
   QueueItemDto
@@ -56,6 +58,17 @@ export class ClinicalService {
     labRequests?: string;
   }): Observable<ConsultationDto> {
     return this.http.post<ConsultationDto>(`${environment.apiUrl}/consultations`, command);
+  }
+
+  // --- Patients Management ---
+  public getPatients(search?: string): Observable<PatientSummaryDto[]> {
+    let params = new HttpParams();
+    if (search) params = params.set('search', search);
+    return this.http.get<PatientSummaryDto[]>(`${environment.apiUrl}/patients`, { params });
+  }
+
+  public createPatient(data: CreatePatientRequest): Observable<PatientSummaryDto> {
+    return this.http.post<PatientSummaryDto>(`${environment.apiUrl}/patients`, data);
   }
 
   public getPatientMedicalRecord(patientId: string): Observable<PatientMedicalRecordDto> {

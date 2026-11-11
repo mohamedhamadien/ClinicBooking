@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { DatePipe, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AdminService, AuditLogDto, RegisterDoctorRequest, UpdateClinicRequest } from '../../../core/services/admin.service';
 import { DoctorService } from '../../../core/services/doctor.service';
 import { ClinicalService } from '../../../core/services/clinical.service';
@@ -20,6 +21,8 @@ import {
   ConsultationDto,
   InvoiceDto,
   PatientMedicalRecordDto,
+  PatientSummaryDto,
+  CreatePatientRequest,
   PrescriptionDto,
   QueueItemDto
 } from '../../../core/models/clinical.models';
@@ -64,7 +67,7 @@ export type AdminTab =
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, FormsModule, TranslatePipe],
+  imports: [DatePipe, CurrencyPipe, FormsModule, TranslatePipe, RouterLink],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss']
 })
@@ -141,6 +144,23 @@ export class DashboardComponent implements OnInit {
   protected readonly queueItems = signal<QueueItemDto[]>([]);
   protected readonly invoices = signal<InvoiceDto[]>([]);
   protected readonly patientRecord = signal<PatientMedicalRecordDto | null>(null);
+
+  // Feature: Patients Directory & Registration
+  protected readonly patients = signal<PatientSummaryDto[]>([]);
+  protected readonly isAddPatientModalOpen = signal(false);
+  protected readonly isSubmittingPatient = signal(false);
+  protected patientSearchTerm = '';
+  protected patFirstName = '';
+  protected patLastName = '';
+  protected patEmail = '';
+  protected patPhone = '';
+  protected patDob = '';
+  protected patGender = 'Male';
+  protected patBloodGroup = '';
+  protected patAllergies = '';
+  protected patChronicConditions = '';
+  protected patEmergencyContact = '';
+  protected patPassword = '';
 
   // Feature 2: Patient Attachments State
   protected readonly patientAttachments = signal<MedicalAttachmentDto[]>([]);
@@ -549,12 +569,16 @@ export class DashboardComponent implements OnInit {
       this.loadPermissionsCatalog();
     } else if (tab === 'inventory') {
       this.loadInventory();
+    } else if (tab === 'records') {
+      this.loadPatients();
     }
   }
 
   protected loadAllData(): void {
     this.loading.set(true);
     const clinicId = this.assignedClinicId() || undefined;
+
+    this.loadPatients();
 
     this.adminService.getDashboardStats(clinicId).subscribe({
       next: (s) => this.stats.set(s),
@@ -596,6 +620,88 @@ export class DashboardComponent implements OnInit {
   }
 
   // --- Queue Actions ---
+  protected openQueueTv(): void {
+    window.open('/queue/tv', '_blank');
+  }
+
+  // --- Patients Directory & Registration Actions ---
+  protected loadPatients(search?: string): void {
+    this.clinicalService.getPatients(search).subscribe({
+      next: (list) => this.patients.set(list),
+      error: () => {}
+    });
+  }
+
+  protected onSearchPatients(): void {
+    this.loadPatients(this.patientSearchTerm);
+  }
+
+  protected openAddPatientModal(): void {
+    this.patFirstName = '';
+    this.patLastName = '';
+    this.patEmail = '';
+    this.patPhone = '';
+    this.patDob = '';
+    this.patGender = 'Male';
+    this.patBloodGroup = '';
+    this.patAllergies = '';
+    this.patChronicConditions = '';
+    this.patEmergencyContact = '';
+    this.patPassword = '';
+    this.isAddPatientModalOpen.set(true);
+  }
+
+  protected closeAddPatientModal(): void {
+    this.isAddPatientModalOpen.set(false);
+  }
+
+  protected submitNewPatient(): void {
+    if (!this.patFirstName.trim() || !this.patLastName.trim() || !this.patDob) {
+      this.errorMessage.set(
+        this.translation.isArabic()
+          ? 'يرجى إدخال الاسم الأول، اسم العائلة، وتاريخ الميلاد للمريض.'
+          : 'Please enter First Name, Last Name, and Date of Birth.'
+      );
+      return;
+    }
+
+    this.isSubmittingPatient.set(true);
+    const req: CreatePatientRequest = {
+      firstName: this.patFirstName.trim(),
+      lastName: this.patLastName.trim(),
+      email: this.patEmail.trim() || undefined,
+      phoneNumber: this.patPhone.trim() || undefined,
+      dateOfBirth: this.patDob,
+      gender: this.patGender,
+      bloodGroup: this.patBloodGroup || undefined,
+      allergies: this.patAllergies.trim() || undefined,
+      chronicConditions: this.patChronicConditions.trim() || undefined,
+      emergencyContact: this.patEmergencyContact.trim() || undefined,
+      password: this.patPassword.trim() || undefined
+    };
+
+    this.clinicalService.createPatient(req).subscribe({
+      next: (patient) => {
+        this.isSubmittingPatient.set(false);
+        this.isAddPatientModalOpen.set(false);
+        this.patients.update((prev) => [patient, ...prev]);
+        this.showMessage(
+          this.translation.isArabic()
+            ? `تم تسجيل المريض "${patient.fullName}" بنجاح في المنظومة الطبية!`
+            : `Patient "${patient.fullName}" registered successfully!`
+        );
+        this.viewPatientRecord(patient.id);
+      },
+      error: (err) => {
+        this.isSubmittingPatient.set(false);
+        this.errorMessage.set(
+          err.error?.detail ||
+            (this.translation.isArabic() ? 'فشل تسجيل المريض.' : 'Failed to register patient.')
+        );
+      }
+    });
+  }
+
   protected loadQueue(): void {
     const clinicId = this.assignedClinicId() || this.selectedClinicId;
     if (!clinicId) return;

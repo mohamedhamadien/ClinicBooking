@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ClinicalService } from '../../../core/services/clinical.service';
 import { DoctorService } from '../../../core/services/doctor.service';
 import { TranslationService } from '../../../core/services/translation.service';
@@ -18,6 +18,7 @@ import { ClinicDto } from '../../../core/models/doctor.models';
 export class QueueTvDisplayComponent implements OnInit, OnDestroy {
   private readonly clinicalService = inject(ClinicalService);
   private readonly doctorService = inject(DoctorService);
+  private readonly route = inject(ActivatedRoute);
   protected readonly translation = inject(TranslationService);
 
   protected readonly clinics = signal<ClinicDto[]>([]);
@@ -64,14 +65,20 @@ export class QueueTvDisplayComponent implements OnInit, OnDestroy {
   }
 
   protected loadClinics(): void {
+    const qClinicId = this.route.snapshot.queryParamMap.get('clinicId');
     this.doctorService.getClinics().subscribe({
       next: (clinics: ClinicDto[]) => {
         this.clinics.set(clinics);
-        if (clinics.length > 0) {
+        if (qClinicId && clinics.some((c) => c.id === qClinicId)) {
+          this.selectedClinicId = qClinicId;
+        } else if (clinics.length > 0) {
           this.selectedClinicId = clinics[0].id;
+        }
+        if (this.selectedClinicId) {
           this.refreshQueue();
         }
-      }
+      },
+      error: () => {}
     });
   }
 
@@ -85,7 +92,8 @@ export class QueueTvDisplayComponent implements OnInit, OnDestroy {
       next: (items: QueueItemDto[]) => {
         this.queueItems.set(items);
         this.checkAndPlayChime();
-      }
+      },
+      error: () => {}
     });
   }
 

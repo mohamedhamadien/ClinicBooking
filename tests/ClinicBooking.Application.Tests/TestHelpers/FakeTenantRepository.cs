@@ -6,6 +6,7 @@ namespace ClinicBooking.Application.Tests.TestHelpers;
 public class FakeTenantRepository : ITenantRepository
 {
     private readonly List<Tenant> _tenants = [];
+    public IReadOnlyList<Tenant> Tenants => _tenants.AsReadOnly();
 
     public void Seed(params Tenant[] tenants) => _tenants.AddRange(tenants);
 

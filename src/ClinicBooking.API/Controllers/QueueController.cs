@@ -51,9 +51,10 @@ public sealed class QueueController : ApiControllerBase
     }
 
     /// <summary>
-    /// Retrieve current waiting room queue and token status for a clinic location (Doctor, Admin, ClinicAdmin).
+    /// Retrieve current waiting room queue and token status for a clinic location (TV screens, Doctor, Admin, ClinicAdmin).
     /// </summary>
     [HttpGet("clinic/{clinicId:guid}")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(IReadOnlyList<QueueItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<QueueItemDto>>> GetQueue(
         [FromRoute] Guid clinicId,

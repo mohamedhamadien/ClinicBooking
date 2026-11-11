@@ -446,9 +446,12 @@
             }
           </select>
         }
-        <a routerLink="/queue/tv" target="_blank" class="btn btn-primary btn-sm" title="Launch Waiting Room TV Display">
+        <a routerLink="/queue/tv" (click)="openQueueTv(); $event.preventDefault()" target="_blank" class="btn btn-primary btn-sm" title="Launch Waiting Room TV Display">
           📺 {{ translation.isArabic() ? 'شاشة صالة الانتظار (TV)' : 'Smart TV Display' }}
         </a>
+        <button (click)="openAddPatientModal()" class="btn btn-success btn-sm">
+          ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد' : 'Register Walk-in Patient' }}
+        </button>
         <button (click)="printQueueReport()" class="btn btn-outline btn-sm">
           🖨️ {{ translation.isArabic() ? 'طباعة كشف الانتظار' : 'Print Queue Sheet' }}
         </button>
@@ -772,13 +775,21 @@
         <h3>🗂️ {{ translation.isArabic() ? 'السجلات الطبية وملفات المرضى (EMR)' : 'Patient Medical Records & Clinical Chart (EMR)' }}</h3>
         <p class="text-muted m-0">{{ translation.isArabic() ? 'الملف الطبي الموحد للمريض يشمل تاريخ الكشوفات السابقة، الروشتات، والحساسيات.' : 'Centralized electronic health record with past visit histories, prescriptions, and allergies.' }}</p>
       </div>
-      <div class="d-flex gap-2">
-        <select #patientSelect (change)="viewPatientRecord(patientSelect.value)" class="form-select form-select-sm">
+      <div class="d-flex gap-2 align-items-center">
+        <button (click)="openAddPatientModal()" class="btn btn-primary btn-sm">
+          ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد' : '+ Register New Patient' }}
+        </button>
+        <select #patientSelect (change)="patientSelect.value && viewPatientRecord(patientSelect.value)" class="form-select form-select-sm" style="min-width: 260px;">
           <option value="">{{ translation.isArabic() ? '-- اختر المريض لعرض سجله الطبي --' : '-- Select Patient to View EMR --' }}</option>
-          @for (a of appointments(); track a.id) {
-            <option [value]="a.patientId">{{ a.patientName || a.patientId.slice(0, 8) }}</option>
+          @for (p of patients(); track p.id) {
+            <option [value]="p.id">{{ p.fullName }} ({{ p.phoneNumber || p.email }})</option>
           }
         </select>
+        @if (patientRecord()) {
+          <button (click)="patientRecord.set(null)" class="btn btn-outline btn-sm">
+            👥 {{ translation.isArabic() ? 'دليل المرضى' : 'Patients Directory' }}
+          </button>
+        }
       </div>
     </div>
 
@@ -998,10 +1009,98 @@
         </div>
       </div>
     } @else {
-      <div class="card text-center py-5 mt-3">
-        <span style="font-size: 3rem;">🗂️</span>
-        <h4 class="mt-2">{{ translation.isArabic() ? 'اختر مريضاً لعرض سجله الطبي الإلكتروني (EMR)' : 'Select a Patient to Open Their EMR Chart' }}</h4>
-        <p class="text-muted">{{ translation.isArabic() ? 'اختر أي مريض من القائمة المنسدلة بالأعلى أو من جدول المواعيد للاطلاع على تاريخه الطبي وفحوصاته.' : 'Choose any patient from the dropdown above or from the appointments roster to inspect their clinical records.' }}</p>
+      <!-- Patients Directory Hub -->
+      <div class="card p-4 mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h4 class="m-0">👥 {{ translation.isArabic() ? 'دليل وسجل المرضى العام' : 'Patients Directory & Registry' }} ({{ patients().length }})</h4>
+            <p class="text-muted m-0 small">{{ translation.isArabic() ? 'قائمة المرضى المسجلين في العيادة مع إمكانية البحث الفوري وفتح الملف الطبي أو تسجيل مريض جديد.' : 'Registered patients registry with instant search and 1-click access to full EMR clinical dossier.' }}</p>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <div class="input-group input-group-sm">
+              <input
+                type="text"
+                [(ngModel)]="patientSearchTerm"
+                (input)="onSearchPatients()"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'بحث بالاسم، الهاتف، أو البريد...' : 'Search name, phone, or email...'"
+                style="min-width: 240px;"
+              />
+            </div>
+            <button (click)="openAddPatientModal()" class="btn btn-primary btn-sm">
+              ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد' : '+ Register Patient' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ translation.isArabic() ? 'اسم المريض' : 'Patient Name' }}</th>
+                <th>{{ translation.isArabic() ? 'بيانات الاتصال' : 'Contact Info' }}</th>
+                <th>{{ translation.isArabic() ? 'تاريخ الميلاد / النوع' : 'DOB / Gender' }}</th>
+                <th>{{ translation.isArabic() ? 'فصيلة الدم' : 'Blood Group' }}</th>
+                <th>{{ translation.isArabic() ? 'الحساسية والأمراض المزمنة' : 'Allergies & Conditions' }}</th>
+                <th>{{ translation.isArabic() ? 'تاريخ التسجيل' : 'Registered Date' }}</th>
+                <th>{{ translation.isArabic() ? 'الإجراء' : 'Action' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of patients(); track p.id) {
+                <tr>
+                  <td>
+                    <strong>👤 {{ p.fullName }}</strong>
+                  </td>
+                  <td>
+                    <div>📞 {{ p.phoneNumber || '-' }}</div>
+                    @if (p.email && !p.email.endsWith('@clinic.local')) {
+                      <small class="text-muted">✉️ {{ p.email }}</small>
+                    }
+                  </td>
+                  <td>
+                    <div>{{ p.dateOfBirth }}</div>
+                    <small class="badge badge-scheduled">{{ p.gender }}</small>
+                  </td>
+                  <td>
+                    <span class="badge" [class.badge-in-consultation]="p.bloodGroup" [class.badge-scheduled]="!p.bloodGroup">
+                      🩸 {{ p.bloodGroup || (translation.isArabic() ? 'غير محدد' : 'Unknown') }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (p.allergies) {
+                      <div class="text-warning small">⚠️ {{ p.allergies }}</div>
+                    }
+                    @if (p.chronicConditions) {
+                      <div class="text-info small">🩺 {{ p.chronicConditions }}</div>
+                    }
+                    @if (!p.allergies && !p.chronicConditions) {
+                      <span class="text-muted small">{{ translation.isArabic() ? 'لا يوجد' : 'None' }}</span>
+                    }
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ p.createdAtUtc | date:'mediumDate' }}</small>
+                  </td>
+                  <td>
+                    <button (click)="viewPatientRecord(p.id)" class="btn btn-outline btn-xs" title="{{ translation.isArabic() ? 'عرض الملف الطبي الشامل' : 'Open EMR Dossier' }}">
+                      🗂️ {{ translation.isArabic() ? 'عرض الملف (EMR)' : 'View EMR' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="text-center py-5">
+                    <span style="font-size: 2.5rem;">👥</span>
+                    <h5 class="mt-2">{{ translation.isArabic() ? 'لا يوجد مرضى مطابقين للبحث.' : 'No patients found matching your search.' }}</h5>
+                    <button (click)="openAddPatientModal()" class="btn btn-primary btn-sm mt-2">
+                      ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد الآن' : 'Register New Patient Now' }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     }
   }
@@ -1208,6 +1307,9 @@
             📅 {{ translation.isArabic() ? 'التقويم المرئي' : 'Calendar View' }}
           </button>
         </div>
+        <button (click)="openAddPatientModal()" class="btn btn-primary btn-sm">
+          ➕ {{ translation.isArabic() ? 'تسجيل مريض جديد' : '+ Register Patient' }}
+        </button>
         <button (click)="printAppointmentsSchedule()" class="btn btn-outline btn-sm">
           🖨️ {{ translation.isArabic() ? 'طباعة' : 'Print' }}
         </button>
@@ -3516,6 +3618,173 @@
           <button (click)="closeSendReminderModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button (click)="submitSendReminder()" class="btn btn-primary">{{ translation.isArabic() ? 'إرسال التذكير الآن' : 'Send Reminder Now' }}</button>
         </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: REGISTER NEW PATIENT -->
+  @if (isAddPatientModalOpen()) {
+    <div class="modal-backdrop">
+      <div class="card modal-card" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+          <div>
+            <h3 class="m-0">➕ {{ translation.isArabic() ? 'تسجيل مريض جديد (إدارة والاستقبال)' : 'Register New Patient (Reception / Desk)' }}</h3>
+            <p class="text-muted m-0 small">{{ translation.isArabic() ? 'إنشاء ملف طبي وحساب للمريض فوري لتسجيل الحضور، حجز الكشوفات، وتوثيق السجل الطبي.' : 'Create electronic patient chart and user record for immediate check-in and booking.' }}</p>
+          </div>
+          <button (click)="closeAddPatientModal()" class="btn btn-outline btn-xs" title="Close">✕</button>
+        </div>
+
+        <form (ngSubmit)="submitNewPatient()">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'الاسم الأول' : 'First Name' }} <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="patFirstName"
+                name="patFirstName"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'مثال: محمد' : 'e.g. John'"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'اسم العائلة / اللقب' : 'Last Name' }} <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="patLastName"
+                name="patLastName"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'مثال: الشريف' : 'e.g. Doe'"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="grid-2 mt-2">
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'رقم الهاتف المحمول' : 'Phone Number' }}
+              </label>
+              <input
+                type="tel"
+                [(ngModel)]="patPhone"
+                name="patPhone"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'مثال: +201012345678' : 'e.g. +1234567890'"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'البريد الإلكتروني (اختياري)' : 'Email (Optional)' }}
+              </label>
+              <input
+                type="email"
+                [(ngModel)]="patEmail"
+                name="patEmail"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'patient@example.com (يترك فارغاً للتوليد التلقائي)' : 'Auto-generated if empty'"
+              />
+            </div>
+          </div>
+
+          <div class="grid-2 mt-2">
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'تاريخ الميلاد' : 'Date of Birth' }} <span class="text-danger">*</span>
+              </label>
+              <input
+                type="date"
+                [(ngModel)]="patDob"
+                name="patDob"
+                class="form-control"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'النوع' : 'Gender' }} <span class="text-danger">*</span>
+              </label>
+              <select [(ngModel)]="patGender" name="patGender" class="form-select">
+                <option value="Male">{{ translation.isArabic() ? 'ذكر' : 'Male' }}</option>
+                <option value="Female">{{ translation.isArabic() ? 'أنثى' : 'Female' }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2 mt-2">
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'فصيلة الدم' : 'Blood Group' }}
+              </label>
+              <select [(ngModel)]="patBloodGroup" name="patBloodGroup" class="form-select">
+                <option value="">{{ translation.isArabic() ? '-- غير محددة --' : '-- Not Specified --' }}</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                {{ translation.isArabic() ? 'رقم طوارئ بديل' : 'Emergency Contact' }}
+              </label>
+              <input
+                type="tel"
+                [(ngModel)]="patEmergencyContact"
+                name="patEmergencyContact"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'هاتف قريب أو مرافق' : 'Contact person phone'"
+              />
+            </div>
+          </div>
+
+          <div class="form-group mt-2">
+            <label class="form-label">
+              {{ translation.isArabic() ? 'الحساسيات المعروفة (أدوية، أطعمة)' : 'Known Drug & Food Allergies' }}
+            </label>
+            <input
+                type="text"
+                [(ngModel)]="patAllergies"
+                name="patAllergies"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'مثال: حساسية بنسلين، حساسية فول سوداني' : 'e.g. Penicillin, Peanuts'"
+            />
+          </div>
+
+          <div class="form-group mt-2">
+            <label class="form-label">
+              {{ translation.isArabic() ? 'الأمراض المزمنة والتاريخ المرضي' : 'Chronic Conditions & Medical History' }}
+            </label>
+            <input
+                type="text"
+                [(ngModel)]="patChronicConditions"
+                name="patChronicConditions"
+                class="form-control"
+                [placeholder]="translation.isArabic() ? 'مثال: السكري النوع الثاني، ارتفاع ضغط الدم' : 'e.g. Type 2 Diabetes, Hypertension'"
+            />
+          </div>
+
+          <div class="modal-actions mt-4">
+            <button type="button" (click)="closeAddPatientModal()" class="btn btn-outline">
+              {{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}
+            </button>
+            <button type="submit" [disabled]="isSubmittingPatient() || !patFirstName || !patLastName || !patDob" class="btn btn-primary">
+              💾 {{ isSubmittingPatient() ? (translation.isArabic() ? 'جاري الحفظ...' : 'Saving...') : (translation.isArabic() ? 'تسجيل المريض وحفظ الملف' : 'Register Patient & Open Chart') }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   }

@@ -15,6 +15,12 @@ public class FakePatientRepository : IPatientRepository
     public Task<Patient?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default) =>
         Task.FromResult(_patients.FirstOrDefault(p => p.UserId == userId));
 
+    public Task<IReadOnlyList<Patient>> ListAsync(Guid tenantId, string? searchTerm = null, CancellationToken cancellationToken = default)
+    {
+        var result = _patients.Where(p => tenantId == Guid.Empty || p.TenantId == tenantId).ToList();
+        return Task.FromResult<IReadOnlyList<Patient>>(result);
+    }
+
     public Task AddAsync(Patient patient, CancellationToken cancellationToken = default)
     {
         _patients.Add(patient);

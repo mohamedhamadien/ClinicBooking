@@ -133,3 +133,32 @@ export interface QueueItemDto {
   startTimeUtc: string;
   status: string;
 }
+
+export interface PatientSummaryDto {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  dateOfBirth: string;
+  gender: string;
+  bloodGroup?: string;
+  allergies?: string;
+  chronicConditions?: string;
+  emergencyContact?: string;
+  createdAtUtc: string;
+}
+
+export interface CreatePatientRequest {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phoneNumber?: string;
+  dateOfBirth: string;
+  gender: string;
+  bloodGroup?: string;
+  allergies?: string;
+  chronicConditions?: string;
+  emergencyContact?: string;
+  password?: string;
+}
