@@ -64,6 +64,9 @@
                       🖨️ {{ translation.isArabic() ? 'بطاقة الحجز' : 'Slip' }}
                     </button>
                     @if (canCancel(appt.status)) {
+                      <button (click)="openRescheduleModal(appt)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'إعادة جدولة الموعد' : 'Reschedule Appointment' }}">
+                        🔄 {{ translation.isArabic() ? 'تعديل الموعد' : 'Reschedule' }}
+                      </button>
                       <button (click)="openCancelModal(appt.id)" class="btn btn-outline btn-sm btn-cancel">
                         {{ 'appointments.cancel_btn' | translate }}
                       </button>
@@ -93,6 +96,31 @@
         <div class="modal-actions">
           <button (click)="closeCancelModal()" class="btn btn-outline">{{ translation.isArabic() ? 'الاحتفاظ بالموعد' : 'Keep Booking' }}</button>
           <button (click)="confirmCancel()" class="btn btn-danger">{{ translation.isArabic() ? 'تأكيد الإلغاء' : 'Confirm Cancellation' }}</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Rescheduling Modal -->
+  @if (reschedulingAppointment) {
+    <div class="modal-backdrop">
+      <div class="card modal-card">
+        <h3>🔄 {{ translation.isArabic() ? 'إعادة جدولة الموعد' : 'Reschedule Appointment' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'اختر التاريخ والوقت الجديد للموعد مع الطبيب' : 'Choose a new date and time for your doctor appointment' }}</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'التاريخ الجديد' : 'New Date' }}</label>
+          <input type="date" [(ngModel)]="rescheduleDate" class="form-control" />
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'الوقت الجديد (بتوقيت العيادة)' : 'New Time' }}</label>
+          <input type="time" [(ngModel)]="rescheduleTime" class="form-control" />
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeRescheduleModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="confirmReschedule()" class="btn btn-primary">{{ translation.isArabic() ? 'تأكيد الموعد الجديد' : 'Confirm Reschedule' }}</button>
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ public static class ClinicPermissions
     public const string ScreenStaff = "Screen.Staff";
     public const string ScreenInventory = "Screen.Inventory";
     public const string ScreenAudit = "Screen.Audit";
+    public const string ScreenNotifications = "Screen.Notifications";
 
     // Functional Action Permissions (Which specific actions the staff member can execute)
     public const string QueueCheckIn = "Queue.CheckIn";
@@ -44,6 +45,7 @@ public static class ClinicPermissions
         new(ScreenStaff, "Staff & Permissions Screen", "إدارة الموظفين والصلاحيات", "Screens", "Manage clinic staff accounts and custom permissions"),
         new(ScreenInventory, "Inventory Screen", "شاشة المخزون والمستلزمات", "Screens", "Manage clinic medical supplies and pharmacy inventory"),
         new(ScreenAudit, "Audit Trail & Compliance Screen", "شاشة سجل الرقابة والتدقيق الأمني", "Screens", "View full enterprise tamper-evident audit logs and data history"),
+        new(ScreenNotifications, "Notifications & Reminders Screen", "شاشة التنبيهات ورسائل التذكير", "Screens", "View reminder message logs and dispatch WhatsApp/SMS notifications"),
 
         // Functions
         new(QueueCheckIn, "Check-in Patients", "تسجيل حضور المرضى", "Functions", "Mark patient as arrived and assign sequential queue token"),
@@ -66,6 +68,7 @@ public static class ClinicPermissions
             ScreenOverview,
             ScreenQueue,
             ScreenAppointments,
+            ScreenNotifications,
             ScreenBilling,
             QueueCheckIn,
             AppointmentsManage,

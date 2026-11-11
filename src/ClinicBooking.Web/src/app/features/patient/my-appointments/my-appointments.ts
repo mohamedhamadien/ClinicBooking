@@ -29,6 +29,12 @@ export class MyAppointmentsComponent implements OnInit {
   protected cancelingAppointmentId: string | null = null;
   protected cancelReason = 'Personal circumstances';
 
+  // Rescheduling modal state
+  protected reschedulingAppointment: AppointmentDto | null = null;
+  protected rescheduleDate = '';
+  protected rescheduleTime = '10:00';
+  protected rescheduleDurationMinutes = 30;
+
   ngOnInit(): void {
     this.loadAppointments();
   }
@@ -68,6 +74,44 @@ export class MyAppointmentsComponent implements OnInit {
       },
       error: (err) => {
         this.errorMessage.set(err.error?.detail || 'Failed to cancel appointment.');
+      }
+    });
+  }
+
+  protected openRescheduleModal(appt: AppointmentDto): void {
+    this.reschedulingAppointment = appt;
+    const start = new Date(appt.startTimeUtc);
+    this.rescheduleDate = start.toISOString().split('T')[0];
+    const hours = String(start.getUTCHours()).padStart(2, '0');
+    const mins = String(start.getUTCMinutes()).padStart(2, '0');
+    this.rescheduleTime = `${hours}:${mins}`;
+    this.rescheduleDurationMinutes = 30;
+  }
+
+  protected closeRescheduleModal(): void {
+    this.reschedulingAppointment = null;
+  }
+
+  protected confirmReschedule(): void {
+    if (!this.reschedulingAppointment || !this.rescheduleDate || !this.rescheduleTime) return;
+
+    const [hours, minutes] = this.rescheduleTime.split(':').map(Number);
+    const [year, month, day] = this.rescheduleDate.split('-').map(Number);
+    const startUtc = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+    const endUtc = new Date(startUtc.getTime() + this.rescheduleDurationMinutes * 60000);
+
+    this.appointmentService.rescheduleAppointment(
+      this.reschedulingAppointment.id,
+      startUtc.toISOString(),
+      endUtc.toISOString()
+    ).subscribe({
+      next: () => {
+        this.closeRescheduleModal();
+        this.actionMessage.set(this.translation.isArabic() ? 'تمت إعادة جدولة الموعد بنجاح.' : 'Appointment rescheduled successfully.');
+        this.loadAppointments();
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || (this.translation.isArabic() ? 'فشلت إعادة جدولة الموعد.' : 'Failed to reschedule appointment.'));
       }
     });
   }

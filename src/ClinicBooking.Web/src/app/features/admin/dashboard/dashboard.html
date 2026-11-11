@@ -244,6 +244,23 @@
           }
         </button>
       }
+
+      @if (canAccessTab('notifications')) {
+        <button
+          (click)="setTab('notifications')"
+          [class.active]="activeTab() === 'notifications'"
+          class="sidebar-nav-item"
+          title="{{ translation.isArabic() ? 'التنبيهات ورسائل التذكير' : 'Notifications & Reminders' }}"
+        >
+          <span class="nav-icon">💬</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">{{ translation.isArabic() ? 'التنبيهات والتذكير' : 'Notifications' }}</span>
+            @if (notificationLogs().length > 0) {
+              <span class="nav-counter" style="background: #10b981; color: #fff;">{{ notificationLogs().length }}</span>
+            }
+          }
+        </button>
+      }
     </nav>
 
     <!-- Sidebar Quick Info / Branch selector -->
@@ -1257,6 +1274,9 @@
                       <button (click)="openWhatsAppReminder(appt)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'إرسال تذكير عبر واتساب' : 'Send WhatsApp Reminder' }}">
                         💬
                       </button>
+                      <button (click)="openSendReminderModal(appt)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'إرسال إشعار تذكير مخصص' : 'Custom Reminder Notification' }}">
+                        📢
+                      </button>
                       @if (appt.status === 'Scheduled' || appt.status === 'Confirmed') {
                         <button (click)="openRescheduleModal(appt)" class="btn btn-outline btn-sm" title="{{ translation.isArabic() ? 'إعادة جدولة الموعد' : 'Reschedule Appointment' }}">
                           🔄 {{ translation.isArabic() ? 'تعديل' : 'Reschedule' }}
@@ -1800,6 +1820,117 @@
             } @empty {
               <tr>
                 <td colspan="6" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد سجلات تدقيق تطابق البحث.' : 'No audit records match the current filter.' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 13: NOTIFICATIONS & REMINDERS LOGS -->
+  @if (activeTab() === 'notifications') {
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="m-0">💬 {{ translation.isArabic() ? 'سجل التنبيهات ورسائل التذكير' : 'Appointment Reminders & Notification Logs' }}</h3>
+        <p class="text-muted m-0 small">{{ translation.isArabic() ? 'متابعة رسائل التذكير المرسلة للمرضى عبر واتساب والرسائل القصيرة SMS والبريد الإلكتروني.' : 'Audit and track sent appointment reminder notifications across WhatsApp, SMS, and Email.' }}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button (click)="loadNotificationLogs()" class="btn btn-outline" [disabled]="notificationLoading()">
+          🔄 {{ translation.isArabic() ? 'تحديث' : 'Refresh' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Notification Filters Bar -->
+    <div class="card p-3 mb-3">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-3">
+          <label class="form-label small text-muted m-0">{{ translation.isArabic() ? 'قناة الإرسال' : 'Channel' }}</label>
+          <select [(ngModel)]="notificationChannelFilter" class="form-select form-select-sm">
+            <option value="All">{{ translation.isArabic() ? 'جميع القنوات (All)' : 'All Channels' }}</option>
+            <option value="WhatsApp">WhatsApp (واتساب)</option>
+            <option value="Sms">SMS (رسالة نصية)</option>
+            <option value="Email">Email (بريد إلكتروني)</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted m-0">{{ translation.isArabic() ? 'حالة التسليم' : 'Delivery Status' }}</label>
+          <select [(ngModel)]="notificationStatusFilter" class="form-select form-select-sm">
+            <option value="All">{{ translation.isArabic() ? 'جميع الحالات (All)' : 'All Statuses' }}</option>
+            <option value="Sent">Sent (مرسلة)</option>
+            <option value="Delivered">Delivered (تم التسليم)</option>
+            <option value="Failed">Failed (فشلت)</option>
+            <option value="Pending">Pending (قيد الانتظار)</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small text-muted m-0">{{ translation.isArabic() ? 'بحث بالاسم / الهاتف / نص الرسالة' : 'Search by Name / Phone / Content' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="notificationSearchTerm"
+            class="form-control form-control-sm"
+            [placeholder]="translation.isArabic() ? 'اكتب اسم المريض أو رقم الهاتف...' : 'Type patient name or phone...'"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications Table -->
+    <div class="card table-card">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ translation.isArabic() ? 'المستلم' : 'Recipient' }}</th>
+              <th>{{ translation.isArabic() ? 'القناة' : 'Channel' }}</th>
+              <th>{{ translation.isArabic() ? 'النوع' : 'Type' }}</th>
+              <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
+              <th>{{ translation.isArabic() ? 'نص الرسالة' : 'Message' }}</th>
+              <th>{{ translation.isArabic() ? 'وقت الإرسال' : 'Sent At' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (filteredNotificationLogs().length === 0) {
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                  {{ translation.isArabic() ? 'لا توجد سجلات إشعارات مطابقة.' : 'No reminder notification logs found.' }}
+                </td>
+              </tr>
+            }
+            @for (log of filteredNotificationLogs(); track log.id) {
+              <tr>
+                <td>
+                  <strong>{{ log.recipientName }}</strong>
+                  @if (log.recipientPhone) {
+                    <div class="small text-muted">📱 {{ log.recipientPhone }}</div>
+                  }
+                  @if (log.recipientEmail) {
+                    <div class="small text-muted">✉️ {{ log.recipientEmail }}</div>
+                  }
+                </td>
+                <td>
+                  <span class="badge" [class]="log.channel === 'WhatsApp' ? 'badge-confirmed' : log.channel === 'Sms' ? 'badge-in-consultation' : 'badge-scheduled'">
+                    {{ log.channel === 'WhatsApp' ? '💬 WhatsApp' : log.channel === 'Sms' ? '📱 SMS' : '✉️ Email' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="small font-monospace">{{ log.type }}</span>
+                </td>
+                <td>
+                  <span class="badge" [class]="log.status === 'Sent' || log.status === 'Delivered' ? 'badge-confirmed' : log.status === 'Failed' ? 'badge-cancelled' : 'badge-warning'">
+                    {{ log.status }}
+                  </span>
+                  @if (log.errorMessage) {
+                    <div class="small text-danger">{{ log.errorMessage }}</div>
+                  }
+                </td>
+                <td style="max-width: 320px;">
+                  <div class="small text-truncate" [title]="log.message">{{ log.message }}</div>
+                </td>
+                <td>
+                  <small class="text-muted">{{ log.sentAtUtc | date:'medium' }}</small>
+                </td>
               </tr>
             }
           </tbody>
@@ -3030,6 +3161,45 @@
           <button (click)="submitNewService()" class="btn btn-primary">
             ✓ {{ translation.isArabic() ? 'حفظ وإدراج باللائحة' : 'Save to Price List' }}
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: SEND APPOINTMENT REMINDER -->
+  @if (isSendReminderModalOpen) {
+    <div class="modal-backdrop">
+      <div class="card modal-card" style="max-width: 540px;">
+        <h3>💬 {{ translation.isArabic() ? 'إرسال تذكير بالموعد' : 'Send Appointment Reminder' }}</h3>
+        <p class="text-muted">{{ translation.isArabic() ? 'اختر القناة المناسبة وأرسل رسالة تذكير للمريض بموعده القادم.' : 'Select reminder channel and dispatch notification to the patient.' }}</p>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'اسم المريض' : 'Patient Name' }}</label>
+          <input type="text" [value]="reminderRecipientName" class="form-control" disabled />
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'قناة الإرسال' : 'Reminder Channel' }}</label>
+          <select [(ngModel)]="reminderChannel" class="form-select">
+            <option value="WhatsApp">💬 WhatsApp (واتساب مباشر)</option>
+            <option value="Sms">📱 SMS (رسالة نصية قصيرة)</option>
+            <option value="Email">✉️ Email (بريد إلكتروني)</option>
+          </select>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'نص مخصص (اختياري - اتركه فارغاً للافتراضي)' : 'Custom Message (Optional)' }}</label>
+          <textarea
+            [(ngModel)]="reminderCustomMessage"
+            rows="3"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'أدخل نصاً مخصصاً أو اتركه فارغاً لإرسال الرسالة النموذجية الثنائية اللغة...' : 'Leave blank for the standard bilingual reminder template...'"
+          ></textarea>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="closeSendReminderModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitSendReminder()" class="btn btn-primary">{{ translation.isArabic() ? 'إرسال التذكير الآن' : 'Send Reminder Now' }}</button>
         </div>
       </div>
     </div>

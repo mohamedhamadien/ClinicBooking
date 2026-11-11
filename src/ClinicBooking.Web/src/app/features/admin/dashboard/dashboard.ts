@@ -33,6 +33,8 @@ import {
 import { MedicalAttachmentDto } from '../../../core/models/attachments.models';
 import { MedicalInventoryItemDto } from '../../../core/models/inventory.models';
 import { InsuranceProviderDto } from '../../../core/models/insurance.models';
+import { NotificationService } from '../../../core/services/notification.service';
+import { NotificationLogDto } from '../../../core/models/notification.models';
 
 export interface ClinicServiceItem {
   id: string;
@@ -55,7 +57,8 @@ export type AdminTab =
   | 'specialties'
   | 'staff'
   | 'inventory'
-  | 'audit';
+  | 'audit'
+  | 'notifications';
 
 @Component({
   selector: 'app-dashboard',
@@ -73,6 +76,7 @@ export class DashboardComponent implements OnInit {
   private readonly inventoryService = inject(InventoryService);
   private readonly insuranceService = inject(InsuranceService);
   private readonly appointmentService = inject(AppointmentService);
+  private readonly notificationService = inject(NotificationService);
   protected readonly auth = inject(AuthService);
   protected readonly translation = inject(TranslationService);
   protected readonly reporting = inject(ReportingService);
@@ -248,7 +252,8 @@ export class DashboardComponent implements OnInit {
     specialties: 'Screen.Specialties',
     staff: 'Screen.Staff',
     inventory: 'Screen.Inventory',
-    audit: 'Screen.Audit'
+    audit: 'Screen.Audit',
+    notifications: 'Screen.Notifications'
   };
 
   protected canAccessTab(tab: AdminTab): boolean {
@@ -578,6 +583,10 @@ export class DashboardComponent implements OnInit {
 
     if (this.canAccessTab('audit')) {
       this.loadAuditLogs();
+    }
+
+    if (this.canAccessTab('notifications')) {
+      this.loadNotificationLogs();
     }
   }
 
@@ -1895,5 +1904,99 @@ export class DashboardComponent implements OnInit {
 
   protected exportInsuranceClaimsCsv(): void {
     this.reporting.exportInsuranceClaimsCsv(this.invoices());
+  }
+
+  // --- Notifications & Reminders ---
+  protected readonly notificationLogs = signal<NotificationLogDto[]>([]);
+  protected readonly notificationChannelFilter = signal<string>('All');
+  protected readonly notificationStatusFilter = signal<string>('All');
+  protected readonly notificationSearchTerm = signal<string>('');
+  protected readonly notificationLoading = signal<boolean>(false);
+
+  protected isSendReminderModalOpen = false;
+  protected reminderAppt: AppointmentDto | null = null;
+  protected reminderChannel: 'WhatsApp' | 'Sms' | 'Email' = 'WhatsApp';
+  protected reminderRecipientName = '';
+  protected reminderRecipientPhone = '';
+  protected reminderCustomMessage = '';
+
+  protected readonly filteredNotificationLogs = computed(() => {
+    let list = this.notificationLogs();
+    const ch = this.notificationChannelFilter();
+    const st = this.notificationStatusFilter();
+    const term = this.notificationSearchTerm().trim().toLowerCase();
+
+    if (ch !== 'All') {
+      list = list.filter((n) => n.channel === ch);
+    }
+    if (st !== 'All') {
+      list = list.filter((n) => n.status === st);
+    }
+    if (term) {
+      list = list.filter(
+        (n) =>
+          n.recipientName.toLowerCase().includes(term) ||
+          (n.recipientPhone && n.recipientPhone.includes(term)) ||
+          n.message.toLowerCase().includes(term)
+      );
+    }
+    return list;
+  });
+
+  protected loadNotificationLogs(): void {
+    this.notificationLoading.set(true);
+    this.notificationService.getLogs(1, 100).subscribe({
+      next: (res) => {
+        this.notificationLogs.set(res.items);
+        this.notificationLoading.set(false);
+      },
+      error: () => this.notificationLoading.set(false)
+    });
+  }
+
+  protected triggerWhatsAppReminder(appt: AppointmentDto): void {
+    this.notificationService.getWhatsAppLink(appt.id).subscribe({
+      next: (res) => {
+        window.open(res.formattedUrl, '_blank');
+        this.showMessage(this.translation.isArabic() ? 'تم فتح رابط التذكير عبر واتساب وإرسال الإشعار.' : 'WhatsApp reminder window opened and notification logged.');
+        this.loadNotificationLogs();
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || (this.translation.isArabic() ? 'تعذر إنشاء رابط واتساب، يرجى التأكد من رقم هاتف المريض.' : 'Failed to generate WhatsApp link. Ensure patient has a phone number.'));
+      }
+    });
+  }
+
+  protected openSendReminderModal(appt: AppointmentDto): void {
+    this.reminderAppt = appt;
+    this.reminderRecipientName = appt.patientName || 'Patient';
+    this.reminderRecipientPhone = '';
+    this.reminderChannel = 'WhatsApp';
+    this.reminderCustomMessage = '';
+    this.isSendReminderModalOpen = true;
+  }
+
+  protected closeSendReminderModal(): void {
+    this.isSendReminderModalOpen = false;
+    this.reminderAppt = null;
+  }
+
+  protected submitSendReminder(): void {
+    if (!this.reminderAppt) return;
+
+    this.notificationService.sendReminder(
+      this.reminderAppt.id,
+      this.reminderChannel,
+      this.reminderCustomMessage.trim() || undefined
+    ).subscribe({
+      next: (log) => {
+        this.closeSendReminderModal();
+        this.showMessage(this.translation.isArabic() ? `تم إرسال التذكير بنجاح عبر (${log.channel}).` : `Appointment reminder dispatched successfully via ${log.channel}.`);
+        this.loadNotificationLogs();
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.detail || (this.translation.isArabic() ? 'فشل إرسال التذكير.' : 'Failed to send reminder.'));
+      }
+    });
   }
 }

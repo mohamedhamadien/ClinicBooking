@@ -53,6 +53,7 @@ public sealed class ClinicBookingDbContext : DbContext
     public DbSet<MedicalInventoryItem> MedicalInventoryItems => Set<MedicalInventoryItem>();
     public DbSet<InsuranceProvider> InsuranceProviders => Set<InsuranceProvider>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
 
     // Referenced from the global query filters. EF Core evaluates context members per query,
     // so each request sees only its own tenant even though the model is cached.
@@ -319,7 +320,7 @@ public sealed class ClinicBookingDbContext : DbContext
 
         foreach (var entry in ChangeTracker.Entries())
         {
-            if (entry.Entity is AuditLog || entry.State is EntityState.Detached or EntityState.Unchanged)
+            if (entry.Entity is AuditLog || entry.Entity is NotificationLog || entry.State is EntityState.Detached or EntityState.Unchanged)
             {
                 continue;
             }
