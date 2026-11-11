@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace ClinicBooking.Domain.Enums;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AppointmentStatus
 {
     Scheduled = 1,

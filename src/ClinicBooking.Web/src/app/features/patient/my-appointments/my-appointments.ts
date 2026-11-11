@@ -116,17 +116,17 @@ export class MyAppointmentsComponent implements OnInit {
     });
   }
 
-  protected getBadgeClass(status: string): string {
-    switch (status) {
-      case 'Scheduled': return 'badge-scheduled';
-      case 'Confirmed': return 'badge-confirmed';
-      case 'Completed': return 'badge-completed';
-      default: return 'badge-cancelled';
-    }
+  protected getBadgeClass(status: string | number): string {
+    const s = String(status);
+    if (s === 'Scheduled' || s === '1' || s === 'PendingApproval' || s === '2') return 'badge-scheduled';
+    if (s === 'Confirmed' || s === '3') return 'badge-confirmed';
+    if (s === 'Completed' || s === '4') return 'badge-completed';
+    return 'badge-cancelled';
   }
 
-  protected canCancel(status: string): boolean {
-    return status === 'Scheduled' || status === 'Confirmed';
+  protected canCancel(status: string | number): boolean {
+    const s = String(status);
+    return s === 'Scheduled' || s === '1' || s === 'Confirmed' || s === '3';
   }
 
   protected printSlip(appt: AppointmentDto): void {

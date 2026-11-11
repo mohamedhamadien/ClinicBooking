@@ -370,29 +370,94 @@ export class DashboardComponent implements OnInit {
   protected filterStatus = '';
   protected filterSearchPatient = '';
 
+  protected normalizeStatus(status: any): string {
+    const s = String(status ?? '');
+    switch (s) {
+      case '1':
+      case 'Scheduled':
+        return 'Scheduled';
+      case '2':
+      case 'PendingApproval':
+        return 'PendingApproval';
+      case '3':
+      case 'Confirmed':
+        return 'Confirmed';
+      case '4':
+      case 'Completed':
+        return 'Completed';
+      case '5':
+      case 'CancelledByPatient':
+        return 'CancelledByPatient';
+      case '6':
+      case 'CancelledByDoctor':
+        return 'CancelledByDoctor';
+      case '7':
+      case 'CancelledByAdmin':
+        return 'CancelledByAdmin';
+      case '8':
+      case 'Rejected':
+        return 'Rejected';
+      case '9':
+      case 'NoShow':
+        return 'NoShow';
+      case '10':
+      case 'CheckedIn':
+        return 'CheckedIn';
+      case '11':
+      case 'InConsultation':
+        return 'InConsultation';
+      default:
+        return s;
+    }
+  }
+
   // Filtered Appointments
   protected readonly filteredAppointments = computed(() => {
-    let list = this.appointments();
+    const list = this.appointments();
+
+    const doctorsMap = new Map(this.doctors().map((d) => [d.id, d.fullName || `Dr. ${d.licenseNumber}`]));
+    const patientsMap = new Map(this.patients().map((p) => [p.id, p.fullName || p.email]));
+    const clinicsMap = new Map(
+      this.clinics().map((c) => [c.id, this.translation.isArabic() && c.nameAr ? c.nameAr : c.name])
+    );
+
+    const enriched = list.map((a) => {
+      const docName = a.doctorName || doctorsMap.get(a.doctorId) || (this.translation.isArabic() ? 'طبيب معالج' : 'Doctor');
+      const patName = a.patientName || patientsMap.get(a.patientId) || (this.translation.isArabic() ? 'مريض مسجل' : 'Patient');
+      const clName = a.clinicName || clinicsMap.get(a.clinicId) || (this.translation.isArabic() ? 'الفرع الرئيسي' : 'Main Clinic');
+      const normalizedStatus = this.normalizeStatus(a.status);
+
+      return {
+        ...a,
+        doctorName: docName,
+        patientName: patName,
+        clinicName: clName,
+        status: normalizedStatus as any
+      };
+    });
+
+    let result = enriched;
 
     if (this.filterDoctorId) {
-      list = list.filter((a) => a.doctorId === this.filterDoctorId);
+      result = result.filter((a) => a.doctorId === this.filterDoctorId);
     }
 
     if (this.filterStatus) {
-      list = list.filter((a) => a.status === this.filterStatus);
+      result = result.filter((a) => a.status === this.filterStatus);
     }
 
     if (this.filterSearchPatient) {
       const q = this.filterSearchPatient.toLowerCase();
-      list = list.filter(
+      result = result.filter(
         (a) =>
           a.patientName?.toLowerCase().includes(q) ||
           a.patientId.toLowerCase().includes(q) ||
-          a.doctorName?.toLowerCase().includes(q)
+          a.doctorName?.toLowerCase().includes(q) ||
+          a.clinicName?.toLowerCase().includes(q)
       );
     }
 
-    return list;
+    return result;
   });
 
   // --- Clinical Consultation Form State ---
@@ -2091,14 +2156,20 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  protected getBadgeClass(status: string): string {
-    switch (status) {
-      case 'Scheduled': return 'badge-scheduled';
-      case 'Confirmed': return 'badge-confirmed';
-      case 'CheckedIn': return 'badge-scheduled';
-      case 'InConsultation': return 'badge-confirmed';
-      case 'Completed': return 'badge-completed';
-      default: return 'badge-cancelled';
+  protected getBadgeClass(status: string | number): string {
+    const s = this.normalizeStatus(status);
+    switch (s) {
+      case 'Scheduled':
+      case 'PendingApproval':
+      case 'CheckedIn':
+        return 'badge-scheduled';
+      case 'Confirmed':
+      case 'InConsultation':
+        return 'badge-confirmed';
+      case 'Completed':
+        return 'badge-completed';
+      default:
+        return 'badge-cancelled';
     }
   }
 
