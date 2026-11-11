@@ -227,6 +227,23 @@
           }
         </button>
       }
+
+      @if (canAccessTab('audit')) {
+        <button
+          (click)="setTab('audit')"
+          [class.active]="activeTab() === 'audit'"
+          class="sidebar-nav-item"
+          title="{{ translation.isArabic() ? 'سجل الرقابة والتدقيق' : 'Audit Trail & Compliance' }}"
+        >
+          <span class="nav-icon">🛡️</span>
+          @if (!isSidebarCollapsed()) {
+            <span class="nav-text">{{ translation.isArabic() ? 'سجل الرقابة والتدقيق' : 'Audit Trail' }}</span>
+            @if (auditLogs().length > 0) {
+              <span class="nav-counter" style="background: #6366f1; color: #fff;">{{ auditLogs().length }}</span>
+            }
+          }
+        </button>
+      }
     </nav>
 
     <!-- Sidebar Quick Info / Branch selector -->
@@ -551,15 +568,24 @@
               class="form-control"
             />
           </div>
-          <div class="form-group d-flex align-items-end">
+          <div class="form-group d-flex align-items-end gap-1">
             <button
               type="button"
               (click)="printLabOrder()"
               [disabled]="!consultAppointmentId"
-              class="btn btn-outline w-100"
+              class="btn btn-outline flex-grow-1"
               title="{{ translation.isArabic() ? 'طباعة إذن الفحص والتحاليل' : 'Print Lab/Radiology Order Slip' }}"
             >
-              🧪 {{ translation.isArabic() ? 'طباعة إذن الفحص والتحاليل' : 'Print Lab/Rad Slip' }}
+              🧪 {{ translation.isArabic() ? 'إذن الفحص' : 'Lab Slip' }}
+            </button>
+            <button
+              type="button"
+              (click)="openSickLeaveModal()"
+              [disabled]="!consultAppointmentId"
+              class="btn btn-outline flex-grow-1"
+              title="{{ translation.isArabic() ? 'إصدار تقرير إجازة مرضية وعذر طبي' : 'Generate Sick Leave Certificate' }}"
+            >
+              📄 {{ translation.isArabic() ? 'إجازة مرضية' : 'Sick Leave' }}
             </button>
           </div>
         </div>
@@ -781,13 +807,16 @@
                       📅 {{ translation.isArabic() ? 'موعد الاستشارة القادمة: ' : 'Follow-up Date: ' }}<strong>{{ c.followUpDateUtc | date:'mediumDate' }}</strong>
                     </div>
                   }
-                  @if (c.labRequests) {
-                    <div class="mt-2 text-end">
+                  <div class="mt-2 text-end d-flex justify-content-end gap-1">
+                    @if (c.labRequests) {
                       <button (click)="printLabOrder(c)" class="btn btn-outline btn-xs">
-                        🧪 {{ translation.isArabic() ? 'طباعة إذن الفحص' : 'Print Lab Order' }}
+                        🧪 {{ translation.isArabic() ? 'إذن الفحص' : 'Lab Order' }}
                       </button>
-                    </div>
-                  }
+                    }
+                    <button (click)="openSickLeaveModal(c)" class="btn btn-outline btn-xs">
+                      📄 {{ translation.isArabic() ? 'إجازة مرضية' : 'Sick Leave' }}
+                    </button>
+                  </div>
                 </div>
               } @empty {
                 <p class="text-muted">{{ translation.isArabic() ? 'لا توجد ملاحظات كشف سابقة مسجلة.' : 'No past consultation notes recorded.' }}</p>
@@ -1514,6 +1543,110 @@
             } @empty {
               <tr>
                 <td colspan="8" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد أصناف مسجلة في المخزون. اضغط "+ إضافة صنف / مستلزم" لإدخال صنف جديد.' : 'No items recorded in inventory. Click "+ Add Supply Item" to register stock.' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 12: AUDIT LOGS & COMPLIANCE -->
+  @if (activeTab() === 'audit') {
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="m-0">🛡️ {{ translation.isArabic() ? 'سجل الرقابة والتدقيق الأمني' : 'Enterprise Audit Logs & Compliance' }}</h3>
+        <p class="text-muted m-0 small">{{ translation.isArabic() ? 'سجل موثق لحركات الإضافة والتعديل والحذف لكافة السجلات والبيانات الطبية والمالية.' : 'Full tamper-evident audit trail for data changes, patient records, and billing operations.' }}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button (click)="loadAuditLogs()" class="btn btn-outline btn-sm">
+          🔄 {{ translation.isArabic() ? 'تحديث' : 'Refresh' }}
+        </button>
+        <button (click)="printAuditLogs()" class="btn btn-outline btn-sm">
+          🖨️ {{ translation.isArabic() ? 'طباعة التقرير' : 'Print Report' }}
+        </button>
+        <button (click)="exportAuditLogsCsv()" class="btn btn-primary btn-sm">
+          📥 {{ translation.isArabic() ? 'تصدير CSV' : 'Export CSV' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="card filter-card">
+      <div class="filter-grid">
+        <div class="form-group mb-0">
+          <label class="form-label">{{ translation.isArabic() ? 'بحث بالمعرف أو المستخدم المنفذ' : 'Search by ID / User' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="auditSearch"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'اكتب اسم الكيان، المعرف، أو اسم المستخدم...' : 'Type entity, ID, or user...'"
+          />
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب نوع الكيان' : 'Filter by Entity Type' }}</label>
+          <select [(ngModel)]="auditEntityFilter" class="form-select">
+            <option value="">{{ translation.isArabic() ? 'كافة الكيانات' : 'All Entities' }}</option>
+            <option value="Patient">{{ translation.isArabic() ? 'المرضى (Patient)' : 'Patient' }}</option>
+            <option value="Invoice">{{ translation.isArabic() ? 'الفواتير والحسابات (Invoice)' : 'Invoice' }}</option>
+            <option value="Appointment">{{ translation.isArabic() ? 'المواعيد (Appointment)' : 'Appointment' }}</option>
+            <option value="ConsultationNote">{{ translation.isArabic() ? 'الكشوفات الطبية (ConsultationNote)' : 'ConsultationNote' }}</option>
+            <option value="Prescription">{{ translation.isArabic() ? 'الروشتات (Prescription)' : 'Prescription' }}</option>
+            <option value="MedicalAttachment">{{ translation.isArabic() ? 'المرفقات والملفات (MedicalAttachment)' : 'MedicalAttachment' }}</option>
+            <option value="MedicalInventoryItem">{{ translation.isArabic() ? 'المخزون والمستلزمات (MedicalInventoryItem)' : 'MedicalInventoryItem' }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card table-card mt-3">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ translation.isArabic() ? 'الكيان' : 'Entity' }}</th>
+              <th>{{ translation.isArabic() ? 'معرف السجل' : 'Entity ID' }}</th>
+              <th>{{ translation.isArabic() ? 'نوع الحركة' : 'Action' }}</th>
+              <th>{{ translation.isArabic() ? 'المستخدم المنفذ' : 'Actor / User' }}</th>
+              <th>{{ translation.isArabic() ? 'تاريخ ووقت الحركة (UTC)' : 'Timestamp (UTC)' }}</th>
+              <th>{{ translation.isArabic() ? 'تفاصيل التغيير' : 'Diff / Details' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of filteredAuditLogs(); track log.id) {
+              <tr>
+                <td>
+                  <strong>{{ log.entityName }}</strong>
+                </td>
+                <td>
+                  <code>{{ log.entityId.slice(0, 8) }}...</code>
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-confirmed]="log.action === 'Created'"
+                    [class.badge-scheduled]="log.action === 'Modified'"
+                    [class.badge-cancelled]="log.action === 'Deleted' || log.action === 'SoftDeleted'"
+                  >
+                    {{ log.action }}
+                  </span>
+                </td>
+                <td>
+                  <span class="text-primary font-weight-bold">{{ log.changedBy }}</span>
+                </td>
+                <td>
+                  <div>{{ log.changedAtUtc | date:'mediumDate' }}</div>
+                  <small class="text-muted">{{ log.changedAtUtc | date:'mediumTime' }}</small>
+                </td>
+                <td>
+                  <button (click)="viewAuditChanges(log)" class="btn btn-outline btn-xs">
+                    🔍 {{ translation.isArabic() ? 'عرض الفروقات' : 'View Diff' }}
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد سجلات تدقيق تطابق البحث.' : 'No audit records match the current filter.' }}</td>
               </tr>
             }
           </tbody>
@@ -2566,6 +2699,92 @@
           <button (click)="isPayModalOpen = false" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button (click)="submitPayment()" class="btn btn-primary">
             ✓ {{ translation.isArabic() ? 'تأكيد السداد والتحصيل' : 'Confirm & Record Payment' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: AUDIT CHANGES JSON DIFF -->
+  @if (isAuditJsonModalOpen) {
+    <div class="modal-backdrop" (click)="isAuditJsonModalOpen = false">
+      <div class="card modal-card" (click)="$event.stopPropagation()" style="max-width: 650px;">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <h3>🔍 {{ translation.isArabic() ? 'تفاصيل التغيير وفروقات الحقول' : 'Audit Property Changes & Diff' }}</h3>
+          <button (click)="isAuditJsonModalOpen = false" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <div class="mt-3">
+          <p class="text-muted small m-0">{{ translation.isArabic() ? 'القيم السابقة والحالية للحقول المعدلة بالتفصيل:' : 'Old vs New property values recorded during database transaction:' }}</p>
+          <pre class="p-3 bg-dark text-light rounded mt-2 border" style="max-height: 380px; overflow-y: auto; font-family: monospace; font-size: 13px;">{{ selectedAuditJson }}</pre>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="isAuditJsonModalOpen = false" class="btn btn-primary">{{ translation.isArabic() ? 'إغلاق' : 'Close' }}</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: SICK LEAVE CERTIFICATE -->
+  @if (isSickLeaveModalOpen) {
+    <div class="modal-backdrop" (click)="isSickLeaveModalOpen = false">
+      <div class="card modal-card" (click)="$event.stopPropagation()">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <h3>📄 {{ translation.isArabic() ? 'إصدار تقرير إجازة مرضية وعذر طبي' : 'Generate Sick Leave Certificate' }}</h3>
+          <button (click)="isSickLeaveModalOpen = false" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <div class="mt-3">
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'المريض: ' : 'Patient: ' }}</strong>{{ sickLeavePatientName }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'الطبيب المعالج: ' : 'Physician: ' }}</strong>{{ sickLeaveDoctorName }}</p>
+          <p class="m-0"><strong>{{ translation.isArabic() ? 'المركز الطبي: ' : 'Clinic: ' }}</strong>{{ sickLeaveClinicName }}</p>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">{{ translation.isArabic() ? 'التشخيص الطبي المعتمد *' : 'Clinical Diagnosis *' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="sickLeaveDiagnosis"
+            class="form-control"
+            [placeholder]="translation.isArabic() ? 'التشخيص الطبي' : 'Diagnosis'"
+          />
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'تاريخ بدء الإجازة *' : 'Start Date *' }}</label>
+            <input
+              type="date"
+              [(ngModel)]="sickLeaveStartDate"
+              class="form-control"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'عدد الأيام المقررة *' : 'Leave Days *' }}</label>
+            <input
+              type="number"
+              min="1"
+              max="30"
+              [(ngModel)]="sickLeaveDays"
+              class="form-control"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'توصيات الطبيب والملاحظات' : 'Physician Recommendations & Notes' }}</label>
+          <textarea
+            [(ngModel)]="sickLeaveRemarks"
+            rows="2"
+            class="form-control"
+          ></textarea>
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="isSickLeaveModalOpen = false" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitSickLeave()" class="btn btn-primary">
+            🖨️ {{ translation.isArabic() ? 'توليد وطباعة الشهادة' : 'Generate & Print Certificate' }}
           </button>
         </div>
       </div>

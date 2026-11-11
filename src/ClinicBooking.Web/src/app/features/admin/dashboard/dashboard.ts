@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AdminService, RegisterDoctorRequest, UpdateClinicRequest } from '../../../core/services/admin.service';
+import { AdminService, AuditLogDto, RegisterDoctorRequest, UpdateClinicRequest } from '../../../core/services/admin.service';
 import { DoctorService } from '../../../core/services/doctor.service';
 import { ClinicalService } from '../../../core/services/clinical.service';
 import { StaffService } from '../../../core/services/staff.service';
@@ -45,7 +45,8 @@ export type AdminTab =
   | 'clinics'
   | 'specialties'
   | 'staff'
-  | 'inventory';
+  | 'inventory'
+  | 'audit';
 
 @Component({
   selector: 'app-dashboard',
@@ -237,7 +238,8 @@ export class DashboardComponent implements OnInit {
     clinics: 'Screen.Clinics',
     specialties: 'Screen.Specialties',
     staff: 'Screen.Staff',
-    inventory: 'Screen.Inventory'
+    inventory: 'Screen.Inventory',
+    audit: 'Screen.Audit'
   };
 
   protected canAccessTab(tab: AdminTab): boolean {
@@ -336,6 +338,41 @@ export class DashboardComponent implements OnInit {
   protected payMethod: number = 1;
   protected payAmount: number | null = null;
   protected historyPatientId = '';
+
+  // --- Audit Log State ---
+  protected readonly auditLogs = signal<AuditLogDto[]>([]);
+  protected auditSearch = '';
+  protected auditEntityFilter = '';
+  protected selectedAuditJson: string | null = null;
+  protected isAuditJsonModalOpen = false;
+
+  protected readonly filteredAuditLogs = computed(() => {
+    let list = this.auditLogs();
+    if (this.auditEntityFilter) {
+      list = list.filter((l) => l.entityName.toLowerCase() === this.auditEntityFilter.toLowerCase());
+    }
+    if (this.auditSearch.trim()) {
+      const q = this.auditSearch.toLowerCase();
+      list = list.filter(
+        (l) =>
+          l.entityName.toLowerCase().includes(q) ||
+          l.entityId.toLowerCase().includes(q) ||
+          l.action.toLowerCase().includes(q) ||
+          l.changedBy.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  });
+
+  // --- Sick Leave Certificate Modal State ---
+  protected isSickLeaveModalOpen = false;
+  protected sickLeavePatientName = '';
+  protected sickLeaveDoctorName = '';
+  protected sickLeaveClinicName = '';
+  protected sickLeaveDiagnosis = '';
+  protected sickLeaveStartDate = new Date().toISOString().slice(0, 10);
+  protected sickLeaveDays = 3;
+  protected sickLeaveRemarks = '';
 
   // --- Invoice Modal ---
   protected isInvoiceModalOpen = false;
@@ -481,6 +518,10 @@ export class DashboardComponent implements OnInit {
     if (this.canAccessTab('staff')) {
       this.loadStaff();
       this.loadPermissionsCatalog();
+    }
+
+    if (this.canAccessTab('audit')) {
+      this.loadAuditLogs();
     }
   }
 
@@ -830,6 +871,77 @@ export class DashboardComponent implements OnInit {
       this.consultLabRequests,
       this.consultFollowUpDate
     );
+  }
+
+  // --- Audit Logs Methods ---
+  protected loadAuditLogs(): void {
+    this.adminService.getAuditLogs(undefined, 150).subscribe({
+      next: (logs) => this.auditLogs.set(logs),
+      error: () => {}
+    });
+  }
+
+  protected viewAuditChanges(log: AuditLogDto): void {
+    if (!log.changesJson) {
+      this.selectedAuditJson = this.translation.isArabic()
+        ? 'لا توجد تفاصيل إضافية مسجلة لهذه العملية.'
+        : 'No property diff recorded for this operation.';
+    } else {
+      try {
+        const parsed = JSON.parse(log.changesJson);
+        this.selectedAuditJson = JSON.stringify(parsed, null, 2);
+      } catch {
+        this.selectedAuditJson = log.changesJson;
+      }
+    }
+    this.isAuditJsonModalOpen = true;
+  }
+
+  protected printAuditLogs(): void {
+    this.reporting.printAuditLogReport(this.filteredAuditLogs(), this.getActiveClinicName());
+  }
+
+  protected exportAuditLogsCsv(): void {
+    this.reporting.exportAuditLogsCsv(this.filteredAuditLogs());
+  }
+
+  // --- Sick Leave Certificate Methods ---
+  protected openSickLeaveModal(consultation?: ConsultationDto): void {
+    const user = this.auth.currentUser();
+    const fallbackDoc = user ? `${user.firstName} ${user.lastName}`.trim() : 'Doctor';
+
+    if (consultation) {
+      this.sickLeavePatientName = consultation.patientName || 'Patient';
+      this.sickLeaveDoctorName = consultation.doctorName || fallbackDoc;
+      this.sickLeaveClinicName = consultation.clinicName || this.getActiveClinicName();
+      this.sickLeaveDiagnosis = consultation.diagnosis || '';
+    } else {
+      const appt = this.appointments().find((a) => a.id === this.consultAppointmentId);
+      this.sickLeavePatientName = appt?.patientName || 'Patient';
+      this.sickLeaveDoctorName = appt?.doctorName || fallbackDoc;
+      this.sickLeaveClinicName = appt?.clinicName || this.getActiveClinicName();
+      this.sickLeaveDiagnosis = this.consultDiagnosis || '';
+    }
+    this.sickLeaveStartDate = new Date().toISOString().slice(0, 10);
+    this.sickLeaveDays = 3;
+    this.sickLeaveRemarks = this.translation.isArabic()
+      ? 'راحة تامة وتجنب الإجهاد البدني والمتابعة حال استمرار الأعراض.'
+      : 'Strict rest advised; avoid physical exertion and follow up if symptoms persist.';
+    this.isSickLeaveModalOpen = true;
+  }
+
+  protected submitSickLeave(): void {
+    this.reporting.printSickLeaveCertificate(
+      this.sickLeavePatientName,
+      this.sickLeaveDoctorName,
+      this.sickLeaveClinicName,
+      this.sickLeaveDiagnosis,
+      this.sickLeaveStartDate,
+      this.sickLeaveDays,
+      this.sickLeaveRemarks
+    );
+    this.isSickLeaveModalOpen = false;
+    this.showMessage('Official Medical Sick Leave Certificate generated and ready for print!');
   }
 
   // --- Doctor Actions ---

@@ -36,6 +36,17 @@ export interface UpdateClinicRequest {
   cityAr?: string;
 }
 
+export interface AuditLogDto {
+  id: string;
+  tenantId?: string;
+  entityName: string;
+  entityId: string;
+  action: string;
+  changedBy: string;
+  changedAtUtc: string;
+  changesJson?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -108,5 +119,11 @@ export class AdminService {
   public cancelAppointment(id: string, reason: string): Observable<AppointmentDto> {
     const payload: CancelAppointmentRequest = { reason };
     return this.http.put<AppointmentDto>(`${environment.apiUrl}/appointments/${id}/cancel`, payload);
+  }
+
+  public getAuditLogs(entityName?: string, limit: number = 100): Observable<AuditLogDto[]> {
+    let params = new HttpParams().set('limit', limit.toString());
+    if (entityName) params = params.set('entityName', entityName);
+    return this.http.get<AuditLogDto[]>(`${environment.apiUrl}/admin/audit-logs`, { params });
   }
 }

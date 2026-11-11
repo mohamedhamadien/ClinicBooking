@@ -1108,4 +1108,142 @@ export class ReportingService {
 
     this.printHtmlReport(title, bodyHtml);
   }
+
+  public printSickLeaveCertificate(
+    patientName: string,
+    doctorName?: string,
+    clinicName?: string,
+    diagnosis?: string,
+    startDate?: string,
+    daysCount: number = 3,
+    remarks?: string
+  ): void {
+    const isAr = this.translation.isArabic();
+    const title = isAr ? 'تقرير إجازة مرضية وعذر طبي' : 'Official Medical Sick Leave Certificate';
+
+    const start = startDate ? new Date(startDate) : new Date();
+    const end = new Date(start.getTime() + (daysCount - 1) * 24 * 60 * 60 * 1000);
+
+    const bodyHtml = `
+      <div class="report-header">
+        <div style="font-size: 28px; margin-bottom: 6px;">🏥 📄</div>
+        <h2>${isAr ? 'شهادة إجازة مرضية وعذر طبي معتمد' : 'Medical Sick Leave & Excuse Certificate'}</h2>
+        <div class="meta">${clinicName || (isAr ? 'المركز الطبي' : 'Medical Center')} — ${new Date().toLocaleDateString()}</div>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 24px; font-size: 15px; line-height: 1.8;">
+        ${
+          isAr
+            ? `يشهد المركز الطبي المعالج بأن المريض المذكور أدناه قد خضع للفحص السريري، وبناءً على التشخيص وحالته الصحية المقررة، نوصي بمنحه فترة راحة طبية وعذر عن العمل/الدراسة للمدة المحددة أدناه:`
+            : `This official certificate confirms that the patient named below was clinically examined at our medical facility. Based on diagnostic evaluation, medical rest and absence leave are certified as specified below:`
+        }
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">${isAr ? 'اسم المريض' : 'Patient Name'}</div>
+          <div class="kpi-value" style="font-size: 18px;">${patientName || (isAr ? 'مريض' : 'Patient')}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">${isAr ? 'الطبيب المعالج' : 'Attending Physician'}</div>
+          <div class="kpi-value" style="font-size: 18px;">${doctorName || (isAr ? 'طبيب المركز' : 'Attending Doctor')}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">${isAr ? 'التشخيص الطبي' : 'Diagnosis'}</div>
+          <div class="kpi-value" style="font-size: 16px; color: #0284c7;">${diagnosis || (isAr ? 'وعكة صحية حادة' : 'Acute Medical Condition')}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">${isAr ? 'مدة الإجازة الطبية' : 'Leave Duration'}</div>
+          <div class="kpi-value" style="font-size: 18px; color: #16a34a;">${daysCount} ${isAr ? 'أيام' : 'Days'}</div>
+        </div>
+      </div>
+
+      <div style="margin: 20px 0; padding: 16px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 15px;">
+          <span><strong>${isAr ? 'تبدأ من تاريخ:' : 'Start Date:'}</strong> ${start.toLocaleDateString()}</span>
+          <span><strong>${isAr ? 'وحتى تاريخ:' : 'End Date (Inclusive):'}</strong> ${end.toLocaleDateString()}</span>
+          <span><strong>${isAr ? 'تاريخ العودة للعمل:' : 'Return to Duty:'}</strong> ${new Date(end.getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()}</span>
+        </div>
+      </div>
+
+      ${
+        remarks
+          ? `<div style="padding: 12px 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; font-size: 14px; margin-bottom: 24px;">
+              <strong>${isAr ? 'ملاحظات وتوصيات خاصة:' : 'Physician Recommendations:'}</strong> ${remarks}
+            </div>`
+          : ''
+      }
+
+      <div class="signature-box" style="margin-top: 40px;">
+        <div class="sig-line">
+          <div>${isAr ? 'توقيع وختم الطبيب المعالج' : 'Attending Doctor Stamp & Sig'}</div>
+          <div style="margin-top: 50px; font-weight: bold;">......................................</div>
+        </div>
+        <div class="sig-line">
+          <div>${isAr ? 'اعتماد الإدارة الطبية / الختم الرسمي' : 'Medical Directorate Seal'}</div>
+          <div style="margin-top: 50px; font-weight: bold;">......................................</div>
+        </div>
+      </div>
+    `;
+
+    this.printHtmlReport(title, bodyHtml);
+  }
+
+  public printAuditLogReport(logs: any[], clinicName?: string): void {
+    const isAr = this.translation.isArabic();
+    const title = isAr ? 'تقرير سجل الرقابة والتدقيق الأمني' : 'Enterprise Audit Trail Report';
+
+    const rowsHtml = logs.map((l) => `
+      <tr>
+        <td style="font-weight: 600;">${l.entityName}</td>
+        <td><code>${l.entityId ? l.entityId.slice(0, 10) : ''}...</code></td>
+        <td><span class="badge ${l.action === 'Created' ? 'badge-confirmed' : l.action === 'SoftDeleted' ? 'badge-cancelled' : 'badge-pending'}">${l.action}</span></td>
+        <td>${l.changedBy}</td>
+        <td>${new Date(l.changedAtUtc).toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    const bodyHtml = `
+      <div class="report-header">
+        <div style="font-size: 26px; margin-bottom: 6px;">🛡️ 📜</div>
+        <h2>${isAr ? 'سجل الرقابة وتدقيق الحركات والعمليات' : 'Enterprise Audit Log Trail'}</h2>
+        <div class="meta">${clinicName || 'Clinic Management System'} — ${new Date().toLocaleDateString()}</div>
+      </div>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>${isAr ? 'الكيان المتأثر' : 'Entity'}</th>
+            <th>${isAr ? 'المعرف' : 'Entity ID'}</th>
+            <th>${isAr ? 'نوع الحركة' : 'Action'}</th>
+            <th>${isAr ? 'المستخدم المنفذ' : 'Actor / User'}</th>
+            <th>${isAr ? 'الوقت والتاريخ' : 'Timestamp'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml || `<tr><td colspan="5" style="text-align:center;">${isAr ? 'لا توجد سجلات تدقيق' : 'No audit records'}</td></tr>`}
+        </tbody>
+      </table>
+    `;
+
+    this.printHtmlReport(title, bodyHtml);
+  }
+
+  public exportAuditLogsCsv(logs: any[]): void {
+    const isAr = this.translation.isArabic();
+    const headers = isAr
+      ? ['معرف السجل', 'الكيان', 'معرف الكيان', 'نوع الحركة', 'المستخدم المنفذ', 'الوقت والتاريخ UTC']
+      : ['Log ID', 'Entity Name', 'Entity ID', 'Action', 'Changed By', 'Changed At UTC'];
+
+    const rows = logs.map((l) => [
+      l.id,
+      l.entityName,
+      l.entityId,
+      l.action,
+      l.changedBy,
+      l.changedAtUtc
+    ]);
+
+    this.downloadCsv(`audit_logs_${new Date().toISOString().slice(0, 10)}`, headers, rows);
+  }
 }
