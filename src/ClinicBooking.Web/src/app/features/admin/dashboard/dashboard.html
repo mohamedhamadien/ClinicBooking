@@ -780,6 +780,67 @@
           </div>
         </div>
 
+        <!-- Latest Vitals & Clinical Assessment Trend -->
+        @if (rec.vitalSignsHistory && rec.vitalSignsHistory.length > 0) {
+          @let latestVs = rec.vitalSignsHistory[0];
+          <div class="mt-4 p-3 bg-light rounded border">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h4 class="m-0">💓 {{ translation.isArabic() ? 'أحدث مؤشرات وتقييم العلامات الحيوية' : 'Latest Vitals Clinical Assessment' }}</h4>
+              <small class="text-muted">{{ translation.isArabic() ? 'سجلت بتاريخ: ' : 'Recorded on: ' }}{{ latestVs.recordedAtUtc | date:'medium' }}</small>
+            </div>
+
+            <div class="grid-4 mt-2">
+              <!-- BP -->
+              <div class="p-2 bg-white rounded border text-center">
+                <div class="small text-muted">{{ translation.isArabic() ? 'ضغط الدم' : 'Blood Pressure' }}</div>
+                <div style="font-size: 1.25rem; font-weight: bold; color: #0284c7;">
+                  {{ latestVs.systolicBp || '-' }} / {{ latestVs.diastolicBp || '-' }} <small style="font-size: 0.75rem;">mmHg</small>
+                </div>
+                @let bpStatus = getBpAssessment(latestVs.systolicBp, latestVs.diastolicBp);
+                <span class="badge mt-1" [class]="bpStatus.class">
+                  {{ translation.isArabic() ? bpStatus.textAr : bpStatus.textEn }}
+                </span>
+              </div>
+
+              <!-- Heart Rate -->
+              <div class="p-2 bg-white rounded border text-center">
+                <div class="small text-muted">{{ translation.isArabic() ? 'نبض القلب' : 'Heart Rate' }}</div>
+                <div style="font-size: 1.25rem; font-weight: bold; color: #e11d48;">
+                  {{ latestVs.heartRate || '-' }} <small style="font-size: 0.75rem;">bpm</small>
+                </div>
+                @let hrStatus = getHeartRateAssessment(latestVs.heartRate);
+                <span class="badge mt-1" [class]="hrStatus.class">
+                  {{ translation.isArabic() ? hrStatus.textAr : hrStatus.textEn }}
+                </span>
+              </div>
+
+              <!-- Blood Glucose -->
+              <div class="p-2 bg-white rounded border text-center">
+                <div class="small text-muted">{{ translation.isArabic() ? 'سكر الدم' : 'Blood Glucose' }}</div>
+                <div style="font-size: 1.25rem; font-weight: bold; color: #d97706;">
+                  {{ latestVs.bloodGlucoseMgDl || '-' }} <small style="font-size: 0.75rem;">mg/dL</small>
+                </div>
+                @let glStatus = getGlucoseAssessment(latestVs.bloodGlucoseMgDl);
+                <span class="badge mt-1" [class]="glStatus.class">
+                  {{ translation.isArabic() ? glStatus.textAr : glStatus.textEn }}
+                </span>
+              </div>
+
+              <!-- BMI & Weight -->
+              <div class="p-2 bg-white rounded border text-center">
+                <div class="small text-muted">{{ translation.isArabic() ? 'كتلة الجسم / الوزن' : 'BMI & Weight' }}</div>
+                <div style="font-size: 1.25rem; font-weight: bold; color: #059669;">
+                  {{ latestVs.bmi || '-' }} <small style="font-size: 0.75rem;">({{ latestVs.weightKg || '-' }} kg)</small>
+                </div>
+                @let bmiStatus = getBmiAssessment(latestVs.bmi);
+                <span class="badge mt-1" [class]="bmiStatus.class">
+                  {{ translation.isArabic() ? bmiStatus.textAr : bmiStatus.textEn }}
+                </span>
+              </div>
+            </div>
+          </div>
+        }
+
         <!-- History Sections -->
         <div class="grid-2 mt-4">
           <!-- Past Consultations -->
@@ -913,94 +974,186 @@
   @if (activeTab() === 'billing') {
     <div class="tab-header">
       <div>
-        <h3>💳 {{ translation.isArabic() ? 'إدارة الفواتير والتحصيل المالي' : 'Clinic Invoicing & Billing Management' }}</h3>
-        <p class="text-muted m-0">{{ translation.isArabic() ? 'إصدار فواتير الكشف والخدمات، تسجيل التحصيل نقداً أو بالبطاقة، ومتابعة سجلات الحسابات.' : 'Issue itemized consultation bills, record cash/card payments, and audit financial records.' }}</p>
+        <h3>💳 {{ translation.isArabic() ? 'إدارة الفواتير وقائمة أسعار الخدمات' : 'Billing, Invoicing & Services Price List' }}</h3>
+        <p class="text-muted m-0">{{ translation.isArabic() ? 'إصدار فواتير الكشف والخدمات، إدارة لائحة الأسعار، تسجيل التحصيل، ومتابعة سجلات الحسابات.' : 'Issue itemized bills, manage standard service price list, record payments, and audit accounts.' }}</p>
       </div>
-      <div class="d-flex gap-2">
-        <button (click)="openAddInsuranceModal()" class="btn btn-outline btn-sm">
-          🏢 {{ translation.isArabic() ? 'شركات التأمين' : 'Insurance' }}
-        </button>
-        <button (click)="printInsuranceClaimsReport()" class="btn btn-outline btn-sm">
-          📑 {{ translation.isArabic() ? 'مطالبات التأمين' : 'Claims Report' }}
-        </button>
-        <button (click)="exportInsuranceClaimsCsv()" class="btn btn-outline btn-sm">
-          📥 {{ translation.isArabic() ? 'تصدير المطالبات CSV' : 'Claims CSV' }}
-        </button>
-        <button (click)="exportInvoicesCsv()" class="btn btn-outline btn-sm">
-          📥 {{ translation.isArabic() ? 'دفتر الفواتير CSV' : 'Ledger CSV' }}
-        </button>
-        <button (click)="openInvoiceModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إصدار فاتورة' : 'Issue Invoice' }}</button>
-        <button (click)="loadInvoices()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث' : '🔄 Refresh' }}</button>
+      <div class="d-flex gap-2 align-items-center">
+        <!-- Sub-View Toggle -->
+        <div class="d-flex gap-1 me-2">
+          <button (click)="setBillingView('invoices')" class="btn btn-sm" [class.btn-primary]="billingViewMode() === 'invoices'" [class.btn-outline]="billingViewMode() !== 'invoices'">
+            📑 {{ translation.isArabic() ? 'دفتر الفواتير' : 'Invoices' }}
+          </button>
+          <button (click)="setBillingView('priceList')" class="btn btn-sm" [class.btn-primary]="billingViewMode() === 'priceList'" [class.btn-outline]="billingViewMode() !== 'priceList'">
+            🏷️ {{ translation.isArabic() ? 'لائحة الأسعار' : 'Price List' }}
+          </button>
+        </div>
+
+        @if (billingViewMode() === 'invoices') {
+          <button (click)="openAddInsuranceModal()" class="btn btn-outline btn-sm">
+            🏢 {{ translation.isArabic() ? 'شركات التأمين' : 'Insurance' }}
+          </button>
+          <button (click)="printInsuranceClaimsReport()" class="btn btn-outline btn-sm">
+            📑 {{ translation.isArabic() ? 'مطالبات التأمين' : 'Claims' }}
+          </button>
+          <button (click)="exportInvoicesCsv()" class="btn btn-outline btn-sm">
+            📥 {{ translation.isArabic() ? 'تصدير CSV' : 'Export CSV' }}
+          </button>
+          <button (click)="openInvoiceModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إصدار فاتورة' : 'Issue Invoice' }}</button>
+          <button (click)="loadInvoices()" class="btn btn-outline btn-sm">{{ translation.isArabic() ? '🔄 تحديث' : '🔄 Refresh' }}</button>
+        } @else {
+          <button (click)="printServicesPriceList()" class="btn btn-outline btn-sm">
+            🖨️ {{ translation.isArabic() ? 'طباعة اللائحة' : 'Print List' }}
+          </button>
+          <button (click)="exportServicesPriceListCsv()" class="btn btn-outline btn-sm">
+            📥 {{ translation.isArabic() ? 'تصدير CSV' : 'Export CSV' }}
+          </button>
+          <button (click)="openAddServiceModal()" class="btn btn-primary btn-sm">
+            + {{ translation.isArabic() ? 'إضافة خدمة طبية' : 'Add Medical Service' }}
+          </button>
+        }
       </div>
     </div>
 
-    <div class="card table-card mt-3">
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{{ translation.isArabic() ? 'رقم الفاتورة' : 'Invoice #' }}</th>
-              <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
-              <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }}</th>
-              <th>{{ translation.isArabic() ? 'التاريخ' : 'Date' }}</th>
-              <th>{{ translation.isArabic() ? 'المبلغ الإجمالي' : 'Total Amount' }}</th>
-              <th>{{ translation.isArabic() ? 'طريقة السداد' : 'Payment Method' }}</th>
-              <th>{{ translation.isArabic() ? 'حالة السداد' : 'Status' }}</th>
-              <th>{{ translation.isArabic() ? 'الإجراء' : 'Action' }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (inv of invoices(); track inv.id) {
+    @if (billingViewMode() === 'invoices') {
+      <div class="card table-card mt-3">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
               <tr>
-                <td><strong>{{ inv.invoiceNumber }}</strong></td>
-                <td>{{ inv.patientName || inv.patientId.slice(0, 8) }}</td>
-                <td>{{ inv.clinicName || 'Clinic Branch' }}</td>
-                <td>{{ inv.issuedAtUtc | date:'mediumDate' }}</td>
-                <td><strong class="text-primary">{{ inv.totalAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong></td>
-                <td>
-                  <strong>{{ inv.paymentMethod }}</strong>
-                  @if (inv.insuranceCoverageAmount && inv.insuranceCoverageAmount > 0) {
-                    <div class="small text-info mt-1">🛡️ {{ inv.insuranceProviderName || (translation.isArabic() ? 'تأمين' : 'Insurance') }}: {{ inv.insuranceCoverageAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</div>
-                    <div class="small text-muted">{{ translation.isArabic() ? 'تحمل: ' : 'Copay: ' }}{{ inv.patientCopayAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</div>
-                  }
-                </td>
-                <td>
-                  <span class="badge"
-                    [class.badge-confirmed]="inv.status === 'Paid'"
-                    [class.badge-scheduled]="inv.status === 'Pending'"
-                    [class.badge-in-consultation]="inv.status === 'PartiallyPaid'">
-                    {{ inv.status === 'Paid' ? (translation.isArabic() ? 'مدفوع بالكامل' : 'Paid in Full') : inv.status === 'PartiallyPaid' ? (translation.isArabic() ? 'مدفوع جزئياً' : 'Partially Paid') : (translation.isArabic() ? 'قيد السداد' : 'Pending') }}
-                  </span>
-                  @if (inv.status === 'PartiallyPaid' || (inv.paidAmount > 0 && inv.paidAmount < inv.totalAmount)) {
-                    <div class="small text-danger mt-1">
-                      <strong>{{ translation.isArabic() ? 'المتبقي: ' : 'Remaining: ' }}</strong>{{ (inv.remainingAmount ?? (inv.totalAmount - inv.paidAmount)) }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}
-                    </div>
-                  }
-                </td>
-                <td>
-                  <div class="d-flex gap-1 align-items-center">
-                    <button (click)="printInvoiceReceipt(inv)" class="btn btn-outline btn-xs" title="{{ translation.isArabic() ? 'طباعة إيصال الفاتورة' : 'Print Invoice Receipt' }}">
-                      🧾 {{ translation.isArabic() ? 'طباعة' : 'Print' }}
-                    </button>
-                    @if (inv.status === 'Pending' || inv.status === 'PartiallyPaid') {
-                      <button (click)="openPayModal(inv)" class="btn btn-primary btn-xs">
-                        💵 {{ translation.isArabic() ? 'تحصيل / سداد' : 'Pay / Collect' }}
-                      </button>
-                    } @else {
-                      <span class="text-success small">✓ {{ translation.isArabic() ? 'سُددت' : 'Paid' }}</span>
+                <th>{{ translation.isArabic() ? 'رقم الفاتورة' : 'Invoice #' }}</th>
+                <th>{{ translation.isArabic() ? 'المريض' : 'Patient' }}</th>
+                <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }}</th>
+                <th>{{ translation.isArabic() ? 'التاريخ' : 'Date' }}</th>
+                <th>{{ translation.isArabic() ? 'المبلغ الإجمالي' : 'Total Amount' }}</th>
+                <th>{{ translation.isArabic() ? 'طريقة السداد' : 'Payment Method' }}</th>
+                <th>{{ translation.isArabic() ? 'حالة السداد' : 'Status' }}</th>
+                <th>{{ translation.isArabic() ? 'الإجراء' : 'Action' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (inv of invoices(); track inv.id) {
+                <tr>
+                  <td><strong>{{ inv.invoiceNumber }}</strong></td>
+                  <td>{{ inv.patientName || inv.patientId.slice(0, 8) }}</td>
+                  <td>{{ inv.clinicName || 'Clinic Branch' }}</td>
+                  <td>{{ inv.issuedAtUtc | date:'mediumDate' }}</td>
+                  <td><strong class="text-primary">{{ inv.totalAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong></td>
+                  <td>
+                    <strong>{{ inv.paymentMethod }}</strong>
+                    @if (inv.insuranceCoverageAmount && inv.insuranceCoverageAmount > 0) {
+                      <div class="small text-info mt-1">🛡️ {{ inv.insuranceProviderName || (translation.isArabic() ? 'تأمين' : 'Insurance') }}: {{ inv.insuranceCoverageAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</div>
+                      <div class="small text-muted">{{ translation.isArabic() ? 'تحمل: ' : 'Copay: ' }}{{ inv.patientCopayAmount }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</div>
                     }
-                  </div>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="8" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد فواتير مسجلة بعد. اضغط "+ إصدار فاتورة" لتوليد فاتورة جديدة.' : 'No invoices recorded yet. Click "+ Issue Invoice" to generate a bill.' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+                  </td>
+                  <td>
+                    <span class="badge"
+                      [class.badge-confirmed]="inv.status === 'Paid'"
+                      [class.badge-scheduled]="inv.status === 'Pending'"
+                      [class.badge-in-consultation]="inv.status === 'PartiallyPaid'">
+                      {{ inv.status === 'Paid' ? (translation.isArabic() ? 'مدفوع بالكامل' : 'Paid in Full') : inv.status === 'PartiallyPaid' ? (translation.isArabic() ? 'مدفوع جزئياً' : 'Partially Paid') : (translation.isArabic() ? 'قيد السداد' : 'Pending') }}
+                    </span>
+                    @if (inv.status === 'PartiallyPaid' || (inv.paidAmount > 0 && inv.paidAmount < inv.totalAmount)) {
+                      <div class="small text-danger mt-1">
+                        <strong>{{ translation.isArabic() ? 'المتبقي: ' : 'Remaining: ' }}</strong>{{ (inv.remainingAmount ?? (inv.totalAmount - inv.paidAmount)) }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}
+                      </div>
+                    }
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1 align-items-center">
+                      <button (click)="printInvoiceReceipt(inv)" class="btn btn-outline btn-xs" title="{{ translation.isArabic() ? 'طباعة إيصال الفاتورة' : 'Print Invoice Receipt' }}">
+                        🧾 {{ translation.isArabic() ? 'طباعة' : 'Print' }}
+                      </button>
+                      @if (inv.status === 'Pending' || inv.status === 'PartiallyPaid') {
+                        <button (click)="openPayModal(inv)" class="btn btn-primary btn-xs">
+                          💵 {{ translation.isArabic() ? 'تحصيل / سداد' : 'Pay / Collect' }}
+                        </button>
+                      } @else {
+                        <span class="text-success small">✓ {{ translation.isArabic() ? 'سُددت' : 'Paid' }}</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد فواتير مسجلة بعد. اضغط "+ إصدار فاتورة" لتوليد فاتورة جديدة.' : 'No invoices recorded yet. Click "+ Issue Invoice" to generate a bill.' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    } @else {
+      <!-- SERVICES & PROCEDURES PRICE LIST VIEW -->
+      <div class="card filter-card mt-3">
+        <div class="filter-grid">
+          <div class="form-group mb-0">
+            <label class="form-label">{{ translation.isArabic() ? 'بحث في لائحة الخدمات' : 'Search Services' }}</label>
+            <input
+              type="text"
+              [ngModel]="serviceSearch()"
+              (ngModelChange)="serviceSearch.set($event)"
+              class="form-control"
+              [placeholder]="translation.isArabic() ? 'ابحث بالكود، اسم الخدمة، أو التصنيف...' : 'Search code, name, category...'"
+            />
+          </div>
+
+          <div class="form-group mb-0">
+            <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب التصنيف' : 'Filter Category' }}</label>
+            <select [ngModel]="serviceCategoryFilter()" (ngModelChange)="serviceCategoryFilter.set($event)" class="form-select">
+              <option value="">{{ translation.isArabic() ? 'كافة التصنيفات' : 'All Categories' }}</option>
+              <option value="Consultation">{{ translation.isArabic() ? 'كشوفات واستشارات' : 'Consultations' }}</option>
+              <option value="Diagnostic">{{ translation.isArabic() ? 'فحوصات وأشعة (Diagnostic)' : 'Diagnostics & Imaging' }}</option>
+              <option value="Laboratory">{{ translation.isArabic() ? 'تحاليل مخبرية (Laboratory)' : 'Laboratory' }}</option>
+              <option value="Procedure">{{ translation.isArabic() ? 'إجراءات علاجية (Procedures)' : 'Procedures' }}</option>
+              <option value="Dental">{{ translation.isArabic() ? 'طب الأسنان (Dental)' : 'Dental' }}</option>
+              <option value="Nursing">{{ translation.isArabic() ? 'تمريض ورعاية (Nursing)' : 'Nursing' }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card table-card mt-3">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ translation.isArabic() ? 'الكود' : 'Code' }}</th>
+                <th>{{ translation.isArabic() ? 'اسم الخدمة / الإجراء الطبي' : 'Service / Procedure Name' }}</th>
+                <th>{{ translation.isArabic() ? 'التصنيف' : 'Category' }}</th>
+                <th>{{ translation.isArabic() ? 'السعر الرسمي' : 'Official Price' }}</th>
+                <th>{{ translation.isArabic() ? 'إجراء سريع' : 'Action' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (srv of filteredClinicServices(); track srv.id) {
+                <tr>
+                  <td><code>{{ srv.code }}</code></td>
+                  <td>
+                    <strong>{{ translation.isArabic() && srv.nameAr ? srv.nameAr : srv.nameEn }}</strong>
+                    <div class="small text-muted">{{ srv.nameEn }}</div>
+                  </td>
+                  <td>
+                    <span class="badge badge-scheduled">{{ srv.category }}</span>
+                  </td>
+                  <td>
+                    <strong class="text-primary font-weight-bold" style="font-size: 1.1rem;">{{ srv.price }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
+                  </td>
+                  <td>
+                    <button (click)="openInvoiceModal(); addServiceToInvoice(srv)" class="btn btn-outline btn-xs">
+                      💳 {{ translation.isArabic() ? 'تضمين بفاتورة' : 'Bill Service' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="text-center py-5">{{ translation.isArabic() ? 'لا توجد خدمات تطابق شروط البحث.' : 'No services match the search criteria.' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
   }
 
   <!-- TAB 6: APPOINTMENTS MASTER ROSTER -->
@@ -1752,6 +1905,23 @@
             </div>
           </div>
         }
+
+        <!-- Quick Select from Services Price List -->
+        <div class="mt-2 mb-2 p-2 bg-light rounded border">
+          <small class="text-muted d-block mb-1">🏷️ {{ translation.isArabic() ? 'إضافة سريعة من لائحة أسعار الخدمات الطبية:' : 'Quick add from official price list:' }}</small>
+          <div class="d-flex flex-wrap gap-1">
+            @for (srv of clinicServices().slice(0, 8); track srv.id) {
+              <button
+                type="button"
+                (click)="addServiceToInvoice(srv)"
+                class="btn btn-outline btn-xs"
+                title="{{ srv.category }}"
+              >
+                + {{ translation.isArabic() && srv.nameAr ? srv.nameAr : srv.nameEn }} ({{ srv.price }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }})
+              </button>
+            }
+          </div>
+        </div>
 
         <div class="items-box mt-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -2785,6 +2955,80 @@
           <button (click)="isSickLeaveModalOpen = false" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button (click)="submitSickLeave()" class="btn btn-primary">
             🖨️ {{ translation.isArabic() ? 'توليد وطباعة الشهادة' : 'Generate & Print Certificate' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: ADD MEDICAL SERVICE / PROCEDURE -->
+  @if (isAddServiceModalOpen) {
+    <div class="modal-backdrop" (click)="isAddServiceModalOpen = false">
+      <div class="card modal-card" (click)="$event.stopPropagation()">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <h3>🏷️ {{ translation.isArabic() ? 'إضافة خدمة طبية للائحة الأسعار' : 'Add Medical Service / Procedure' }}</h3>
+          <button (click)="isAddServiceModalOpen = false" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <div class="grid-2 mt-3">
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'كود الخدمة *' : 'Service Code *' }}</label>
+            <input
+              type="text"
+              [(ngModel)]="newServiceCode"
+              class="form-control"
+              placeholder="e.g. SRV-016"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ translation.isArabic() ? 'التصنيف الطبي *' : 'Category *' }}</label>
+            <select [(ngModel)]="newServiceCategory" class="form-select">
+              <option value="Consultation">{{ translation.isArabic() ? 'كشف واستشارة (Consultation)' : 'Consultation' }}</option>
+              <option value="Diagnostic">{{ translation.isArabic() ? 'فحوصات وأشعة (Diagnostic)' : 'Diagnostic' }}</option>
+              <option value="Laboratory">{{ translation.isArabic() ? 'تحاليل مخبرية (Laboratory)' : 'Laboratory' }}</option>
+              <option value="Procedure">{{ translation.isArabic() ? 'إجراءات علاجية (Procedure)' : 'Procedure' }}</option>
+              <option value="Dental">{{ translation.isArabic() ? 'طب الأسنان (Dental)' : 'Dental' }}</option>
+              <option value="Nursing">{{ translation.isArabic() ? 'تمريض ورعاية (Nursing)' : 'Nursing' }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'اسم الخدمة بالإنجليزية *' : 'Service Name (English) *' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="newServiceNameEn"
+            class="form-control"
+            placeholder="e.g. Holter Monitor 24h"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'اسم الخدمة بالعربية' : 'Service Name (Arabic)' }}</label>
+          <input
+            type="text"
+            [(ngModel)]="newServiceNameAr"
+            class="form-control"
+            placeholder="مثال: جهاز هولتر لرسم القلب 24 ساعة"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ translation.isArabic() ? 'السعر الرسمي (ج.م) *' : 'Official Price (EGP) *' }}</label>
+          <input
+            type="number"
+            min="1"
+            step="10"
+            [(ngModel)]="newServicePrice"
+            class="form-control"
+            placeholder="250"
+          />
+        </div>
+
+        <div class="modal-actions mt-4">
+          <button (click)="isAddServiceModalOpen = false" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
+          <button (click)="submitNewService()" class="btn btn-primary">
+            ✓ {{ translation.isArabic() ? 'حفظ وإدراج باللائحة' : 'Save to Price List' }}
           </button>
         </div>
       </div>

@@ -1246,4 +1246,70 @@ export class ReportingService {
 
     this.downloadCsv(`audit_logs_${new Date().toISOString().slice(0, 10)}`, headers, rows);
   }
+
+  public printServicesPriceList(services: any[], clinicName?: string): void {
+    const isAr = this.translation.isArabic();
+    const title = isAr ? 'لائحة أسعار الخدمات الطبية والفحوصات' : 'Official Clinic Services & Procedures Price List';
+
+    const rowsHtml = services.map((s) => `
+      <tr>
+        <td style="font-weight: 600;"><code>${s.code}</code></td>
+        <td style="font-weight: bold; color: #0f172a;">${isAr && s.nameAr ? s.nameAr : s.nameEn}</td>
+        <td><span class="badge badge-scheduled">${s.category}</span></td>
+        <td style="text-align: right; font-weight: bold; color: #0284c7; font-size: 15px;">${s.price} ${isAr ? 'ج.م' : 'EGP'}</td>
+      </tr>
+    `).join('');
+
+    const bodyHtml = `
+      <div class="report-header">
+        <div style="font-size: 28px; margin-bottom: 6px;">🏷️ 📋</div>
+        <h2>${isAr ? 'لائحة أسعار الخدمات الطبية والكشوفات المعتمدة' : 'Official Medical Services & Procedures Price List'}</h2>
+        <div class="meta">${clinicName || (isAr ? 'المركز الطبي' : 'Healthcare Clinic')} — ${new Date().toLocaleDateString()}</div>
+      </div>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>${isAr ? 'الكود' : 'Code'}</th>
+            <th>${isAr ? 'اسم الخدمة / الإجراء الطبي' : 'Service / Clinical Procedure'}</th>
+            <th>${isAr ? 'التصنيف' : 'Category'}</th>
+            <th style="text-align: right;">${isAr ? 'السعر الرسمي' : 'Official Price'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+
+      <div class="signature-box" style="margin-top: 40px;">
+        <div class="sig-line">
+          <div>${isAr ? 'إعداد قسم المحاسبة' : 'Accounts Department'}</div>
+          <div style="margin-top: 40px; font-weight: bold;">......................................</div>
+        </div>
+        <div class="sig-line">
+          <div>${isAr ? 'اعتماد المدير الطبي العام' : 'Medical Director Approval'}</div>
+          <div style="margin-top: 40px; font-weight: bold;">......................................</div>
+        </div>
+      </div>
+    `;
+
+    this.printHtmlReport(title, bodyHtml);
+  }
+
+  public exportServicesPriceListCsv(services: any[]): void {
+    const isAr = this.translation.isArabic();
+    const headers = isAr
+      ? ['كود الخدمة', 'الاسم بالإنجليزية', 'الاسم بالعربية', 'التصنيف', 'السعر']
+      : ['Service Code', 'Name (EN)', 'Name (AR)', 'Category', 'Price'];
+
+    const rows = services.map((s) => [
+      s.code,
+      s.nameEn,
+      s.nameAr || '',
+      s.category,
+      s.price
+    ]);
+
+    this.downloadCsv(`clinic_services_pricelist_${new Date().toISOString().slice(0, 10)}`, headers, rows);
+  }
 }

@@ -34,6 +34,15 @@ import { MedicalAttachmentDto } from '../../../core/models/attachments.models';
 import { MedicalInventoryItemDto } from '../../../core/models/inventory.models';
 import { InsuranceProviderDto } from '../../../core/models/insurance.models';
 
+export interface ClinicServiceItem {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  category: 'Consultation' | 'Diagnostic' | 'Laboratory' | 'Procedure' | 'Dental' | 'Nursing';
+  price: number;
+}
+
 export type AdminTab =
   | 'overview'
   | 'queue'
@@ -384,6 +393,53 @@ export class DashboardComponent implements OnInit {
   protected invItems: { description: string; quantity: number; unitPrice: number }[] = [
     { description: 'Specialist Consultation Fee', quantity: 1, unitPrice: 350 }
   ];
+
+  // --- Clinic Services & Price List State ---
+  protected billingViewMode = signal<'invoices' | 'priceList'>('invoices');
+  protected readonly clinicServices = signal<ClinicServiceItem[]>([
+    { id: '1', code: 'SRV-001', nameEn: 'General Practitioner Consultation', nameAr: 'كشف طبيب عام / ممارس', category: 'Consultation', price: 250 },
+    { id: '2', code: 'SRV-002', nameEn: 'Consultant Specialist Examination', nameAr: 'كشف طبيب استشاري متخصص', category: 'Consultation', price: 450 },
+    { id: '3', code: 'SRV-003', nameEn: 'Emergency Triage & Consultation', nameAr: 'كشف طوارئ وتقييم عاجل', category: 'Consultation', price: 350 },
+    { id: '4', code: 'SRV-004', nameEn: 'Follow-up Consultation (Within 14 days)', nameAr: 'استشارة ومراجعة طبية (خلال 14 يوم)', category: 'Consultation', price: 100 },
+    { id: '5', code: 'SRV-005', nameEn: '12-Lead Electrocardiogram (ECG)', nameAr: 'رسم وتخطيط قلب 12 قناة (ECG)', category: 'Diagnostic', price: 200 },
+    { id: '6', code: 'SRV-006', nameEn: 'Abdominal & Pelvic Ultrasound', nameAr: 'موجات فوق صوتية سونار على البطن والحوض', category: 'Diagnostic', price: 500 },
+    { id: '7', code: 'SRV-007', nameEn: 'Echocardiogram (Echo)', nameAr: 'أشعة إيكو على القلب', category: 'Diagnostic', price: 650 },
+    { id: '8', code: 'SRV-008', nameEn: 'Complete Blood Picture (CBC)', nameAr: 'صورة دم كاملة (CBC)', category: 'Laboratory', price: 180 },
+    { id: '9', code: 'SRV-009', nameEn: 'Fasting Blood Sugar & Lipid Profile', nameAr: 'تحليل سكر صائم ودهون الدم الكاملة', category: 'Laboratory', price: 220 },
+    { id: '10', code: 'SRV-010', nameEn: 'HbA1c Glycated Hemoglobin', nameAr: 'تحليل سكر تراكمي HbA1c', category: 'Laboratory', price: 200 },
+    { id: '11', code: 'SRV-011', nameEn: 'Kidney & Liver Function Panel', nameAr: 'وظائف كلى وكبد كاملة', category: 'Laboratory', price: 320 },
+    { id: '12', code: 'SRV-012', nameEn: 'Minor Wound Debridement & Suture', nameAr: 'غيار وخياطة جروح بسيطة', category: 'Procedure', price: 300 },
+    { id: '13', code: 'SRV-013', nameEn: 'Nebulizer Respiratory Session', nameAr: 'جلسة استنشاق موسع شعب (نيبولايزر)', category: 'Nursing', price: 120 },
+    { id: '14', code: 'SRV-014', nameEn: 'IM / IV Medication Injection', nameAr: 'إعطاء حقنة عضلية أو وريدية', category: 'Nursing', price: 50 },
+    { id: '15', code: 'SRV-015', nameEn: 'Dental Scaling & Polishing', nameAr: 'تنظيف وتلميع الأسنان وإزالة الجير', category: 'Dental', price: 400 }
+  ]);
+  protected serviceCategoryFilter = signal('');
+  protected serviceSearch = signal('');
+
+  protected readonly filteredClinicServices = computed(() => {
+    let list = this.clinicServices();
+    if (this.serviceCategoryFilter()) {
+      list = list.filter((s) => s.category === this.serviceCategoryFilter());
+    }
+    if (this.serviceSearch().trim()) {
+      const q = this.serviceSearch().toLowerCase();
+      list = list.filter(
+        (s) =>
+          s.code.toLowerCase().includes(q) ||
+          s.nameEn.toLowerCase().includes(q) ||
+          s.nameAr.toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  });
+
+  protected isAddServiceModalOpen = false;
+  protected newServiceCode = '';
+  protected newServiceNameEn = '';
+  protected newServiceNameAr = '';
+  protected newServiceCategory: 'Consultation' | 'Diagnostic' | 'Laboratory' | 'Procedure' | 'Dental' | 'Nursing' = 'Consultation';
+  protected newServicePrice = 250;
 
   // --- Existing Modals ---
   protected isDoctorModalOpen = false;
@@ -942,6 +998,88 @@ export class DashboardComponent implements OnInit {
     );
     this.isSickLeaveModalOpen = false;
     this.showMessage('Official Medical Sick Leave Certificate generated and ready for print!');
+  }
+
+  // --- Clinic Services & Procedures Methods ---
+  protected setBillingView(mode: 'invoices' | 'priceList'): void {
+    this.billingViewMode.set(mode);
+  }
+
+  protected addServiceToInvoice(srv: ClinicServiceItem): void {
+    const desc = this.translation.isArabic() && srv.nameAr ? `${srv.nameAr} (${srv.nameEn})` : srv.nameEn;
+    this.invItems.push({
+      description: desc,
+      quantity: 1,
+      unitPrice: srv.price
+    });
+    this.showMessage(`Added "${srv.nameEn}" (${srv.price} EGP) to invoice items.`);
+  }
+
+  protected openAddServiceModal(): void {
+    const nextNum = this.clinicServices().length + 1;
+    this.newServiceCode = `SRV-${String(nextNum).padStart(3, '0')}`;
+    this.newServiceNameEn = '';
+    this.newServiceNameAr = '';
+    this.newServiceCategory = 'Consultation';
+    this.newServicePrice = 200;
+    this.isAddServiceModalOpen = true;
+  }
+
+  protected submitNewService(): void {
+    if (!this.newServiceNameEn.trim() || this.newServicePrice <= 0) {
+      this.errorMessage.set('Please provide service name and positive price.');
+      return;
+    }
+    const srv: ClinicServiceItem = {
+      id: String(Date.now()),
+      code: this.newServiceCode.trim() || `SRV-${this.clinicServices().length + 1}`,
+      nameEn: this.newServiceNameEn.trim(),
+      nameAr: this.newServiceNameAr.trim() || this.newServiceNameEn.trim(),
+      category: this.newServiceCategory,
+      price: this.newServicePrice
+    };
+    this.clinicServices.update((prev) => [...prev, srv]);
+    this.isAddServiceModalOpen = false;
+    this.showMessage(`Medical service "${srv.nameEn}" added to price list.`);
+  }
+
+  protected printServicesPriceList(): void {
+    this.reporting.printServicesPriceList(this.filteredClinicServices(), this.getActiveClinicName());
+  }
+
+  protected exportServicesPriceListCsv(): void {
+    this.reporting.exportServicesPriceListCsv(this.filteredClinicServices());
+  }
+
+  // --- Vitals Clinical Assessments ---
+  protected getBpAssessment(systolic?: number, diastolic?: number): { textAr: string; textEn: string; class: string } {
+    if (!systolic || !diastolic) return { textAr: 'غير محدد', textEn: 'Not Recorded', class: 'badge-scheduled' };
+    if (systolic < 120 && diastolic < 80) return { textAr: 'طبيعي ومثالي', textEn: 'Optimal Normal', class: 'badge-confirmed' };
+    if (systolic >= 140 || diastolic >= 90) return { textAr: 'ارتفاع ضغط دم (مرحلة 2)', textEn: 'Hypertension Stage 2', class: 'badge-cancelled' };
+    if (systolic >= 130 || diastolic >= 80) return { textAr: 'ارتفاع ضغط دم (مرحلة 1)', textEn: 'Hypertension Stage 1', class: 'badge-warning' };
+    return { textAr: 'مرتفع طفيفاً', textEn: 'Elevated', class: 'badge-in-consultation' };
+  }
+
+  protected getGlucoseAssessment(glucose?: number): { textAr: string; textEn: string; class: string } {
+    if (!glucose) return { textAr: 'غير مقاس', textEn: 'Not Tested', class: 'badge-scheduled' };
+    if (glucose < 100) return { textAr: 'طبيعي (صائم)', textEn: 'Normal Fasting', class: 'badge-confirmed' };
+    if (glucose >= 126) return { textAr: 'مرتفع (سكري)', textEn: 'Diabetic Range', class: 'badge-cancelled' };
+    return { textAr: 'مرحلة ما قبل السكري', textEn: 'Pre-diabetes', class: 'badge-warning' };
+  }
+
+  protected getBmiAssessment(bmi?: number): { textAr: string; textEn: string; class: string } {
+    if (!bmi) return { textAr: 'غير محسوب', textEn: 'N/A', class: 'badge-scheduled' };
+    if (bmi < 18.5) return { textAr: 'نقص في الوزن', textEn: 'Underweight', class: 'badge-warning' };
+    if (bmi < 25) return { textAr: 'وزن صحي مثالي', textEn: 'Healthy Weight', class: 'badge-confirmed' };
+    if (bmi < 30) return { textAr: 'زيادة في الوزن', textEn: 'Overweight', class: 'badge-in-consultation' };
+    return { textAr: 'سمنة سريرية', textEn: 'Obese', class: 'badge-cancelled' };
+  }
+
+  protected getHeartRateAssessment(heartRate?: number): { textAr: string; textEn: string; class: string } {
+    if (!heartRate) return { textAr: 'غير مقاس', textEn: 'Not Recorded', class: 'badge-scheduled' };
+    if (heartRate < 60) return { textAr: 'بطء نبض (Bradycardia)', textEn: 'Bradycardia (<60)', class: 'badge-warning' };
+    if (heartRate <= 100) return { textAr: 'طبيعي ومستقر', textEn: 'Normal (60-100)', class: 'badge-confirmed' };
+    return { textAr: 'تسارع نبض (Tachycardia)', textEn: 'Tachycardia (>100)', class: 'badge-cancelled' };
   }
 
   // --- Doctor Actions ---
