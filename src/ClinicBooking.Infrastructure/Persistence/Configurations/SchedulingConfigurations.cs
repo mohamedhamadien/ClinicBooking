@@ -159,3 +159,36 @@ internal sealed class AppointmentConfiguration : IEntityTypeConfiguration<Appoin
         builder.ConfigureAudit();
     }
 }
+
+internal sealed class WaitlistEntryConfiguration : IEntityTypeConfiguration<WaitlistEntry>
+{
+    public void Configure(EntityTypeBuilder<WaitlistEntry> builder)
+    {
+        builder.ToTable("WaitlistEntries");
+        builder.HasKey(w => w.Id);
+        builder.Property(w => w.Id).ValueGeneratedNever();
+
+        builder.Property(w => w.PreferredDate).IsRequired();
+        builder.Property(w => w.PreferredStartTime);
+        builder.Property(w => w.PreferredEndTime);
+        builder.Property(w => w.Priority).IsRequired();
+        builder.Property(w => w.Notes).HasMaxLength(500);
+        builder.Property(w => w.Status)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsUnicode(false)
+            .HasDefaultValue(WaitlistStatus.Waiting)
+            .IsRequired();
+
+        builder.HasOne<Tenant>().WithMany().HasForeignKey(w => w.TenantId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Clinic>().WithMany().HasForeignKey(w => w.ClinicId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Doctor>().WithMany().HasForeignKey(w => w.DoctorId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Patient>().WithMany().HasForeignKey(w => w.PatientId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(w => new { w.TenantId, w.ClinicId, w.DoctorId, w.PreferredDate, w.Status })
+            .HasDatabaseName("IX_WaitlistEntries_Tenant_Clinic_Doctor_Date_Status");
+
+        builder.Ignore(w => w.DomainEvents);
+        builder.ConfigureAudit();
+    }
+}

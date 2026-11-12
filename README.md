@@ -567,7 +567,7 @@ cd ClinicBooking
 # 2. Restore and Build
 dotnet build ClinicBooking.slnx
 
-# 3. Run All Tests (Domain, Application, Infrastructure, API - 134 Tests)
+# 3. Run All Tests (Domain, Application, Infrastructure, API - 174 Tests)
 dotnet test
 
 # 4. Start Web API (Backend)
@@ -599,17 +599,21 @@ docker compose logs -f api
 
 ---
 
-## 15. Implementation Roadmap
+## 15. Implementation Roadmap & Product Evolution (SaaS Clinic Operations Platform)
 
 - [x] **Phase 1: Architecture, Planning & Solution Skeleton**
 - [x] **Phase 2: Domain Layer** (Entities, Value Objects, Domain Exceptions, Business Rules, Unit Tests)
-- [x] **Multi-Tenancy Support** (Tenant Aggregate Root, `IMustHaveTenant`, `IMayHaveTenant`, Tenant Context, Filtered Constraints)
+- [x] **Multi-Tenancy & Security Hardening** (Tenant Aggregate Root, `IMustHaveTenant`, `IMayHaveTenant`, Authoritative JWT Tenant Binding in `TenantResolutionMiddleware`, Clinic-level Staff Scoping)
 - [x] **Phase 3: Application Layer** (CQRS with MediatR, FluentValidation Pipeline Behaviors, Dynamic Slot Engine, Handlers, Unit Tests)
 - [x] **Arabic Language & Bilingual Localization Support** (`ILocalizationService`, Arabic/English entity fields `NameAr`/`NameEn`, localized error codes, status translations, RTL readiness, unit tests)
 - [x] **Phase 4: Infrastructure Layer** (EF Core DbContext, Configurations, Filtered Unique Indexes, Identity, JWT, Repositories, Migrations, Seeder)
 - [x] **Phase 5: API Layer** (Controllers, Swagger/OpenAPI, RequestLocalization Middleware, TenantResolutionMiddleware, Global Exception Middleware, Serilog, Health Checks, API Integration Tests)
-- [x] **Phase 6: Advanced Booking Engine** (Transactional booking, SQL Server concurrency protection, racing HTTP request integration tests)
+- [x] **Phase 6: Advanced Booking Engine & Interval-Overlap Concurrency Protection** (`ExecuteInSerializableTransactionAsync` with `IsolationLevel.Serializable`, full interval overlap guard `StartTimeUtc < EndTimeUtc && EndTimeUtc > StartTimeUtc`, SQL Server `2601`/`2627`/`1205`/`3960` conflict mapping to HTTP `409 Conflict`)
 - [x] **Phase 7: Docker & Containerization** (Multi-stage Dockerfile, docker-compose.yml, healthchecks, networks, volumes)
 - [x] **Phase 8: CI/CD Workflows** (`ci.yml` & `cd.yml` with GHCR and Azure App Service deployment automation)
 - [x] **Phase 9: Final Review, End-to-End Validation & Documentation**
 - [x] **Phase 10: Angular Web Frontend** (Standalone components, Signals, Bilingual Arabic/English with native RTL/LTR, JWT auth interceptor, doctor discovery, dynamic slot booking, patient portal, admin dashboard, Docker & Nginx)
+- [x] **Phase 11: Unified Reception Desk & Hybrid Walk-In Queue** (`/api/v1/reception/dashboard`, `/calendar`, `/appointments`, `/walk-ins` with immediate waiting-room queue check-in and live TV display)
+- [x] **Phase 12: Social-to-Booking & UTM Attribution** (`/api/v1/public/clinics`, `/bookings`, `AppointmentSource` tracking for `Website`, `Facebook`, `Messenger`, `WhatsApp`, `Phone`, `WalkIn`, `Receptionist`, plus Shareable Links & Printable Reception QR Code modal)
+- [x] **Phase 13: Waitlist & Automatic Cancellation Recovery Engine** (`WaitlistEntry` aggregate, `/api/v1/waitlist`, automatic slot offer on appointment cancellation, offer cascade on expiry, and atomic claim-to-booking)
+- [x] **Phase 14: Clinic SaaS Subscription Management** (`SubscriptionStartDateUtc`, `SubscriptionEndDateUtc`, `SubscriptionPlan`, remaining days tracking, and active status badges)

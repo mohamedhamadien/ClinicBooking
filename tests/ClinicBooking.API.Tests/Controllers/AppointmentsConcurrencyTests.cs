@@ -580,4 +580,108 @@ public class AppointmentsConcurrencyTests : IClassFixture<CustomWebApplicationFa
         var response = await spoofClient.GetAsync("/api/v1/appointments/my-upcoming");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact]
+    public async Task WaitlistCancellationRecovery_CancelAppointmentAutomaticallyOffersSlotAndClaimBooksIt()
+    {
+        _ = _factory.CreateClient();
+
+        Guid tenantId;
+        Guid doctorId;
+        Guid clinicId;
+        Guid patient1Id;
+        Guid patient2Id;
+        string receptionistEmail = $"rec_waitlist_{Guid.NewGuid():N}@clinic.com";
+        string password = "WaitlistPassword123!";
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ClinicBookingDbContext>();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            var tenant = await db.Tenants.IgnoreQueryFilters().FirstAsync(t => t.Identifier == _factory.DefaultTenantSlug);
+            tenantId = tenant.Id;
+            var clinic = await db.Clinics.IgnoreQueryFilters().FirstAsync(c => c.TenantId == tenantId);
+            clinicId = clinic.Id;
+            var specialty = await db.Specialties.IgnoreQueryFilters().FirstAsync();
+
+            var docUser = User.Create($"doc_wl_{Guid.NewGuid():N}@clinic.com", "Doctor", "Waitlist", UserRole.Doctor, tenantId);
+            docUser.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(docUser);
+
+            var doctor = new Doctor(Guid.NewGuid(), tenantId, docUser.Id, specialty.Id, $"WL-{Guid.NewGuid():N}"[..12], "Specialist");
+            for (int d = 0; d < 7; d++)
+            {
+                doctor.AddAvailability(clinicId, (DayOfWeek)d, new TimeOnly(0, 0), new TimeOnly(23, 59));
+            }
+            await db.Doctors.AddAsync(doctor);
+            doctorId = doctor.Id;
+
+            var recUser = User.Create(receptionistEmail, "Nour", "Reception", UserRole.Receptionist, tenantId);
+            recUser.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(recUser);
+
+            var u1 = User.Create($"wl_p1_{Guid.NewGuid():N}@clinic.com", "Patient", "Booked", UserRole.Patient, tenantId);
+            u1.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(u1);
+            var p1 = Patient.Create(tenantId, u1.Id, new DateOnly(1990, 1, 1), Gender.Male);
+            await db.Patients.AddAsync(p1);
+            patient1Id = p1.Id;
+
+            var u2 = User.Create($"wl_p2_{Guid.NewGuid():N}@clinic.com", "Patient", "Waiting", UserRole.Patient, tenantId);
+            u2.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(u2);
+            var p2 = Patient.Create(tenantId, u2.Id, new DateOnly(1992, 2, 2), Gender.Female);
+            await db.Patients.AddAsync(p2);
+            patient2Id = p2.Id;
+
+            await db.SaveChangesAsync();
+        }
+
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-Slug", _factory.DefaultTenantSlug);
+        var auth = await (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginCommand(receptionistEmail, password))).Content.ReadFromJsonAsync<AuthResponseDto>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+
+        var targetDate = DateTime.UtcNow.Date.AddDays(3);
+        var slotStart = DateTime.SpecifyKind(targetDate.AddHours(13), DateTimeKind.Utc);
+        var slotEnd = DateTime.SpecifyKind(targetDate.AddHours(13).AddMinutes(30), DateTimeKind.Utc);
+
+        // 1. Book slot for Patient 1
+        var bookRes = await client.PostAsJsonAsync("/api/v1/appointments",
+            new BookAppointmentCommand(tenantId, doctorId, patient1Id, clinicId, slotStart, slotEnd, "Initial booking"));
+        Assert.Equal(HttpStatusCode.OK, bookRes.StatusCode);
+        var appt1 = await bookRes.Content.ReadFromJsonAsync<AppointmentDto>();
+
+        // 2. Add Patient 2 to Waitlist for that doctor and date
+        var wlCreateRes = await client.PostAsJsonAsync("/api/v1/waitlist",
+            new CreateWaitlistEntryRequest(
+                tenantId,
+                clinicId,
+                doctorId,
+                patient2Id,
+                DateOnly.FromDateTime(slotStart),
+                new TimeOnly(12, 0),
+                new TimeOnly(15, 0),
+                Priority: 5,
+                Notes: "Waiting for cancellation"));
+        Assert.Equal(HttpStatusCode.OK, wlCreateRes.StatusCode);
+        var wlEntry = await wlCreateRes.Content.ReadFromJsonAsync<WaitlistEntryDto>();
+        Assert.NotNull(wlEntry);
+        Assert.Equal("Waiting", wlEntry.Status);
+
+        // 3. Cancel Patient 1's appointment -> automatically offers freed slot to Patient 2
+        var cancelRes = await client.PostAsJsonAsync($"/api/v1/appointments/{appt1!.Id}/cancel",
+            new CancelAppointmentRequest("Patient 1 cancelled"));
+        Assert.Equal(HttpStatusCode.OK, cancelRes.StatusCode);
+
+        // 4. Verify Patient 2's waitlist entry is now 'Offered' and claim it to book Patient 2's appointment
+        var claimRes = await client.PostAsJsonAsync($"/api/v1/waitlist/{wlEntry.Id}/claim", new ClaimWaitlistSlotRequest());
+        Assert.Equal(HttpStatusCode.OK, claimRes.StatusCode);
+        var claimResult = await claimRes.Content.ReadFromJsonAsync<WaitlistClaimResultDto>();
+        Assert.NotNull(claimResult);
+        Assert.Equal("Booked", claimResult.WaitlistEntry.Status);
+        Assert.Equal(patient2Id, claimResult.Appointment.PatientId);
+        Assert.Equal(slotStart, claimResult.Appointment.StartTimeUtc);
+    }
 }

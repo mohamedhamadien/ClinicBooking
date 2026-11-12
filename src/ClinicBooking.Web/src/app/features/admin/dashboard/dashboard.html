@@ -1378,6 +1378,20 @@
             }
           </select>
         </div>
+
+        <div class="form-group mb-0">
+          <label class="form-label">{{ translation.isArabic() ? 'مصدر الحجز (القناة)' : 'Booking Source' }}</label>
+          <select [(ngModel)]="filterSource" class="form-select">
+            <option value="">{{ translation.isArabic() ? 'جميع القنوات' : 'All Channels' }}</option>
+            <option value="Website">{{ translation.isArabic() ? '🌐 الموقع الإلكتروني' : '🌐 Website' }}</option>
+            <option value="Facebook">{{ translation.isArabic() ? '📘 فيسبوك' : '📘 Facebook' }}</option>
+            <option value="Messenger">{{ translation.isArabic() ? '💬 ماسنجر' : '💬 Messenger' }}</option>
+            <option value="WhatsApp">{{ translation.isArabic() ? '🟢 واتساب' : '🟢 WhatsApp' }}</option>
+            <option value="Phone">{{ translation.isArabic() ? '📞 اتصال هاتفي' : '📞 Phone' }}</option>
+            <option value="WalkIn">{{ translation.isArabic() ? '🚶 حضور مباشر (Walk-In)' : '🚶 Walk-In' }}</option>
+            <option value="Receptionist">{{ translation.isArabic() ? '🛎️ مكتب الاستقبال' : '🛎️ Reception Desk' }}</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -1391,6 +1405,7 @@
                 <th>{{ translation.isArabic() ? 'الطبيب' : 'Doctor' }}</th>
                 <th>{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic' }}</th>
                 <th>{{ translation.isArabic() ? 'التاريخ والوقت' : 'Date & Time' }}</th>
+                <th>{{ translation.isArabic() ? 'المصدر' : 'Source' }}</th>
                 <th>{{ translation.isArabic() ? 'الحالة' : 'Status' }}</th>
                 <th>{{ translation.isArabic() ? 'الملف الطبي / إجراء' : 'EMR / Action' }}</th>
               </tr>
@@ -1404,6 +1419,9 @@
                   <td>
                     <div>{{ appt.startTimeUtc | date:'mediumDate' }}</div>
                     <small class="text-muted">{{ appt.startTimeUtc | date:'shortTime' }} - {{ appt.endTimeUtc | date:'shortTime' }}</small>
+                  </td>
+                  <td>
+                    <span class="badge badge-scheduled">{{ getSourceLabel(appt.source) }}</span>
                   </td>
                   <td>
                     <span class="badge" [class]="getBadgeClass(appt.status)">
@@ -1434,7 +1452,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="text-center py-4">{{ translation.isArabic() ? 'لا توجد مواعيد تطابق شروط التصفية المختارة.' : 'No appointments match the selected filters.' }}</td>
+                  <td colspan="7" class="text-center py-4">{{ translation.isArabic() ? 'لا توجد مواعيد تطابق شروط التصفية المختارة.' : 'No appointments match the selected filters.' }}</td>
                 </tr>
               }
             </tbody>
@@ -1899,14 +1917,74 @@
             </div>
           </div>
 
-          <div class="card-actions mt-3">
-            <button (click)="openEditClinicModal(c)" class="btn btn-outline btn-sm w-100">
-              ✏️ {{ translation.isArabic() ? 'تعديل بيانات الفرع والاشتراك' : 'Edit Branch & Subscription' }}
+          <div class="card-actions mt-3 d-flex gap-2">
+            <button (click)="openEditClinicModal(c)" class="btn btn-outline btn-sm flex-grow-1">
+              ✏️ {{ translation.isArabic() ? 'تعديل والاشتراك' : 'Edit & Sub' }}
+            </button>
+            <button (click)="openSocialShareModal(c)" class="btn btn-primary btn-sm flex-grow-1">
+              🔗 {{ translation.isArabic() ? 'روابط الحجز و QR' : 'Share & QR' }}
             </button>
           </div>
         </div>
       }
     </div>
+
+    @if (isSocialShareModalOpen && socialShareClinic; as sc) {
+      <div class="modal-backdrop" (click)="isSocialShareModalOpen = false">
+        <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 580px;">
+          <div class="modal-header">
+            <h4>🔗 {{ translation.isArabic() ? 'روابط الحجز الاجتماعي ورمز الاستجابة السريعة (QR)' : 'Social-to-Booking Links & Reception QR Code' }}</h4>
+            <button (click)="isSocialShareModalOpen = false" class="btn-close">✕</button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small mb-3">
+              {{ translation.isArabic()
+                ? 'شارك روابط الحجز المزودة بتتبع الحملات (UTM) على فيسبوك وواتساب، أو اطبع رمز الـ QR لمكتب الاستقبال.'
+                : 'Share UTM-tracked booking links on Facebook and WhatsApp, or print the QR code for the reception desk.' }}
+            </p>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">🌐 {{ translation.isArabic() ? 'رابط الحجز المباشر للعيادة' : 'Direct Clinic Booking Link' }}</label>
+              <div class="d-flex gap-2">
+                <input type="text" class="form-control form-control-sm" [value]="getClinicBookingUrl(sc)" readonly />
+                <button (click)="copySocialLink(getClinicBookingUrl(sc))" class="btn btn-outline btn-sm">📋 {{ translation.isArabic() ? 'نسخ' : 'Copy' }}</button>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">📘 {{ translation.isArabic() ? 'رابط حملات فيسبوك وماسنجر (Facebook UTM)' : 'Facebook & Messenger Campaign Link' }}</label>
+              <div class="d-flex gap-2">
+                <input type="text" class="form-control form-control-sm" [value]="getClinicBookingUrl(sc, 'facebook', 'social')" readonly />
+                <button (click)="copySocialLink(getClinicBookingUrl(sc, 'facebook', 'social'))" class="btn btn-outline btn-sm">📋 {{ translation.isArabic() ? 'نسخ' : 'Copy' }}</button>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">🟢 {{ translation.isArabic() ? 'رابط رسائل واتساب التلقائية (WhatsApp UTM)' : 'WhatsApp Direct Booking Link' }}</label>
+              <div class="d-flex gap-2">
+                <input type="text" class="form-control form-control-sm" [value]="getClinicBookingUrl(sc, 'whatsapp', 'chat')" readonly />
+                <button (click)="copySocialLink(getClinicBookingUrl(sc, 'whatsapp', 'chat'))" class="btn btn-outline btn-sm">📋 {{ translation.isArabic() ? 'نسخ' : 'Copy' }}</button>
+              </div>
+            </div>
+
+            <div class="text-center p-3 bg-light rounded border mt-3">
+              <img
+                [src]="getClinicQrImageUrl(sc)"
+                width="160"
+                height="160"
+                alt="Clinic QR Code"
+                class="mb-2 rounded border bg-white p-2"
+              />
+              <div>
+                <button (click)="printClinicQrCode(sc)" class="btn btn-primary btn-sm mt-2">
+                  🖨️ {{ translation.isArabic() ? 'طباعة بوستر QR Code لمكتب الاستقبال' : 'Print Reception Desk QR Poster' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   }
 
   <!-- TAB 9: SPECIALTIES -->

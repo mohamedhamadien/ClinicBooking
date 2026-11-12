@@ -56,6 +56,7 @@ public sealed class ClinicBookingDbContext : DbContext
     public DbSet<InsuranceProvider> InsuranceProviders => Set<InsuranceProvider>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
+    public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
 
     // Referenced from the global query filters. EF Core evaluates context members per query,
     // so each request sees only its own tenant even though the model is cached.

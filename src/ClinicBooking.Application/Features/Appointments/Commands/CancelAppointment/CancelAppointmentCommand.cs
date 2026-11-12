@@ -32,19 +32,22 @@ public sealed class CancelAppointmentCommandHandler : IRequestHandler<CancelAppo
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILocalizationService _localizationService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IWaitlistRepository? _waitlistRepository;
 
     public CancelAppointmentCommandHandler(
         IAppointmentRepository appointmentRepository,
         ITenantRepository tenantRepository,
         IDateTimeProvider dateTimeProvider,
         IUnitOfWork unitOfWork,
-        ILocalizationService? localizationService = null)
+        ILocalizationService? localizationService = null,
+        IWaitlistRepository? waitlistRepository = null)
     {
         _appointmentRepository = appointmentRepository;
         _tenantRepository = tenantRepository;
         _dateTimeProvider = dateTimeProvider;
         _unitOfWork = unitOfWork;
         _localizationService = localizationService ?? new LocalizationService();
+        _waitlistRepository = waitlistRepository;
     }
 
     public async Task<Result<AppointmentDto>> Handle(CancelAppointmentCommand request, CancellationToken cancellationToken)
@@ -89,6 +92,30 @@ public sealed class CancelAppointmentCommandHandler : IRequestHandler<CancelAppo
         }
 
         await _appointmentRepository.UpdateAsync(appointment, cancellationToken);
+
+        // Automatic Cancellation Recovery: offer the freed slot to the highest-priority waiting patient
+        if (_waitlistRepository is not null)
+        {
+            var slotDate = DateOnly.FromDateTime(appointment.ScheduledRange.StartUtc);
+            var slotTime = TimeOnly.FromDateTime(appointment.ScheduledRange.StartUtc);
+            var nextWaiting = await _waitlistRepository.GetNextWaitingCandidateAsync(
+                appointment.TenantId,
+                appointment.ClinicId,
+                appointment.DoctorId,
+                slotDate,
+                slotTime,
+                cancellationToken);
+
+            if (nextWaiting is not null)
+            {
+                nextWaiting.OfferSlot(
+                    appointment.ScheduledRange.StartUtc,
+                    appointment.ScheduledRange.EndUtc,
+                    currentUtc.AddMinutes(30));
+                await _waitlistRepository.UpdateAsync(nextWaiting, cancellationToken);
+            }
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = new AppointmentDto(

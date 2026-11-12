@@ -368,7 +368,86 @@ export class DashboardComponent implements OnInit {
   // Appointment Filters
   protected filterDoctorId = '';
   protected filterStatus = '';
+  protected filterSource = '';
   protected filterSearchPatient = '';
+
+  // Social-to-Booking & QR Code Share Modal State
+  protected isSocialShareModalOpen = false;
+  protected socialShareClinic: ClinicDto | null = null;
+
+  protected getSourceLabel(source?: string): string {
+    const isAr = this.translation.isArabic();
+    const s = source || 'Website';
+    switch (s) {
+      case 'Facebook':
+        return isAr ? '📘 فيسبوك' : '📘 Facebook';
+      case 'Messenger':
+        return isAr ? '💬 ماسنجر' : '💬 Messenger';
+      case 'WhatsApp':
+        return isAr ? '🟢 واتساب' : '🟢 WhatsApp';
+      case 'Phone':
+        return isAr ? '📞 اتصال هاتفي' : '📞 Phone Call';
+      case 'WalkIn':
+        return isAr ? '🚶 حضور مباشر' : '🚶 Walk-In';
+      case 'Receptionist':
+        return isAr ? '🛎️ مكتب الاستقبال' : '🛎️ Reception Desk';
+      case 'Admin':
+        return isAr ? '🛡️ الإدارة' : '🛡️ Admin';
+      default:
+        return isAr ? '🌐 الموقع الإلكتروني' : '🌐 Website';
+    }
+  }
+
+  protected openSocialShareModal(clinic: ClinicDto): void {
+    this.socialShareClinic = clinic;
+    this.isSocialShareModalOpen = true;
+  }
+
+  protected getClinicBookingUrl(clinic: ClinicDto, utmSource?: string, utmMedium?: string): string {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://clinicbooking.eg';
+    const base = `${origin}/doctors?clinicId=${clinic.id}`;
+    if (!utmSource) return base;
+    return `${base}&utm_source=${utmSource}&utm_medium=${utmMedium || 'social'}&utm_campaign=clinic_share`;
+  }
+
+  protected getClinicQrImageUrl(clinic: ClinicDto): string {
+    const url = this.getClinicBookingUrl(clinic, 'qr_code', 'reception_desk');
+    return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+  }
+
+  protected copySocialLink(url: string): void {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      this.actionMessage.set(
+        this.translation.isArabic()
+          ? '✅ تم نسخ رابط الحجز بنجاح!'
+          : '✅ Booking link copied to clipboard!'
+      );
+      setTimeout(() => this.actionMessage.set(null), 3000);
+    }
+  }
+
+  protected printClinicQrCode(clinic: ClinicDto): void {
+    const url = this.getClinicBookingUrl(clinic, 'qr_code', 'reception_desk');
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
+    const clinicTitle = this.translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name;
+    const w = window.open('', '_blank', 'width=600,height=700');
+    if (!w) return;
+    w.document.write(`
+      <html dir="${this.translation.isArabic() ? 'rtl' : 'ltr'}">
+        <head><title>QR Code - ${clinicTitle}</title></head>
+        <body style="font-family: Tahoma, Arial, sans-serif; text-align: center; padding: 40px;">
+          <h2 style="color: #0f766e;">🏥 ${clinicTitle}</h2>
+          <p style="font-size: 16px; color: #334155;">امسح رمز الاستجابة السريعة (QR Code) لحجز موعدك مباشرة</p>
+          <div style="margin: 24px auto; padding: 20px; border: 2px dashed #0f766e; display: inline-block; border-radius: 16px;">
+            <img src="${qrApiUrl}" width="260" height="260" alt="QR Code" onload="window.print()" />
+          </div>
+          <p style="font-size: 13px; color: #64748b; word-break: break-all;">${url}</p>
+        </body>
+      </html>
+    `);
+    w.document.close();
+  }
 
   protected normalizeStatus(status: any): string {
     const s = String(status ?? '');
@@ -444,6 +523,10 @@ export class DashboardComponent implements OnInit {
 
     if (this.filterStatus) {
       result = result.filter((a) => a.status === this.filterStatus);
+    }
+
+    if (this.filterSource) {
+      result = result.filter((a) => (a.source || 'Website') === this.filterSource);
     }
 
     if (this.filterSearchPatient) {

@@ -1,12 +1,24 @@
 export type AppointmentStatus =
   | 'Scheduled'
   | 'Confirmed'
+  | 'CheckedIn'
+  | 'InConsultation'
   | 'Completed'
   | 'CancelledByPatient'
   | 'CancelledByDoctor'
   | 'CancelledByAdmin'
   | 'Rejected'
   | 'NoShow';
+
+export type AppointmentSource =
+  | 'Website'
+  | 'Facebook'
+  | 'Messenger'
+  | 'WhatsApp'
+  | 'Phone'
+  | 'WalkIn'
+  | 'Receptionist'
+  | 'Admin';
 
 export interface AppointmentDto {
   id: string;
@@ -24,6 +36,13 @@ export interface AppointmentDto {
   notes?: string;
   cancellationReason?: string;
   createdAtUtc: string;
+  source?: AppointmentSource | string;
+  createdByStaffId?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  externalReference?: string;
+  queueNumber?: number;
 }
 
 export interface BookAppointmentRequest {
