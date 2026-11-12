@@ -42,7 +42,14 @@ public sealed class GetAppointmentByIdQueryHandler : IRequestHandler<GetAppointm
             appointment.Notes,
             appointment.CancellationReason,
             appointment.CancelledAtUtc,
-            _localizationService.GetStatusName(appointment.Status));
+            _localizationService.GetStatusName(appointment.Status),
+            Source: appointment.Source,
+            CreatedByStaffId: appointment.CreatedByStaffId,
+            UtmSource: appointment.UtmSource,
+            UtmMedium: appointment.UtmMedium,
+            UtmCampaign: appointment.UtmCampaign,
+            ExternalReference: appointment.ExternalReference,
+            QueueNumber: appointment.QueueNumber);
 
         return Result.Success(dto);
     }

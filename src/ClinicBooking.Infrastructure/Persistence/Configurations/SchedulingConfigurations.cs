@@ -1,4 +1,5 @@
 using ClinicBooking.Domain.Entities;
+using ClinicBooking.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -114,6 +115,12 @@ internal sealed class AppointmentConfiguration : IEntityTypeConfiguration<Appoin
 
         // Stored as readable strings so the filtered index predicate is self-documenting.
         builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(32).IsUnicode(false).IsRequired();
+        builder.Property(a => a.Source).HasConversion<string>().HasMaxLength(32).IsUnicode(false).HasDefaultValue(AppointmentSource.Website).IsRequired();
+        builder.Property(a => a.CreatedByStaffId);
+        builder.Property(a => a.UtmSource).HasMaxLength(100);
+        builder.Property(a => a.UtmMedium).HasMaxLength(100);
+        builder.Property(a => a.UtmCampaign).HasMaxLength(150);
+        builder.Property(a => a.ExternalReference).HasMaxLength(150);
         builder.Property(a => a.Notes).HasMaxLength(500);
         builder.Property(a => a.CancellationReason).HasMaxLength(300);
 
@@ -144,6 +151,7 @@ internal sealed class AppointmentConfiguration : IEntityTypeConfiguration<Appoin
             .IncludeProperties(a => new { a.EndTimeUtc, a.DoctorId, a.ClinicId, a.Status });
 
         builder.HasIndex(a => a.ClinicId).HasDatabaseName("IX_Appointments_ClinicId");
+        builder.HasIndex(a => new { a.TenantId, a.Source }).HasDatabaseName("IX_Appointments_Tenant_Source");
 
         builder.Ignore(a => a.ScheduledRange);
         builder.Ignore(a => a.IsSlotOccupied);

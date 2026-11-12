@@ -39,6 +39,12 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHa
         }
     }
     public AppointmentStatus Status { get; private set; }
+    public AppointmentSource Source { get; private set; } = AppointmentSource.Website;
+    public Guid? CreatedByStaffId { get; private set; }
+    public string? UtmSource { get; private set; }
+    public string? UtmMedium { get; private set; }
+    public string? UtmCampaign { get; private set; }
+    public string? ExternalReference { get; private set; }
     public int? QueueNumber { get; private set; }
     public string? Notes { get; private set; }
     public string? CancellationReason { get; private set; }
@@ -269,9 +275,25 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHa
             newRange.EndUtc));
     }
 
+    public void SetBookingMetadata(
+        AppointmentSource source,
+        Guid? createdByStaffId = null,
+        string? utmSource = null,
+        string? utmMedium = null,
+        string? utmCampaign = null,
+        string? externalReference = null)
+    {
+        Source = Enum.IsDefined(source) ? source : AppointmentSource.Website;
+        CreatedByStaffId = createdByStaffId == Guid.Empty ? null : createdByStaffId;
+        UtmSource = string.IsNullOrWhiteSpace(utmSource) ? null : utmSource.Trim();
+        UtmMedium = string.IsNullOrWhiteSpace(utmMedium) ? null : utmMedium.Trim();
+        UtmCampaign = string.IsNullOrWhiteSpace(utmCampaign) ? null : utmCampaign.Trim();
+        ExternalReference = string.IsNullOrWhiteSpace(externalReference) ? null : externalReference.Trim();
+    }
+
     public void MarkNoShow()
     {
-        if (Status != AppointmentStatus.Confirmed)
+        if (Status != AppointmentStatus.Confirmed && Status != AppointmentStatus.CheckedIn)
         {
             throw new InvalidAppointmentStateException(Status, nameof(MarkNoShow));
         }

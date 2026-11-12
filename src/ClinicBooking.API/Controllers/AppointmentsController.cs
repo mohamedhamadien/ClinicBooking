@@ -1,6 +1,8 @@
 using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Appointments.Commands.BookAppointment;
 using ClinicBooking.Application.Features.Appointments.Commands.CancelAppointment;
+using ClinicBooking.Application.Features.Appointments.Commands.ConfirmAppointment;
+using ClinicBooking.Application.Features.Appointments.Commands.MarkNoShow;
 using ClinicBooking.Application.Features.Appointments.Commands.RescheduleAppointment;
 using ClinicBooking.Application.Features.Appointments.DTOs;
 using ClinicBooking.Application.Features.Appointments.Queries.GetAppointmentById;
@@ -45,7 +47,7 @@ public sealed class AppointmentsController : ApiControllerBase
     }
 
     /// <summary>
-    /// Book an appointment slot. Protected by database filtered unique indexes against concurrent double-booking.
+    /// Book an appointment slot. Protected by serializable transaction and database filtered unique indexes against concurrent double-booking.
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
@@ -55,7 +57,49 @@ public sealed class AppointmentsController : ApiControllerBase
         [FromBody] BookAppointmentCommand command,
         CancellationToken cancellationToken)
     {
+        if (_tenantContext.TenantId.HasValue && command.TenantId == Guid.Empty)
+        {
+            command = command with { TenantId = _tenantContext.TenantId.Value };
+        }
+
+        if (CurrentUserRole is "Receptionist" or "Staff" or "Admin" or "ClinicAdmin" && command.CreatedByStaffId is null)
+        {
+            command = command with { CreatedByStaffId = CurrentUserId };
+        }
+
         var result = await Mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Confirm a scheduled or pending appointment (Receptionist, Doctor, Admin, ClinicAdmin).
+    /// </summary>
+    [HttpPut("{id:guid}/confirm")]
+    [HttpPost("{id:guid}/confirm")]
+    [Authorize(Roles = "Doctor,Admin,ClinicAdmin,Receptionist,Staff")]
+    [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AppointmentDto>> Confirm(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new ConfirmAppointmentCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Mark an appointment as No-Show (Receptionist, Doctor, Admin, ClinicAdmin).
+    /// </summary>
+    [HttpPut("{id:guid}/no-show")]
+    [HttpPost("{id:guid}/no-show")]
+    [Authorize(Roles = "Doctor,Admin,ClinicAdmin,Receptionist,Staff")]
+    [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AppointmentDto>> MarkNoShow(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new MarkNoShowCommand(id), cancellationToken);
         return HandleResult(result);
     }
 

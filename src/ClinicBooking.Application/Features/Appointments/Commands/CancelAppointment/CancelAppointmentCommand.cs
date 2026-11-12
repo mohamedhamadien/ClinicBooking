@@ -20,8 +20,8 @@ public sealed class CancelAppointmentCommandValidator : AbstractValidator<Cancel
     {
         RuleFor(x => x.AppointmentId).NotEmpty().WithMessage("AppointmentId is required.");
         RuleFor(x => x.Reason).NotEmpty().WithMessage("Cancellation reason is required.").MaximumLength(300);
-        RuleFor(x => x.CancelledByRole).NotEmpty().Must(r => r is "Patient" or "Doctor" or "Admin" or "ClinicAdmin")
-            .WithMessage("CancelledByRole must be 'Patient', 'Doctor', 'Admin', or 'ClinicAdmin'.");
+        RuleFor(x => x.CancelledByRole).NotEmpty().Must(r => r is "Patient" or "Doctor" or "Admin" or "ClinicAdmin" or "Receptionist" or "Staff")
+            .WithMessage("CancelledByRole must be 'Patient', 'Doctor', 'Admin', 'ClinicAdmin', 'Receptionist', or 'Staff'.");
     }
 }
 
@@ -70,7 +70,7 @@ public sealed class CancelAppointmentCommandHandler : IRequestHandler<CancelAppo
             {
                 appointment.CancelByDoctor(request.Reason, currentUtc);
             }
-            else if (request.CancelledByRole is "Admin" or "ClinicAdmin")
+            else if (request.CancelledByRole is "Admin" or "ClinicAdmin" or "Receptionist" or "Staff")
             {
                 appointment.CancelByAdmin(request.Reason, currentUtc);
             }
@@ -88,6 +88,7 @@ public sealed class CancelAppointmentCommandHandler : IRequestHandler<CancelAppo
                 _localizationService.GetString(LocalizationKeys.AppointmentInvalidStatusTransition)));
         }
 
+        await _appointmentRepository.UpdateAsync(appointment, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = new AppointmentDto(

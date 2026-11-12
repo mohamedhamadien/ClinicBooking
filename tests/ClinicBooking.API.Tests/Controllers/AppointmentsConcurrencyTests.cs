@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using ClinicBooking.API.Controllers;
 using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Appointments.Commands.BookAppointment;
+using ClinicBooking.Application.Features.Appointments.Commands.CancelAppointment;
 using ClinicBooking.Application.Features.Appointments.DTOs;
 using ClinicBooking.Application.Features.Authentication.Commands.Login;
 using ClinicBooking.Application.Features.Authentication.DTOs;
@@ -283,5 +285,299 @@ public class AppointmentsConcurrencyTests : IClassFixture<CustomWebApplicationFa
         var problem = await response2.Content.ReadFromJsonAsync<ProblemDetails>();
         Assert.NotNull(problem);
         Assert.Equal(StatusCodes.Status409Conflict, problem.Status);
+    }
+
+    [Fact]
+    public async Task BookAppointment_OverlappingIntervalsDifferentStartTimes_ForSameDoctor_ReturnsConflict()
+    {
+        _ = _factory.CreateClient();
+
+        Guid tenantId;
+        Guid doctorId;
+        Guid clinicId;
+        Guid patient1Id;
+        Guid patient2Id;
+        string p1Email = $"overlap_p1_{Guid.NewGuid():N}@clinic.com";
+        string p2Email = $"overlap_p2_{Guid.NewGuid():N}@clinic.com";
+        string password = "OverlapPassword123!";
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ClinicBookingDbContext>();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            var tenant = await db.Tenants.IgnoreQueryFilters().FirstAsync(t => t.Identifier == _factory.DefaultTenantSlug);
+            tenantId = tenant.Id;
+
+            var clinic = await db.Clinics.IgnoreQueryFilters().FirstAsync(c => c.TenantId == tenantId);
+            clinicId = clinic.Id;
+
+            var specialty = await db.Specialties.IgnoreQueryFilters().FirstAsync();
+
+            var docUser = User.Create($"doc_overlap_{Guid.NewGuid():N}@clinic.com", "Doctor", "Overlap", UserRole.Doctor, tenantId);
+            docUser.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(docUser);
+
+            var doctor = new Doctor(Guid.NewGuid(), tenantId, docUser.Id, specialty.Id, $"OVL-{Guid.NewGuid():N}"[..12], "Specialist");
+            doctor.AddAvailability(clinicId, DayOfWeek.Thursday, new TimeOnly(8, 0), new TimeOnly(18, 0));
+            await db.Doctors.AddAsync(doctor);
+            doctorId = doctor.Id;
+
+            var u1 = User.Create(p1Email, "P1", "Overlap", UserRole.Patient, tenantId);
+            u1.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(u1);
+            var p1 = Patient.Create(tenantId, u1.Id, new DateOnly(1990, 5, 5), Gender.Male);
+            await db.Patients.AddAsync(p1);
+            patient1Id = p1.Id;
+
+            var u2 = User.Create(p2Email, "P2", "Overlap", UserRole.Patient, tenantId);
+            u2.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(u2);
+            var p2 = Patient.Create(tenantId, u2.Id, new DateOnly(1991, 6, 6), Gender.Female);
+            await db.Patients.AddAsync(p2);
+            patient2Id = p2.Id;
+
+            await db.SaveChangesAsync();
+        }
+
+        var client1 = _factory.CreateClient();
+        client1.DefaultRequestHeaders.Add("X-Tenant-Slug", _factory.DefaultTenantSlug);
+        var auth1 = await (await client1.PostAsJsonAsync("/api/v1/auth/login", new LoginCommand(p1Email, password))).Content.ReadFromJsonAsync<AuthResponseDto>();
+        client1.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth1!.AccessToken);
+
+        var client2 = _factory.CreateClient();
+        client2.DefaultRequestHeaders.Add("X-Tenant-Slug", _factory.DefaultTenantSlug);
+        var auth2 = await (await client2.PostAsJsonAsync("/api/v1/auth/login", new LoginCommand(p2Email, password))).Content.ReadFromJsonAsync<AuthResponseDto>();
+        client2.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth2!.AccessToken);
+
+        var today = DateTime.UtcNow.Date;
+        var daysUntilNextThu = ((int)DayOfWeek.Thursday - (int)today.DayOfWeek + 7) % 7;
+        if (daysUntilNextThu == 0) daysUntilNextThu = 7;
+        var nextThu = today.AddDays(daysUntilNextThu);
+
+        // Appointment A: 10:00 - 10:30
+        var startA = DateTime.SpecifyKind(nextThu.AddHours(10), DateTimeKind.Utc);
+        var endA = DateTime.SpecifyKind(nextThu.AddHours(10).AddMinutes(30), DateTimeKind.Utc);
+
+        // Appointment B: 10:15 - 10:45 (Different StartTimeUtc, overlapping interval!)
+        var startB = DateTime.SpecifyKind(nextThu.AddHours(10).AddMinutes(15), DateTimeKind.Utc);
+        var endB = DateTime.SpecifyKind(nextThu.AddHours(10).AddMinutes(45), DateTimeKind.Utc);
+
+        var resA = await client1.PostAsJsonAsync("/api/v1/appointments",
+            new BookAppointmentCommand(tenantId, doctorId, patient1Id, clinicId, startA, endA, "10:00 to 10:30"));
+        Assert.Equal(HttpStatusCode.OK, resA.StatusCode);
+
+        var resB = await client2.PostAsJsonAsync("/api/v1/appointments",
+            new BookAppointmentCommand(tenantId, doctorId, patient2Id, clinicId, startB, endB, "10:15 to 10:45 overlapping"));
+        Assert.Equal(HttpStatusCode.Conflict, resB.StatusCode);
+    }
+
+    [Fact]
+    public async Task BookAppointment_CancelFollowedByRebookingSameSlot_Succeeds()
+    {
+        _ = _factory.CreateClient();
+
+        Guid tenantId;
+        Guid doctorId;
+        Guid clinicId;
+        Guid patientId;
+        string pEmail = $"cancel_rebook_{Guid.NewGuid():N}@clinic.com";
+        string password = "RebookPassword123!";
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ClinicBookingDbContext>();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            var tenant = await db.Tenants.IgnoreQueryFilters().FirstAsync(t => t.Identifier == _factory.DefaultTenantSlug);
+            tenantId = tenant.Id;
+            var clinic = await db.Clinics.IgnoreQueryFilters().FirstAsync(c => c.TenantId == tenantId);
+            clinicId = clinic.Id;
+            var specialty = await db.Specialties.IgnoreQueryFilters().FirstAsync();
+
+            var docUser = User.Create($"doc_rebook_{Guid.NewGuid():N}@clinic.com", "Doctor", "Rebook", UserRole.Doctor, tenantId);
+            docUser.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(docUser);
+
+            var doctor = new Doctor(Guid.NewGuid(), tenantId, docUser.Id, specialty.Id, $"RBK-{Guid.NewGuid():N}"[..12], "Specialist");
+            doctor.AddAvailability(clinicId, DayOfWeek.Friday, new TimeOnly(8, 0), new TimeOnly(18, 0));
+            await db.Doctors.AddAsync(doctor);
+            doctorId = doctor.Id;
+
+            var u1 = User.Create(pEmail, "P1", "Rebook", UserRole.Patient, tenantId);
+            u1.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(u1);
+            var p1 = Patient.Create(tenantId, u1.Id, new DateOnly(1993, 3, 3), Gender.Male);
+            await db.Patients.AddAsync(p1);
+            patientId = p1.Id;
+
+            await db.SaveChangesAsync();
+        }
+
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-Slug", _factory.DefaultTenantSlug);
+        var auth = await (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginCommand(pEmail, password))).Content.ReadFromJsonAsync<AuthResponseDto>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+
+        var today = DateTime.UtcNow.Date;
+        var daysUntilNextFri = ((int)DayOfWeek.Friday - (int)today.DayOfWeek + 7) % 7;
+        if (daysUntilNextFri <= 2) daysUntilNextFri += 7;
+        var nextFri = today.AddDays(daysUntilNextFri);
+
+        var start = DateTime.SpecifyKind(nextFri.AddHours(11), DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(nextFri.AddHours(11).AddMinutes(30), DateTimeKind.Utc);
+
+        // 1. Book initial appointment
+        var bookRes1 = await client.PostAsJsonAsync("/api/v1/appointments",
+            new BookAppointmentCommand(tenantId, doctorId, patientId, clinicId, start, end, "Initial booking"));
+        Assert.Equal(HttpStatusCode.OK, bookRes1.StatusCode);
+        var booked = await bookRes1.Content.ReadFromJsonAsync<AppointmentDto>();
+        Assert.NotNull(booked);
+
+        // 2. Cancel initial appointment
+        var cancelRes = await client.PostAsJsonAsync($"/api/v1/appointments/{booked.Id}/cancel",
+            new CancelAppointmentRequest("Patient requested cancellation"));
+        Assert.Equal(HttpStatusCode.OK, cancelRes.StatusCode);
+
+        // 3. Rebook the exact same slot -> must succeed while preserving cancelled history
+        var bookRes2 = await client.PostAsJsonAsync("/api/v1/appointments",
+            new BookAppointmentCommand(tenantId, doctorId, patientId, clinicId, start, end, "Rebooked after cancellation"));
+        Assert.Equal(HttpStatusCode.OK, bookRes2.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReceptionAndPublicBooking_WalkInAndSocialAttribution_SucceedsWithFullMetadata()
+    {
+        _ = _factory.CreateClient();
+
+        Guid tenantId;
+        Guid doctorId;
+        Guid clinicId;
+        Guid patientId;
+        string receptionistEmail = $"reception_{Guid.NewGuid():N}@clinic.com";
+        string password = "ReceptionPassword123!";
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ClinicBookingDbContext>();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            var tenant = await db.Tenants.IgnoreQueryFilters().FirstAsync(t => t.Identifier == _factory.DefaultTenantSlug);
+            tenantId = tenant.Id;
+            var clinic = await db.Clinics.IgnoreQueryFilters().FirstAsync(c => c.TenantId == tenantId);
+            clinicId = clinic.Id;
+            var specialty = await db.Specialties.IgnoreQueryFilters().FirstAsync();
+
+            var docUser = User.Create($"doc_rec_{Guid.NewGuid():N}@clinic.com", "Doctor", "Rec", UserRole.Doctor, tenantId);
+            docUser.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(docUser);
+
+            var doctor = new Doctor(Guid.NewGuid(), tenantId, docUser.Id, specialty.Id, $"REC-{Guid.NewGuid():N}"[..12], "Specialist");
+            for (int d = 0; d < 7; d++)
+            {
+                doctor.AddAvailability(clinicId, (DayOfWeek)d, new TimeOnly(0, 0), new TimeOnly(23, 59));
+            }
+            await db.Doctors.AddAsync(doctor);
+            doctorId = doctor.Id;
+
+            var recUser = User.Create(receptionistEmail, "Sara", "Reception", UserRole.Receptionist, tenantId);
+            recUser.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(recUser);
+
+            var pUser = User.Create($"p_social_{Guid.NewGuid():N}@clinic.com", "Ali", "Social", UserRole.Patient, tenantId);
+            pUser.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(pUser);
+            var patient = Patient.Create(tenantId, pUser.Id, new DateOnly(1995, 4, 4), Gender.Male);
+            await db.Patients.AddAsync(patient);
+            patientId = patient.Id;
+
+            await db.SaveChangesAsync();
+        }
+
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-Slug", _factory.DefaultTenantSlug);
+        var auth = await (await client.PostAsJsonAsync("/api/v1/auth/login", new LoginCommand(receptionistEmail, password))).Content.ReadFromJsonAsync<AuthResponseDto>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+
+        var tomorrow = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(1).AddHours(12), DateTimeKind.Utc);
+
+        // 1. Public attributed booking with UTM parameters (Facebook campaign)
+        var publicRes = await client.PostAsJsonAsync(
+            "/api/v1/public/bookings?utm_source=facebook&utm_medium=social&utm_campaign=dermatology",
+            new PublicAttributedBookingRequest(
+                tenantId,
+                doctorId,
+                patientId,
+                clinicId,
+                tomorrow,
+                tomorrow.AddMinutes(30),
+                "Booked from Facebook ad"));
+        Assert.Equal(HttpStatusCode.OK, publicRes.StatusCode);
+        var attributedAppt = await publicRes.Content.ReadFromJsonAsync<AppointmentDto>();
+        Assert.NotNull(attributedAppt);
+        Assert.Equal(AppointmentSource.Facebook, attributedAppt.Source);
+        Assert.Equal("facebook", attributedAppt.UtmSource);
+        Assert.Equal("social", attributedAppt.UtmMedium);
+        Assert.Equal("dermatology", attributedAppt.UtmCampaign);
+
+        // 2. Receptionist Walk-in registration & immediate check-in
+        var walkInSlot = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(1).AddHours(15), DateTimeKind.Utc);
+        var walkInRes = await client.PostAsJsonAsync(
+            "/api/v1/reception/walk-ins",
+            new RegisterWalkInRequest(
+                tenantId,
+                doctorId,
+                patientId,
+                clinicId,
+                walkInSlot,
+                walkInSlot.AddMinutes(30),
+                "Urgent walk-in visit",
+                ImmediateCheckIn: true));
+        Assert.Equal(HttpStatusCode.OK, walkInRes.StatusCode);
+        var walkInResult = await walkInRes.Content.ReadFromJsonAsync<WalkInRegistrationResultDto>();
+        Assert.NotNull(walkInResult);
+        Assert.Equal(AppointmentSource.WalkIn, walkInResult.Appointment.Source);
+        Assert.NotNull(walkInResult.QueueItem);
+        Assert.True(walkInResult.QueueItem.QueueNumber >= 1);
+    }
+
+    [Fact]
+    public async Task TenantIsolation_AuthenticatedUserSpoofsAnotherTenantHeader_ReturnsForbidden()
+    {
+        _ = _factory.CreateClient();
+
+        string patientEmail = $"spoof_test_{Guid.NewGuid():N}@clinic.com";
+        string password = "SpoofPassword123!";
+        string otherTenantSlug = $"other-tenant-{Guid.NewGuid():N}"[..20];
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ClinicBookingDbContext>();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            var defaultTenant = await db.Tenants.IgnoreQueryFilters().FirstAsync(t => t.Identifier == _factory.DefaultTenantSlug);
+            var otherTenant = Tenant.Create("Other Clinic Tenant", otherTenantSlug);
+            await db.Tenants.AddAsync(otherTenant);
+
+            var user = User.Create(patientEmail, "Spoof", "Tester", UserRole.Patient, defaultTenant.Id);
+            user.SetPasswordHash(passwordHasher.HashPassword(password));
+            await db.Users.AddAsync(user);
+
+            await db.SaveChangesAsync();
+        }
+
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-Slug", _factory.DefaultTenantSlug);
+        var loginRes = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginCommand(patientEmail, password));
+        Assert.Equal(HttpStatusCode.OK, loginRes.StatusCode);
+        var auth = await loginRes.Content.ReadFromJsonAsync<AuthResponseDto>();
+
+        // Attempt to access another tenant by spoofing X-Tenant-Slug with a valid JWT from DefaultTenant
+        var spoofClient = _factory.CreateClient();
+        spoofClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        spoofClient.DefaultRequestHeaders.Add("X-Tenant-Slug", otherTenantSlug);
+
+        var response = await spoofClient.GetAsync("/api/v1/appointments/my-upcoming");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 }

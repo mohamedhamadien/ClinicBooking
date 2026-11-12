@@ -109,7 +109,14 @@ public sealed class GetMyAppointmentsQueryHandler
                 _localizationService.GetStatusName(a.Status),
                 docName,
                 patName,
-                clinicName);
+                clinicName,
+                Source: a.Source,
+                CreatedByStaffId: a.CreatedByStaffId,
+                UtmSource: a.UtmSource,
+                UtmMedium: a.UtmMedium,
+                UtmCampaign: a.UtmCampaign,
+                ExternalReference: a.ExternalReference,
+                QueueNumber: a.QueueNumber);
         }).ToList();
 
         return Result.Success<IReadOnlyList<AppointmentDto>>(dtos);

@@ -79,68 +79,78 @@ public sealed class RescheduleAppointmentCommandHandler : IRequestHandler<Resche
                 _localizationService.GetString(LocalizationKeys.AppointmentDoctorUnavailable)));
         }
 
-        // Check conflicts
-        var doctorHasConflict = await _appointmentRepository.HasConflictingAppointmentForDoctorAsync(
-            appointment.TenantId,
-            appointment.DoctorId,
-            request.NewStartTimeUtc,
-            request.NewEndTimeUtc,
-            excludeAppointmentId: appointment.Id,
-            cancellationToken);
-
-        if (doctorHasConflict)
+        return await _unitOfWork.ExecuteInSerializableTransactionAsync(async ct =>
         {
-            return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.DoctorSlotUnavailable",
-                _localizationService.GetString(LocalizationKeys.AppointmentSlotAlreadyBooked)));
-        }
-
-        var patientHasConflict = await _appointmentRepository.HasConflictingAppointmentForPatientAsync(
-            appointment.TenantId,
-            appointment.PatientId,
-            request.NewStartTimeUtc,
-            request.NewEndTimeUtc,
-            excludeAppointmentId: appointment.Id,
-            cancellationToken);
-
-        if (patientHasConflict)
-        {
-            return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.PatientDoubleBooking",
-                _localizationService.GetString(LocalizationKeys.AppointmentPatientOverlapping)));
-        }
-
-        try
-        {
-            appointment.Reschedule(newRange, currentUtc);
-            await _appointmentRepository.UpdateAsync(appointment, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            var dto = new AppointmentDto(
-                appointment.Id,
+            // Check conflicts under serializable transaction / lock
+            var doctorHasConflict = await _appointmentRepository.HasConflictingAppointmentForDoctorAsync(
                 appointment.TenantId,
                 appointment.DoctorId,
-                appointment.PatientId,
-                appointment.ClinicId,
-                appointment.ScheduledRange.StartUtc,
-                appointment.ScheduledRange.EndUtc,
-                appointment.Status,
-                appointment.Notes,
-                appointment.CancellationReason,
-                appointment.CancelledAtUtc,
-                _localizationService.GetStatusName(appointment.Status));
+                request.NewStartTimeUtc,
+                request.NewEndTimeUtc,
+                excludeAppointmentId: appointment.Id,
+                ct);
 
-            return Result.Success(dto);
-        }
-        catch (PastAppointmentException)
-        {
-            return Result.Failure<AppointmentDto>(Error.Validation(
-                "Appointment.PastDate",
-                _localizationService.GetString(LocalizationKeys.AppointmentPastAppointment)));
-        }
-        catch (InvalidAppointmentStateException)
-        {
-            return Result.Failure<AppointmentDto>(Error.Conflict(
-                "Appointment.InvalidState",
-                _localizationService.GetString(LocalizationKeys.AppointmentInvalidStatusTransition)));
-        }
+            if (doctorHasConflict)
+            {
+                return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.DoctorSlotUnavailable",
+                    _localizationService.GetString(LocalizationKeys.AppointmentSlotAlreadyBooked)));
+            }
+
+            var patientHasConflict = await _appointmentRepository.HasConflictingAppointmentForPatientAsync(
+                appointment.TenantId,
+                appointment.PatientId,
+                request.NewStartTimeUtc,
+                request.NewEndTimeUtc,
+                excludeAppointmentId: appointment.Id,
+                ct);
+
+            if (patientHasConflict)
+            {
+                return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.PatientDoubleBooking",
+                    _localizationService.GetString(LocalizationKeys.AppointmentPatientOverlapping)));
+            }
+
+            try
+            {
+                appointment.Reschedule(newRange, currentUtc);
+                await _appointmentRepository.UpdateAsync(appointment, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                var dto = new AppointmentDto(
+                    appointment.Id,
+                    appointment.TenantId,
+                    appointment.DoctorId,
+                    appointment.PatientId,
+                    appointment.ClinicId,
+                    appointment.ScheduledRange.StartUtc,
+                    appointment.ScheduledRange.EndUtc,
+                    appointment.Status,
+                    appointment.Notes,
+                    appointment.CancellationReason,
+                    appointment.CancelledAtUtc,
+                    _localizationService.GetStatusName(appointment.Status),
+                    Source: appointment.Source,
+                    CreatedByStaffId: appointment.CreatedByStaffId,
+                    UtmSource: appointment.UtmSource,
+                    UtmMedium: appointment.UtmMedium,
+                    UtmCampaign: appointment.UtmCampaign,
+                    ExternalReference: appointment.ExternalReference,
+                    QueueNumber: appointment.QueueNumber);
+
+                return Result.Success(dto);
+            }
+            catch (PastAppointmentException)
+            {
+                return Result.Failure<AppointmentDto>(Error.Validation(
+                    "Appointment.PastDate",
+                    _localizationService.GetString(LocalizationKeys.AppointmentPastAppointment)));
+            }
+            catch (InvalidAppointmentStateException)
+            {
+                return Result.Failure<AppointmentDto>(Error.Conflict(
+                    "Appointment.InvalidState",
+                    _localizationService.GetString(LocalizationKeys.AppointmentInvalidStatusTransition)));
+            }
+        }, cancellationToken);
     }
 }

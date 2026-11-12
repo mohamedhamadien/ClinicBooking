@@ -4,6 +4,7 @@ using ClinicBooking.Application.Contracts.Persistence;
 using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Appointments.DTOs;
 using ClinicBooking.Domain.Entities;
+using ClinicBooking.Domain.Enums;
 using ClinicBooking.Domain.ValueObjects;
 using FluentValidation;
 using MediatR;
@@ -17,7 +18,13 @@ public sealed record BookAppointmentCommand(
     Guid ClinicId,
     DateTime StartTimeUtc,
     DateTime EndTimeUtc,
-    string? Notes = null) : IRequest<Result<AppointmentDto>>;
+    string? Notes = null,
+    AppointmentSource Source = AppointmentSource.Website,
+    Guid? CreatedByStaffId = null,
+    string? UtmSource = null,
+    string? UtmMedium = null,
+    string? UtmCampaign = null,
+    string? ExternalReference = null) : IRequest<Result<AppointmentDto>>;
 
 public sealed class BookAppointmentCommandValidator : AbstractValidator<BookAppointmentCommand>
 {
@@ -118,66 +125,84 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
                 $"Requested time falls outside the doctor's scheduled working hours for {dayOfWeek} at the specified clinic."));
         }
 
-        // 3. Check for doctor active appointment collision
-        var doctorHasConflict = await _appointmentRepository.HasConflictingAppointmentForDoctorAsync(
-            request.TenantId,
-            request.DoctorId,
-            request.StartTimeUtc,
-            request.EndTimeUtc,
-            excludeAppointmentId: null,
-            cancellationToken);
-
-        if (doctorHasConflict)
+        return await _unitOfWork.ExecuteInSerializableTransactionAsync(async ct =>
         {
-            return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.DoctorSlotUnavailable",
-                _localizationService.GetString(LocalizationKeys.AppointmentSlotAlreadyBooked)));
-        }
+            // 3. Check for doctor active appointment collision (under serializable transaction / lock)
+            var doctorHasConflict = await _appointmentRepository.HasConflictingAppointmentForDoctorAsync(
+                request.TenantId,
+                request.DoctorId,
+                request.StartTimeUtc,
+                request.EndTimeUtc,
+                excludeAppointmentId: null,
+                ct);
 
-        // 4. Check for patient active appointment collision
-        var patientHasConflict = await _appointmentRepository.HasConflictingAppointmentForPatientAsync(
-            request.TenantId,
-            patient.Id,
-            request.StartTimeUtc,
-            request.EndTimeUtc,
-            excludeAppointmentId: null,
-            cancellationToken);
+            if (doctorHasConflict)
+            {
+                return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.DoctorSlotUnavailable",
+                    _localizationService.GetString(LocalizationKeys.AppointmentSlotAlreadyBooked)));
+            }
 
-        if (patientHasConflict)
-        {
-            return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.PatientDoubleBooking",
-                _localizationService.GetString(LocalizationKeys.AppointmentPatientOverlapping)));
-        }
+            // 4. Check for patient active appointment collision
+            var patientHasConflict = await _appointmentRepository.HasConflictingAppointmentForPatientAsync(
+                request.TenantId,
+                patient.Id,
+                request.StartTimeUtc,
+                request.EndTimeUtc,
+                excludeAppointmentId: null,
+                ct);
 
-        // Determine if approval is needed (tenant policy OR doctor preference)
-        var requiresApproval = tenant.RequiresDoctorApproval || doctor.RequiresApproval;
+            if (patientHasConflict)
+            {
+                return Result.Failure<AppointmentDto>(Error.Conflict("Appointment.PatientDoubleBooking",
+                    _localizationService.GetString(LocalizationKeys.AppointmentPatientOverlapping)));
+            }
 
-        var appointment = Appointment.Create(
-            request.TenantId,
-            request.DoctorId,
-            patient.Id,
-            request.ClinicId,
-            requestedRange,
-            currentUtc,
-            requiresApproval,
-            request.Notes);
+            // Determine if approval is needed (tenant policy OR doctor preference)
+            var requiresApproval = tenant.RequiresDoctorApproval || doctor.RequiresApproval;
 
-        await _appointmentRepository.AddAsync(appointment, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var appointment = Appointment.Create(
+                request.TenantId,
+                request.DoctorId,
+                patient.Id,
+                request.ClinicId,
+                requestedRange,
+                currentUtc,
+                requiresApproval,
+                request.Notes);
 
-        var dto = new AppointmentDto(
-            appointment.Id,
-            appointment.TenantId,
-            appointment.DoctorId,
-            appointment.PatientId,
-            appointment.ClinicId,
-            appointment.ScheduledRange.StartUtc,
-            appointment.ScheduledRange.EndUtc,
-            appointment.Status,
-            appointment.Notes,
-            appointment.CancellationReason,
-            appointment.CancelledAtUtc,
-            _localizationService.GetStatusName(appointment.Status));
+            appointment.SetBookingMetadata(
+                request.Source,
+                request.CreatedByStaffId,
+                request.UtmSource,
+                request.UtmMedium,
+                request.UtmCampaign,
+                request.ExternalReference);
 
-        return Result.Success(dto);
+            await _appointmentRepository.AddAsync(appointment, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            var dto = new AppointmentDto(
+                appointment.Id,
+                appointment.TenantId,
+                appointment.DoctorId,
+                appointment.PatientId,
+                appointment.ClinicId,
+                appointment.ScheduledRange.StartUtc,
+                appointment.ScheduledRange.EndUtc,
+                appointment.Status,
+                appointment.Notes,
+                appointment.CancellationReason,
+                appointment.CancelledAtUtc,
+                _localizationService.GetStatusName(appointment.Status),
+                Source: appointment.Source,
+                CreatedByStaffId: appointment.CreatedByStaffId,
+                UtmSource: appointment.UtmSource,
+                UtmMedium: appointment.UtmMedium,
+                UtmCampaign: appointment.UtmCampaign,
+                ExternalReference: appointment.ExternalReference,
+                QueueNumber: appointment.QueueNumber);
+
+            return Result.Success(dto);
+        }, cancellationToken);
     }
 }

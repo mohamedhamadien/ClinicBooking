@@ -3,6 +3,7 @@ using ClinicBooking.Application.Common.Results;
 using ClinicBooking.Application.Contracts.Persistence;
 using ClinicBooking.Application.Contracts.Services;
 using ClinicBooking.Application.Features.Appointments.DTOs;
+using ClinicBooking.Domain.Enums;
 using MediatR;
 
 namespace ClinicBooking.Application.Features.Admin.Queries.GetAllAppointments;
@@ -12,7 +13,9 @@ public sealed record GetAllAppointmentsQuery(
     DateTime? FromUtc = null,
     DateTime? ToUtc = null,
     Guid? DoctorId = null,
-    Guid? ClinicId = null) : IRequest<Result<IReadOnlyList<AppointmentDto>>>;
+    Guid? ClinicId = null,
+    AppointmentStatus? Status = null,
+    AppointmentSource? Source = null) : IRequest<Result<IReadOnlyList<AppointmentDto>>>;
 
 public sealed class GetAllAppointmentsQueryHandler
     : IRequestHandler<GetAllAppointmentsQuery, Result<IReadOnlyList<AppointmentDto>>>
@@ -104,6 +107,16 @@ public sealed class GetAllAppointmentsQueryHandler
             }
         }
 
+        if (request.Status.HasValue)
+        {
+            appointments = appointments.Where(a => a.Status == request.Status.Value).ToList();
+        }
+
+        if (request.Source.HasValue)
+        {
+            appointments = appointments.Where(a => a.Source == request.Source.Value).ToList();
+        }
+
         var dtos = appointments.Select(a =>
         {
             doctorMap.TryGetValue(a.DoctorId, out var docName);
@@ -125,7 +138,14 @@ public sealed class GetAllAppointmentsQueryHandler
                 _localizationService.GetStatusName(a.Status),
                 docName,
                 patName,
-                clinicName);
+                clinicName,
+                Source: a.Source,
+                CreatedByStaffId: a.CreatedByStaffId,
+                UtmSource: a.UtmSource,
+                UtmMedium: a.UtmMedium,
+                UtmCampaign: a.UtmCampaign,
+                ExternalReference: a.ExternalReference,
+                QueueNumber: a.QueueNumber);
         }).ToList();
 
         return Result.Success<IReadOnlyList<AppointmentDto>>(dtos);

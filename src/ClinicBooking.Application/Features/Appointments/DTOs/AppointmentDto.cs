@@ -18,4 +18,11 @@ public sealed record AppointmentDto(
     string? DoctorName = null,
     string? PatientName = null,
     string? ClinicName = null,
-    string? PatientPhone = null);
+    string? PatientPhone = null,
+    AppointmentSource Source = AppointmentSource.Website,
+    Guid? CreatedByStaffId = null,
+    string? UtmSource = null,
+    string? UtmMedium = null,
+    string? UtmCampaign = null,
+    string? ExternalReference = null,
+    int? QueueNumber = null);

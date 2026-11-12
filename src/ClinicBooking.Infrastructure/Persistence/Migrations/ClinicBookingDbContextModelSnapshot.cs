@@ -44,11 +44,18 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<Guid?>("CreatedByStaffId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("DoctorId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("EndTimeUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<DateTime?>("LastModifiedAtUtc")
                         .HasColumnType("datetime2");
@@ -72,6 +79,14 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)")
+                        .HasDefaultValue("Website");
+
                     b.Property<DateTime>("StartTimeUtc")
                         .HasColumnType("datetime2");
 
@@ -84,6 +99,18 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("UtmCampaign")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("UtmMedium")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("UtmSource")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClinicId")
@@ -92,6 +119,9 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                     b.HasIndex("DoctorId");
 
                     b.HasIndex("PatientId");
+
+                    b.HasIndex("TenantId", "Source")
+                        .HasDatabaseName("IX_Appointments_Tenant_Source");
 
                     b.HasIndex(new[] { "TenantId", "DoctorId", "StartTimeUtc" }, "IX_Appointments_Doctor_Date");
 

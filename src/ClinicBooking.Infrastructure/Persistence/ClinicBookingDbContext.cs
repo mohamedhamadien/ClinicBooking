@@ -11,9 +11,11 @@ namespace ClinicBooking.Infrastructure.Persistence;
 
 public sealed class ClinicBookingDbContext : DbContext
 {
-    // SQL Server error numbers for unique constraint / unique index violations.
+    // SQL Server error numbers for unique constraint / unique index violations and serializable deadlocks.
     private const int SqlUniqueIndexViolation = 2601;
     private const int SqlUniqueConstraintViolation = 2627;
+    private const int SqlDeadlockVictim = 1205;
+    private const int SqlSnapshotUpdateConflict = 3960;
 
     private readonly ITenantContext _tenantContext;
     private readonly ICurrentUserService? _currentUserService;
@@ -120,9 +122,24 @@ public sealed class ClinicBookingDbContext : DbContext
                 ex);
         }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException sql
-                                           && sql.Number is SqlUniqueIndexViolation or SqlUniqueConstraintViolation)
+                                           && sql.Number is SqlUniqueIndexViolation or SqlUniqueConstraintViolation or SqlDeadlockVictim or SqlSnapshotUpdateConflict)
         {
+            if (sql.Number is SqlDeadlockVictim or SqlSnapshotUpdateConflict)
+            {
+                throw new ConcurrencyConflictException(
+                    "Appointment.DoctorSlotUnavailable",
+                    "The requested appointment slot was concurrently reserved by another request.",
+                    ex);
+            }
+
             throw TranslateUniqueViolation(sql.Message, ex);
+        }
+        catch (SqlException sql) when (sql.Number is SqlDeadlockVictim or SqlSnapshotUpdateConflict)
+        {
+            throw new ConcurrencyConflictException(
+                "Appointment.DoctorSlotUnavailable",
+                "The requested appointment slot was concurrently reserved by another request.",
+                sql);
         }
     }
 
@@ -146,14 +163,15 @@ public sealed class ClinicBookingDbContext : DbContext
                 .Any(a => a.Id != appt.Id &&
                           a.TenantId == appt.TenantId &&
                           a.DoctorId == appt.DoctorId &&
-                          a.StartTimeUtc == appt.StartTimeUtc &&
+                          a.StartTimeUtc < appt.EndTimeUtc &&
+                          a.EndTimeUtc > appt.StartTimeUtc &&
                           !_inactiveStatuses.Contains(a.Status));
 
             if (doctorConflict)
             {
                 throw new ConcurrencyConflictException(
                     "Appointment.DoctorSlotUnavailable",
-                    "The requested appointment slot is no longer available for this doctor.");
+                    "The requested appointment slot overlaps with an existing appointment for this doctor.");
             }
 
             var patientConflict = Appointments
@@ -161,14 +179,15 @@ public sealed class ClinicBookingDbContext : DbContext
                 .Any(a => a.Id != appt.Id &&
                           a.TenantId == appt.TenantId &&
                           a.PatientId == appt.PatientId &&
-                          a.StartTimeUtc == appt.StartTimeUtc &&
+                          a.StartTimeUtc < appt.EndTimeUtc &&
+                          a.EndTimeUtc > appt.StartTimeUtc &&
                           !_inactiveStatuses.Contains(a.Status));
 
             if (patientConflict)
             {
                 throw new ConcurrencyConflictException(
                     "Appointment.PatientDoubleBooking",
-                    "The patient already has an active appointment starting at this time.");
+                    "The patient already has an overlapping active appointment during this time window.");
             }
         }
     }

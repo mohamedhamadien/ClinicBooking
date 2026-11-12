@@ -33,20 +33,46 @@ public sealed class TenantResolutionMiddleware
 
         string? tenantSlug = null;
 
-        // 1. Try header
+        string? headerOrQuerySlug = null;
         if (context.Request.Headers.TryGetValue(TenantHeader, out var headerValue) && !string.IsNullOrWhiteSpace(headerValue))
         {
-            tenantSlug = headerValue.ToString().Trim().ToLowerInvariant();
+            headerOrQuerySlug = headerValue.ToString().Trim().ToLowerInvariant();
         }
-        // 2. Try query parameter ?tenant=...
         else if (context.Request.Query.TryGetValue("tenant", out var queryValue) && !string.IsNullOrWhiteSpace(queryValue))
         {
-            tenantSlug = queryValue.ToString().Trim().ToLowerInvariant();
+            headerOrQuerySlug = queryValue.ToString().Trim().ToLowerInvariant();
         }
-        // 3. Try JWT claims
-        else if (context.User.Identity?.IsAuthenticated == true)
+
+        string? jwtTenantSlug = context.User.Identity?.IsAuthenticated == true
+            ? context.User.FindFirst("tenant")?.Value?.Trim().ToLowerInvariant()
+            : null;
+
+        // Enforce tenant isolation for authenticated non-Admin users:
+        // JWT tenant claim is authoritative and cannot be overridden by a mismatched X-Tenant-Slug header.
+        if (!string.IsNullOrWhiteSpace(jwtTenantSlug) && !context.User.IsInRole("Admin"))
         {
-            tenantSlug = context.User.FindFirst("tenant")?.Value;
+            if (!string.IsNullOrWhiteSpace(headerOrQuerySlug) &&
+                !string.Equals(jwtTenantSlug, headerOrQuerySlug, StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/problem+json";
+
+                var forbiddenProblem = new ProblemDetails
+                {
+                    Status = StatusCodes.Status403Forbidden,
+                    Title = "Cross-Tenant Access Forbidden",
+                    Detail = "Authenticated user cannot access resources belonging to another tenant."
+                };
+
+                await context.Response.WriteAsync(JsonSerializer.Serialize(forbiddenProblem));
+                return;
+            }
+
+            tenantSlug = jwtTenantSlug;
+        }
+        else
+        {
+            tenantSlug = headerOrQuerySlug ?? jwtTenantSlug;
         }
 
         if (!string.IsNullOrWhiteSpace(tenantSlug))
