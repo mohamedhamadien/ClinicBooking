@@ -1875,9 +1875,33 @@
             <p>📞 {{ c.phoneNumber }}</p>
           </div>
 
+          <div class="subscription-section mt-3 p-2 rounded bg-light border">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="fw-bold fs-7">💎 {{ c.subscriptionPlan || 'Enterprise' }}</span>
+              @if (c.subscriptionEndDateUtc) {
+                @if (c.isSubscriptionActive) {
+                  <span class="badge badge-confirmed fs-8">
+                    {{ translation.isArabic() ? ('نشط: متبقي ' + (c.subscriptionDaysRemaining ?? 0) + ' يوم') : ('Active: ' + (c.subscriptionDaysRemaining ?? 0) + 'd left') }}
+                  </span>
+                } @else {
+                  <span class="badge badge-cancelled fs-8">
+                    {{ translation.isArabic() ? 'الاشتراك منتهي' : 'Expired' }}
+                  </span>
+                }
+              } @else {
+                <span class="badge badge-info fs-8">{{ translation.isArabic() ? 'نشط دائماً' : 'Lifetime' }}</span>
+              }
+            </div>
+            <div class="text-muted fs-8">
+              <span>📅 {{ translation.isArabic() ? 'البداية:' : 'Start:' }} {{ c.subscriptionStartDateUtc ? (c.subscriptionStartDateUtc | date:'yyyy-MM-dd') : '—' }}</span>
+              <span class="mx-1">|</span>
+              <span>{{ translation.isArabic() ? 'النهاية:' : 'End:' }} {{ c.subscriptionEndDateUtc ? (c.subscriptionEndDateUtc | date:'yyyy-MM-dd') : '—' }}</span>
+            </div>
+          </div>
+
           <div class="card-actions mt-3">
             <button (click)="openEditClinicModal(c)" class="btn btn-outline btn-sm w-100">
-              ✏️ {{ translation.isArabic() ? 'تعديل بيانات الفرع' : 'Edit Branch Details' }}
+              ✏️ {{ translation.isArabic() ? 'تعديل بيانات الفرع والاشتراك' : 'Edit Branch & Subscription' }}
             </button>
           </div>
         </div>
@@ -3018,6 +3042,28 @@
           <input type="tel" [(ngModel)]="editClinicPhone" class="form-control" />
         </div>
 
+        <div class="card p-3 my-3 bg-light border">
+          <h5 class="mb-2">💎 {{ translation.isArabic() ? 'بيانات اشتراك العيادة والترخيص' : 'Clinic Subscription & License' }}</h5>
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">{{ translation.isArabic() ? 'خطة الاشتراك' : 'Subscription Plan' }}</label>
+              <select [(ngModel)]="editClinicSubPlan" class="form-select">
+                <option value="Standard">Standard (الأساسية)</option>
+                <option value="Professional">Professional (الاحترافية)</option>
+                <option value="Enterprise">Enterprise (المؤسسية الشاملة)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ translation.isArabic() ? 'تاريخ بداية الاشتراك' : 'Start Date' }}</label>
+              <input type="date" [(ngModel)]="editClinicSubStartDate" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ translation.isArabic() ? 'تاريخ نهاية الاشتراك' : 'End Date' }}</label>
+              <input type="date" [(ngModel)]="editClinicSubEndDate" class="form-control" />
+            </div>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="d-flex align-items-center gap-2">
             <input type="checkbox" [(ngModel)]="editClinicIsActive" />
@@ -3082,6 +3128,28 @@
         <div class="form-group">
           <label class="form-label">{{ translation.isArabic() ? 'رقم الهاتف *' : 'Phone Number *' }}</label>
           <input type="tel" [(ngModel)]="clinicPhone" class="form-control" />
+        </div>
+
+        <div class="card p-3 my-3 bg-light border">
+          <h5 class="mb-2">💎 {{ translation.isArabic() ? 'بيانات الاشتراك المبدئي' : 'Initial Subscription' }}</h5>
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">{{ translation.isArabic() ? 'خطة الاشتراك' : 'Subscription Plan' }}</label>
+              <select [(ngModel)]="clinicSubPlan" class="form-select">
+                <option value="Standard">Standard (الأساسية)</option>
+                <option value="Professional">Professional (الاحترافية)</option>
+                <option value="Enterprise">Enterprise (المؤسسية الشاملة)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ translation.isArabic() ? 'تاريخ بداية الاشتراك' : 'Start Date' }}</label>
+              <input type="date" [(ngModel)]="clinicSubStartDate" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ translation.isArabic() ? 'تاريخ نهاية الاشتراك' : 'End Date' }}</label>
+              <input type="date" [(ngModel)]="clinicSubEndDate" class="form-control" />
+            </div>
+          </div>
         </div>
 
         <div class="modal-actions">

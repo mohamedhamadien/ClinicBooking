@@ -18,6 +18,11 @@ export interface ClinicDto {
   addressAr?: string;
   cityAr?: string;
   isActive: boolean;
+  subscriptionStartDateUtc?: string;
+  subscriptionEndDateUtc?: string;
+  subscriptionPlan?: string;
+  isSubscriptionActive?: boolean;
+  subscriptionDaysRemaining?: number;
 }
 
 export interface DoctorShiftDto {

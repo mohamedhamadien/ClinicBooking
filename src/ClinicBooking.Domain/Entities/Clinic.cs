@@ -16,6 +16,18 @@ public sealed class Clinic : Entity<Guid>, IAuditableEntity, IMustHaveTenant
     public PhoneNumber PhoneNumber { get; private set; } = default!;
     public bool IsActive { get; private set; }
 
+    public DateTime? SubscriptionStartDateUtc { get; private set; }
+    public DateTime? SubscriptionEndDateUtc { get; private set; }
+    public string? SubscriptionPlan { get; private set; }
+
+    public bool IsSubscriptionActive =>
+        IsActive && (!SubscriptionEndDateUtc.HasValue || SubscriptionEndDateUtc.Value >= DateTime.UtcNow);
+
+    public int? SubscriptionDaysRemaining =>
+        SubscriptionEndDateUtc.HasValue
+            ? Math.Max(0, (int)Math.Ceiling((SubscriptionEndDateUtc.Value - DateTime.UtcNow).TotalDays))
+            : null;
+
     /// <summary>
     /// Default display name (English).
     /// </summary>
@@ -105,6 +117,18 @@ public sealed class Clinic : Entity<Guid>, IAuditableEntity, IMustHaveTenant
         CityAr = string.IsNullOrWhiteSpace(cityAr) ? CityEn : cityAr.Trim();
     }
 
+    public void SetSubscription(DateTime? startDateUtc, DateTime? endDateUtc, string? plan = "Enterprise")
+    {
+        if (startDateUtc.HasValue && endDateUtc.HasValue && endDateUtc.Value < startDateUtc.Value)
+        {
+            throw new DomainValidationException("Subscription end date cannot be earlier than start date.");
+        }
+
+        SubscriptionStartDateUtc = startDateUtc;
+        SubscriptionEndDateUtc = endDateUtc;
+        SubscriptionPlan = string.IsNullOrWhiteSpace(plan) ? "Enterprise" : plan.Trim();
+    }
+
     public void Update(
         string nameEn,
         string addressEn,
@@ -113,13 +137,21 @@ public sealed class Clinic : Entity<Guid>, IAuditableEntity, IMustHaveTenant
         bool isActive,
         string? nameAr = null,
         string? addressAr = null,
-        string? cityAr = null)
+        string? cityAr = null,
+        DateTime? subscriptionStartDateUtc = null,
+        DateTime? subscriptionEndDateUtc = null,
+        string? subscriptionPlan = null)
     {
         SetName(nameEn, nameAr);
         SetAddress(addressEn, addressAr);
         SetCity(cityEn, cityAr);
         PhoneNumber = phoneNumber ?? throw new ArgumentNullException(nameof(phoneNumber));
         IsActive = isActive;
+
+        if (subscriptionStartDateUtc.HasValue || subscriptionEndDateUtc.HasValue || !string.IsNullOrWhiteSpace(subscriptionPlan))
+        {
+            SetSubscription(subscriptionStartDateUtc, subscriptionEndDateUtc, subscriptionPlan);
+        }
     }
 
     public string GetLocalizedName(bool isArabic) => isArabic && !string.IsNullOrWhiteSpace(NameAr) ? NameAr : NameEn;

@@ -13,4 +13,9 @@ public sealed record ClinicDto(
     string? CityAr = null,
     string? LocalizedName = null,
     string? LocalizedAddress = null,
-    string? LocalizedCity = null);
+    string? LocalizedCity = null,
+    DateTime? SubscriptionStartDateUtc = null,
+    DateTime? SubscriptionEndDateUtc = null,
+    string? SubscriptionPlan = null,
+    bool? IsSubscriptionActive = null,
+    int? SubscriptionDaysRemaining = null);

@@ -88,7 +88,12 @@ public sealed class CreateClinicCommandHandler : IRequestHandler<CreateClinicCom
             clinic.CityAr,
             clinic.GetLocalizedName(isArabic),
             clinic.GetLocalizedAddress(isArabic),
-            clinic.GetLocalizedCity(isArabic));
+            clinic.GetLocalizedCity(isArabic),
+            clinic.SubscriptionStartDateUtc,
+            clinic.SubscriptionEndDateUtc,
+            clinic.SubscriptionPlan ?? "Enterprise",
+            clinic.IsSubscriptionActive,
+            clinic.SubscriptionDaysRemaining);
 
         return Result.Success(dto);
     }

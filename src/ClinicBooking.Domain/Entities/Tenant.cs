@@ -13,6 +13,18 @@ public sealed partial class Tenant : AggregateRoot<Guid>, IAuditableEntity
     public int CancellationNoticeHours { get; private set; }
     public bool RequiresDoctorApproval { get; private set; }
 
+    public DateTime? SubscriptionStartDateUtc { get; private set; }
+    public DateTime? SubscriptionEndDateUtc { get; private set; }
+    public string? SubscriptionPlan { get; private set; }
+
+    public bool IsSubscriptionActive =>
+        IsActive && (!SubscriptionEndDateUtc.HasValue || SubscriptionEndDateUtc.Value >= DateTime.UtcNow);
+
+    public int? SubscriptionDaysRemaining =>
+        SubscriptionEndDateUtc.HasValue
+            ? Math.Max(0, (int)Math.Ceiling((SubscriptionEndDateUtc.Value - DateTime.UtcNow).TotalDays))
+            : null;
+
     /// <summary>
     /// Default display name (English).
     /// </summary>
@@ -101,6 +113,18 @@ public sealed partial class Tenant : AggregateRoot<Guid>, IAuditableEntity
     public void SetDoctorApprovalPolicy(bool requiresApproval)
     {
         RequiresDoctorApproval = requiresApproval;
+    }
+
+    public void SetSubscription(DateTime? startDateUtc, DateTime? endDateUtc, string? plan = "Enterprise")
+    {
+        if (startDateUtc.HasValue && endDateUtc.HasValue && endDateUtc.Value < startDateUtc.Value)
+        {
+            throw new DomainValidationException("Subscription end date cannot be earlier than start date.");
+        }
+
+        SubscriptionStartDateUtc = startDateUtc;
+        SubscriptionEndDateUtc = endDateUtc;
+        SubscriptionPlan = string.IsNullOrWhiteSpace(plan) ? "Enterprise" : plan.Trim();
     }
 
     public string GetLocalizedName(bool isArabic) => isArabic && !string.IsNullOrWhiteSpace(NameAr) ? NameAr : NameEn;

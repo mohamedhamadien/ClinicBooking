@@ -8,4 +8,9 @@ public sealed record TenantDto(
     int CancellationNoticeHours,
     bool RequiresDoctorApproval,
     string? NameAr = null,
-    string? LocalizedName = null);
+    string? LocalizedName = null,
+    DateTime? SubscriptionStartDateUtc = null,
+    DateTime? SubscriptionEndDateUtc = null,
+    string? SubscriptionPlan = null,
+    bool? IsSubscriptionActive = null,
+    int? SubscriptionDaysRemaining = null);

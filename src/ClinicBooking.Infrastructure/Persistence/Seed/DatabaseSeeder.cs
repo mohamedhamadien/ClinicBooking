@@ -81,6 +81,10 @@ public sealed class DatabaseSeeder
                 addressAr: "٤٥ كورنيش النيل، الدقي",
                 cityAr: "الجيزة");
 
+            centralClinic.SetSubscription(DateTime.UtcNow.AddMonths(-2), DateTime.UtcNow.AddMonths(10), "Enterprise Platinum");
+            nileClinic.SetSubscription(DateTime.UtcNow.AddMonths(-1), DateTime.UtcNow.AddMonths(11), "Enterprise Gold");
+            defaultTenant.SetSubscription(DateTime.UtcNow.AddMonths(-3), DateTime.UtcNow.AddMonths(9), "Enterprise Suite");
+
             await _dbContext.Clinics.AddRangeAsync(new[] { centralClinic, nileClinic }, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -88,6 +92,14 @@ public sealed class DatabaseSeeder
         {
             centralClinic = clinics[0];
             nileClinic = clinics.Count > 1 ? clinics[1] : clinics[0];
+
+            if (!centralClinic.SubscriptionStartDateUtc.HasValue)
+            {
+                centralClinic.SetSubscription(DateTime.UtcNow.AddMonths(-2), DateTime.UtcNow.AddMonths(10), "Enterprise Platinum");
+                nileClinic.SetSubscription(DateTime.UtcNow.AddMonths(-1), DateTime.UtcNow.AddMonths(11), "Enterprise Gold");
+                defaultTenant.SetSubscription(DateTime.UtcNow.AddMonths(-3), DateTime.UtcNow.AddMonths(9), "Enterprise Suite");
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
         }
 
         // =========================================================================

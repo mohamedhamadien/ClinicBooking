@@ -34,6 +34,9 @@ export interface UpdateClinicRequest {
   nameAr?: string;
   addressAr?: string;
   cityAr?: string;
+  subscriptionStartDateUtc?: string;
+  subscriptionEndDateUtc?: string;
+  subscriptionPlan?: string;
 }
 
 export interface AuditLogDto {
@@ -96,6 +99,9 @@ export class AdminService {
     nameAr?: string;
     addressAr?: string;
     cityAr?: string;
+    subscriptionStartDateUtc?: string;
+    subscriptionEndDateUtc?: string;
+    subscriptionPlan?: string;
   }): Observable<ClinicDto> {
     return this.http.post<ClinicDto>(`${environment.apiUrl}/clinics`, command);
   }

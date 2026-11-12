@@ -17,7 +17,10 @@ public sealed record UpdateClinicCommand(
     bool IsActive = true,
     string? NameAr = null,
     string? AddressAr = null,
-    string? CityAr = null) : IRequest<Result<ClinicDto>>;
+    string? CityAr = null,
+    DateTime? SubscriptionStartDateUtc = null,
+    DateTime? SubscriptionEndDateUtc = null,
+    string? SubscriptionPlan = null) : IRequest<Result<ClinicDto>>;
 
 public sealed class UpdateClinicCommandValidator : AbstractValidator<UpdateClinicCommand>
 {
@@ -66,7 +69,10 @@ public sealed class UpdateClinicCommandHandler : IRequestHandler<UpdateClinicCom
             request.IsActive,
             request.NameAr,
             request.AddressAr,
-            request.CityAr);
+            request.CityAr,
+            request.SubscriptionStartDateUtc,
+            request.SubscriptionEndDateUtc,
+            request.SubscriptionPlan);
 
         await _clinicRepository.UpdateAsync(clinic, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -76,14 +82,22 @@ public sealed class UpdateClinicCommandHandler : IRequestHandler<UpdateClinicCom
         var dto = new ClinicDto(
             clinic.Id,
             clinic.TenantId,
-            clinic.GetLocalizedName(isArabic),
-            clinic.GetLocalizedAddress(isArabic),
-            clinic.GetLocalizedCity(isArabic),
+            clinic.NameEn,
+            clinic.AddressEn,
+            clinic.CityEn,
             clinic.PhoneNumber.Value,
             clinic.IsActive,
             clinic.NameAr,
             clinic.AddressAr,
-            clinic.CityAr);
+            clinic.CityAr,
+            clinic.GetLocalizedName(isArabic),
+            clinic.GetLocalizedAddress(isArabic),
+            clinic.GetLocalizedCity(isArabic),
+            clinic.SubscriptionStartDateUtc,
+            clinic.SubscriptionEndDateUtc,
+            clinic.SubscriptionPlan ?? "Enterprise",
+            clinic.IsSubscriptionActive,
+            clinic.SubscriptionDaysRemaining);
 
         return Result.Success(dto);
     }

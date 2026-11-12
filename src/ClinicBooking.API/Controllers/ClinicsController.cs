@@ -82,7 +82,10 @@ public sealed class ClinicsController : ApiControllerBase
             request.IsActive,
             request.NameAr,
             request.AddressAr,
-            request.CityAr);
+            request.CityAr,
+            request.SubscriptionStartDateUtc,
+            request.SubscriptionEndDateUtc,
+            request.SubscriptionPlan);
 
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -97,4 +100,7 @@ public sealed record UpdateClinicRequest(
     bool IsActive = true,
     string? NameAr = null,
     string? AddressAr = null,
-    string? CityAr = null);
+    string? CityAr = null,
+    DateTime? SubscriptionStartDateUtc = null,
+    DateTime? SubscriptionEndDateUtc = null,
+    string? SubscriptionPlan = null);

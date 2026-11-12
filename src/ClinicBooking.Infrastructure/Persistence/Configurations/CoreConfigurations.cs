@@ -18,6 +18,10 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.Identifier).HasMaxLength(50).IsUnicode(false).IsRequired();
         builder.HasIndex(t => t.Identifier).IsUnique().HasDatabaseName("UX_Tenants_Identifier");
 
+        builder.Property(t => t.SubscriptionStartDateUtc).IsRequired(false);
+        builder.Property(t => t.SubscriptionEndDateUtc).IsRequired(false);
+        builder.Property(t => t.SubscriptionPlan).HasMaxLength(50).IsRequired(false);
+
         builder.ConfigureAudit();
         builder.Ignore(t => t.DomainEvents);
     }
@@ -149,6 +153,10 @@ internal sealed class ClinicConfiguration : IEntityTypeConfiguration<Clinic>
 
         builder.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(c => c.TenantId).HasDatabaseName("IX_Clinics_TenantId");
+
+        builder.Property(c => c.SubscriptionStartDateUtc).IsRequired(false);
+        builder.Property(c => c.SubscriptionEndDateUtc).IsRequired(false);
+        builder.Property(c => c.SubscriptionPlan).HasMaxLength(50).IsRequired(false);
 
         builder.ConfigureAudit();
     }

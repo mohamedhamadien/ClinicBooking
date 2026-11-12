@@ -262,6 +262,16 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<DateTime?>("SubscriptionEndDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SubscriptionPlan")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("SubscriptionStartDateUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1273,6 +1283,16 @@ namespace ClinicBooking.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("RequiresDoctorApproval")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("SubscriptionEndDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SubscriptionPlan")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("SubscriptionStartDateUtc")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

@@ -39,7 +39,12 @@ public sealed class GetClinicsQueryHandler : IRequestHandler<GetClinicsQuery, Re
             c.CityAr,
             c.GetLocalizedName(isArabic),
             c.GetLocalizedAddress(isArabic),
-            c.GetLocalizedCity(isArabic))).ToList();
+            c.GetLocalizedCity(isArabic),
+            c.SubscriptionStartDateUtc,
+            c.SubscriptionEndDateUtc,
+            c.SubscriptionPlan ?? "Enterprise",
+            c.IsSubscriptionActive,
+            c.SubscriptionDaysRemaining)).ToList();
 
         return Result.Success<IReadOnlyList<ClinicDto>>(dtos);
     }

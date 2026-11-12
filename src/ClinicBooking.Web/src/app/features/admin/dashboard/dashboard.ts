@@ -628,6 +628,9 @@ export class DashboardComponent implements OnInit {
   protected editClinicCityAr = '';
   protected editClinicPhone = '';
   protected editClinicIsActive = true;
+  protected editClinicSubStartDate = '';
+  protected editClinicSubEndDate = '';
+  protected editClinicSubPlan = 'Enterprise';
 
   protected isSpecialtyModalOpen = false;
   protected specialtyNameEn = '';
@@ -643,6 +646,9 @@ export class DashboardComponent implements OnInit {
   protected clinicCityEn = 'Cairo';
   protected clinicCityAr = 'القاهرة';
   protected clinicPhone = '+201012345678';
+  protected clinicSubStartDate = '';
+  protected clinicSubEndDate = '';
+  protected clinicSubPlan = 'Enterprise';
 
   protected cancelingAppointmentId: string | null = null;
   protected cancelReason = 'Administrative schedule adjustment';
@@ -1814,6 +1820,9 @@ export class DashboardComponent implements OnInit {
     this.editClinicCityAr = clinic.cityAr || '';
     this.editClinicPhone = clinic.phoneNumber;
     this.editClinicIsActive = clinic.isActive;
+    this.editClinicSubStartDate = clinic.subscriptionStartDateUtc ? clinic.subscriptionStartDateUtc.substring(0, 10) : '';
+    this.editClinicSubEndDate = clinic.subscriptionEndDateUtc ? clinic.subscriptionEndDateUtc.substring(0, 10) : '';
+    this.editClinicSubPlan = clinic.subscriptionPlan || 'Enterprise';
   }
 
   protected closeEditClinicModal(): void {
@@ -1831,7 +1840,10 @@ export class DashboardComponent implements OnInit {
       city: this.editClinicCityEn,
       cityAr: this.editClinicCityAr || undefined,
       phoneNumber: this.editClinicPhone,
-      isActive: this.editClinicIsActive
+      isActive: this.editClinicIsActive,
+      subscriptionStartDateUtc: this.editClinicSubStartDate ? new Date(this.editClinicSubStartDate).toISOString() : undefined,
+      subscriptionEndDateUtc: this.editClinicSubEndDate ? new Date(this.editClinicSubEndDate).toISOString() : undefined,
+      subscriptionPlan: this.editClinicSubPlan || undefined
     };
 
     this.adminService.updateClinic(this.editingClinicId, request).subscribe({
@@ -1891,6 +1903,12 @@ export class DashboardComponent implements OnInit {
     this.clinicCityEn = 'Cairo';
     this.clinicCityAr = 'القاهرة';
     this.clinicPhone = '+201012345678';
+    const now = new Date();
+    const oneYearLater = new Date();
+    oneYearLater.setFullYear(now.getFullYear() + 1);
+    this.clinicSubStartDate = now.toISOString().substring(0, 10);
+    this.clinicSubEndDate = oneYearLater.toISOString().substring(0, 10);
+    this.clinicSubPlan = 'Enterprise';
   }
 
   protected closeClinicModal(): void {
@@ -1911,7 +1929,10 @@ export class DashboardComponent implements OnInit {
         addressAr: this.clinicAddressAr || undefined,
         city: this.clinicCityEn,
         cityAr: this.clinicCityAr || undefined,
-        phoneNumber: this.clinicPhone
+        phoneNumber: this.clinicPhone,
+        subscriptionStartDateUtc: this.clinicSubStartDate ? new Date(this.clinicSubStartDate).toISOString() : undefined,
+        subscriptionEndDateUtc: this.clinicSubEndDate ? new Date(this.clinicSubEndDate).toISOString() : undefined,
+        subscriptionPlan: this.clinicSubPlan || 'Enterprise'
       })
       .subscribe({
         next: (created) => {
