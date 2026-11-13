@@ -16,13 +16,22 @@ public sealed record CreateClinicCommand(
     string PhoneNumber,
     string? NameAr = null,
     string? AddressAr = null,
-    string? CityAr = null) : IRequest<Result<ClinicDto>>;
+    string? CityAr = null,
+    DateTime? SubscriptionStartDateUtc = null,
+    DateTime? SubscriptionEndDateUtc = null,
+    string? SubscriptionPlan = "Enterprise",
+    bool IsPrivateClinic = true,
+    bool IsSingleDoctorClinic = true,
+    bool EnableProceduresDuringShifts = true,
+    bool EnableGeneralClinicFeatures = false,
+    decimal ConsultationFee = 350m,
+    decimal FollowUpFee = 100m,
+    decimal ProcedureFee = 1200m) : IRequest<Result<ClinicDto>>;
 
 public sealed class CreateClinicCommandValidator : AbstractValidator<CreateClinicCommand>
 {
     public CreateClinicCommandValidator()
     {
-        RuleFor(x => x.TenantId).NotEmpty().WithMessage("TenantId is required.");
         RuleFor(x => x.Name).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Address).NotEmpty().MaximumLength(200);
         RuleFor(x => x.City).NotEmpty().MaximumLength(100);
@@ -37,31 +46,47 @@ public sealed class CreateClinicCommandHandler : IRequestHandler<CreateClinicCom
 {
     private readonly IClinicRepository _clinicRepository;
     private readonly ITenantRepository _tenantRepository;
+    private readonly ITenantContext _tenantContext;
     private readonly ILocalizationService _localizationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateClinicCommandHandler(
         IClinicRepository clinicRepository,
         ITenantRepository tenantRepository,
+        ITenantContext tenantContext,
         ILocalizationService localizationService,
         IUnitOfWork unitOfWork)
     {
         _clinicRepository = clinicRepository;
         _tenantRepository = tenantRepository;
+        _tenantContext = tenantContext;
         _localizationService = localizationService;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<Result<ClinicDto>> Handle(CreateClinicCommand request, CancellationToken cancellationToken)
     {
-        var tenant = await _tenantRepository.GetByIdAsync(request.TenantId, cancellationToken);
+        var effectiveTenantId = request.TenantId != Guid.Empty
+            ? request.TenantId
+            : (_tenantContext.TenantId ?? Guid.Empty);
+
+        var tenant = effectiveTenantId != Guid.Empty
+            ? await _tenantRepository.GetByIdAsync(effectiveTenantId, cancellationToken)
+            : null;
+
+        if (tenant is null)
+        {
+            var allTenants = await _tenantRepository.ListAsync(cancellationToken);
+            tenant = allTenants.FirstOrDefault(t => t.IsActive) ?? allTenants.FirstOrDefault();
+        }
+
         if (tenant is null || !tenant.IsActive)
         {
-            return Result.Failure<ClinicDto>(Error.NotFound("Tenant", request.TenantId));
+            return Result.Failure<ClinicDto>(Error.NotFound("Tenant", effectiveTenantId));
         }
 
         var clinic = Clinic.Create(
-            request.TenantId,
+            tenant.Id,
             request.Name,
             request.Address,
             request.City,
@@ -69,6 +94,20 @@ public sealed class CreateClinicCommandHandler : IRequestHandler<CreateClinicCom
             request.NameAr,
             request.AddressAr,
             request.CityAr);
+
+        clinic.SetSubscription(
+            request.SubscriptionStartDateUtc ?? DateTime.UtcNow.Date,
+            request.SubscriptionEndDateUtc ?? DateTime.UtcNow.Date.AddYears(1),
+            request.SubscriptionPlan ?? "Enterprise");
+
+        clinic.SetOperatingModeAndPricing(
+            request.IsPrivateClinic,
+            request.IsSingleDoctorClinic,
+            request.EnableProceduresDuringShifts,
+            request.EnableGeneralClinicFeatures,
+            request.ConsultationFee,
+            request.FollowUpFee,
+            request.ProcedureFee);
 
         await _clinicRepository.AddAsync(clinic, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -93,7 +132,14 @@ public sealed class CreateClinicCommandHandler : IRequestHandler<CreateClinicCom
             clinic.SubscriptionEndDateUtc,
             clinic.SubscriptionPlan ?? "Enterprise",
             clinic.IsSubscriptionActive,
-            clinic.SubscriptionDaysRemaining);
+            clinic.SubscriptionDaysRemaining,
+            clinic.IsPrivateClinic,
+            clinic.IsSingleDoctorClinic,
+            clinic.EnableProceduresDuringShifts,
+            clinic.EnableGeneralClinicFeatures,
+            clinic.ConsultationFee,
+            clinic.FollowUpFee,
+            clinic.ProcedureFee);
 
         return Result.Success(dto);
     }

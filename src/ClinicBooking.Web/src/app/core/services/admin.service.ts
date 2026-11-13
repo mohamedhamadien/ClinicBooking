@@ -109,6 +109,13 @@ export class AdminService {
     subscriptionStartDateUtc?: string;
     subscriptionEndDateUtc?: string;
     subscriptionPlan?: string;
+    isPrivateClinic?: boolean;
+    isSingleDoctorClinic?: boolean;
+    enableProceduresDuringShifts?: boolean;
+    enableGeneralClinicFeatures?: boolean;
+    consultationFee?: number;
+    followUpFee?: number;
+    procedureFee?: number;
   }): Observable<ClinicDto> {
     return this.http.post<ClinicDto>(`${environment.apiUrl}/clinics`, command);
   }

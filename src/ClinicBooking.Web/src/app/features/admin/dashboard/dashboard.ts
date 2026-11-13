@@ -666,19 +666,20 @@ export class DashboardComponent implements OnInit {
   });
 
   protected canAccessTab(tab: AdminTab): boolean {
-    // Super Admin only screens: System Audit Logs & Global Specialties Catalog
-    if (tab === 'audit') {
-      return this.auth.isAdmin();
+    // Super Admin (Platform Owner) ALWAYS has full access to all screens on the system
+    if (this.auth.isAdmin()) {
+      return true;
     }
-    if (tab === 'specialties') {
-      return this.auth.isAdmin() && this.enableGeneralClinicFeatures();
-    }
-    // In Single-Doctor Private Clinic mode, hide multi-doctor directory for non-Super-Admin unless General Clinic features are unlocked
-    if (tab === 'doctors' && this.isSingleDoctorMode() && !this.enableGeneralClinicFeatures() && !this.auth.isAdmin()) {
+
+    // Super Admin only screens: System Audit Logs & Global Specialties Catalog (never shown to ClinicAdmin or other staff)
+    if (tab === 'audit' || tab === 'specialties') {
       return false;
     }
 
-    if (this.auth.isAdmin()) return true;
+    // In Single-Doctor Private Clinic mode, hide multi-doctor directory for non-Super-Admin unless General Clinic features are unlocked
+    if (tab === 'doctors' && this.isSingleDoctorMode() && !this.enableGeneralClinicFeatures()) {
+      return false;
+    }
 
     if (this.auth.isClinicAdmin()) {
       // ClinicAdmin can access their own clinic's operational tabs, NEVER SuperAdmin-only screens (filtered above)
@@ -2567,7 +2568,102 @@ export class DashboardComponent implements OnInit {
       });
   }
 
-  // --- Clinic Actions ---
+  // --- Clinic & Super Admin SaaS Subscription Management Actions ---
+  protected clinicSearchQuery = '';
+  protected clinicFilterStatus: 'all' | 'active' | 'expired' | 'expiring_soon' | 'suspended' = 'all';
+  protected clinicFilterMode: 'all' | 'private' | 'general' = 'all';
+  protected readonly clinicViewLayout = signal<'cards' | 'table'>('cards');
+
+  protected clinicIsPrivate = true;
+  protected clinicIsSingleDoctor = true;
+  protected clinicEnableProcedures = true;
+  protected clinicEnableGeneralFeatures = false;
+  protected clinicConsultationFee = 350;
+  protected clinicFollowUpFee = 100;
+  protected clinicProcedureFee = 1200;
+
+  protected readonly saasClinicMetrics = computed(() => {
+    const list = this.clinics();
+    const totalClinics = list.length;
+    const activeSubscriptions = list.filter((c) => c.isActive && c.isSubscriptionActive !== false).length;
+    const expiringSoonCount = list.filter(
+      (c) =>
+        c.isActive &&
+        c.subscriptionDaysRemaining !== undefined &&
+        c.subscriptionDaysRemaining !== null &&
+        c.subscriptionDaysRemaining > 0 &&
+        c.subscriptionDaysRemaining <= 14
+    ).length;
+    const expiredOrSuspendedCount = list.filter((c) => !c.isActive || c.isSubscriptionActive === false).length;
+    const privateClinicsCount = list.filter((c) => c.isPrivateClinic !== false).length;
+    const generalClinicsCount = list.filter((c) => c.isPrivateClinic === false).length;
+    return {
+      totalClinics,
+      activeSubscriptions,
+      expiringSoonCount,
+      expiredOrSuspendedCount,
+      privateClinicsCount,
+      generalClinicsCount
+    };
+  });
+
+  protected readonly filteredClinics = computed(() => {
+    let list = this.clinics();
+
+    if (this.clinicFilterStatus === 'active') {
+      list = list.filter((c) => c.isActive && c.isSubscriptionActive !== false);
+    } else if (this.clinicFilterStatus === 'expired') {
+      list = list.filter((c) => c.isSubscriptionActive === false);
+    } else if (this.clinicFilterStatus === 'expiring_soon') {
+      list = list.filter(
+        (c) =>
+          c.subscriptionDaysRemaining !== undefined &&
+          c.subscriptionDaysRemaining !== null &&
+          c.subscriptionDaysRemaining > 0 &&
+          c.subscriptionDaysRemaining <= 14
+      );
+    } else if (this.clinicFilterStatus === 'suspended') {
+      list = list.filter((c) => !c.isActive);
+    }
+
+    if (this.clinicFilterMode === 'private') {
+      list = list.filter((c) => c.isPrivateClinic !== false);
+    } else if (this.clinicFilterMode === 'general') {
+      list = list.filter((c) => c.isPrivateClinic === false);
+    }
+
+    if (this.clinicSearchQuery.trim()) {
+      const q = this.clinicSearchQuery.trim().toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.nameAr && c.nameAr.toLowerCase().includes(q)) ||
+          c.city.toLowerCase().includes(q) ||
+          (c.cityAr && c.cityAr.toLowerCase().includes(q)) ||
+          c.phoneNumber.toLowerCase().includes(q) ||
+          (c.subscriptionPlan && c.subscriptionPlan.toLowerCase().includes(q))
+      );
+    }
+
+    return list;
+  });
+
+  protected getClinicDoctorsCount(clinicId: string): number {
+    return this.doctors().filter((d) => d.doctorClinics?.some((dc) => dc.clinicId === clinicId)).length;
+  }
+
+  protected getClinicStaffCount(clinicId: string): number {
+    return this.staffMembers().filter((s) => s.clinicId === clinicId).length;
+  }
+
+  protected getClinicAppointmentsCount(clinicId: string): number {
+    return this.appointments().filter((a) => a.clinicId === clinicId).length;
+  }
+
+  protected getClinicAdmins(clinicId: string): StaffMemberDto[] {
+    return this.staffMembers().filter((s) => s.clinicId === clinicId && s.role.toLowerCase() === 'clinicadmin');
+  }
+
   protected openClinicModal(): void {
     this.isClinicModalOpen = true;
     this.clinicNameEn = '';
@@ -2583,6 +2679,13 @@ export class DashboardComponent implements OnInit {
     this.clinicSubStartDate = now.toISOString().substring(0, 10);
     this.clinicSubEndDate = oneYearLater.toISOString().substring(0, 10);
     this.clinicSubPlan = 'Enterprise';
+    this.clinicIsPrivate = true;
+    this.clinicIsSingleDoctor = true;
+    this.clinicEnableProcedures = true;
+    this.clinicEnableGeneralFeatures = false;
+    this.clinicConsultationFee = 350;
+    this.clinicFollowUpFee = 100;
+    this.clinicProcedureFee = 1200;
   }
 
   protected closeClinicModal(): void {
@@ -2592,7 +2695,9 @@ export class DashboardComponent implements OnInit {
   protected submitClinic(): void {
     if (!this.clinicNameEn || !this.clinicCityEn || !this.clinicAddressEn) return;
 
-    const tenantId = this.auth.currentUser()?.tenantId || '1f2aa19b-f5dc-4166-abe6-dc93a2f3aaff';
+    const tenantId =
+      this.auth.currentUser()?.tenantId ||
+      (this.clinics().length > 0 ? this.clinics()[0].tenantId : '1f2aa19b-f5dc-4166-abe6-dc93a2f3aaff');
 
     this.adminService
       .createClinic({
@@ -2606,18 +2711,132 @@ export class DashboardComponent implements OnInit {
         phoneNumber: this.clinicPhone,
         subscriptionStartDateUtc: this.clinicSubStartDate ? new Date(this.clinicSubStartDate).toISOString() : undefined,
         subscriptionEndDateUtc: this.clinicSubEndDate ? new Date(this.clinicSubEndDate).toISOString() : undefined,
-        subscriptionPlan: this.clinicSubPlan || 'Enterprise'
+        subscriptionPlan: this.clinicSubPlan || 'Enterprise',
+        isPrivateClinic: this.clinicIsPrivate,
+        isSingleDoctorClinic: this.clinicIsSingleDoctor,
+        enableProceduresDuringShifts: this.clinicEnableProcedures,
+        enableGeneralClinicFeatures: this.clinicEnableGeneralFeatures,
+        consultationFee: this.clinicConsultationFee,
+        followUpFee: this.clinicFollowUpFee,
+        procedureFee: this.clinicProcedureFee
       })
       .subscribe({
         next: (created) => {
           this.closeClinicModal();
-          this.clinics.update((prev) => [...prev, created]);
-          this.showMessage('Clinic branch created successfully!');
+          this.clinics.update((prev) => [created, ...prev]);
+          this.showMessage(
+            this.translation.isArabic()
+              ? `✅ تم إنشاء وإضافة العيادة "${created.nameAr || created.name}" وتفعيل اشتراكها بنجاح!`
+              : `✅ Subscribed clinic "${created.name}" created and activated successfully!`
+          );
         },
         error: (err) => {
           this.errorMessage.set(err.error?.detail || 'Failed to create clinic branch.');
         }
       });
+  }
+
+  protected renewClinicSubscription(clinic: ClinicDto, months: number): void {
+    const now = new Date();
+    const currentEnd = clinic.subscriptionEndDateUtc ? new Date(clinic.subscriptionEndDateUtc) : now;
+    const baseDate = currentEnd > now ? currentEnd : now;
+    const newEnd = new Date(baseDate);
+    newEnd.setMonth(newEnd.getMonth() + months);
+
+    const request: UpdateClinicRequest = {
+      name: clinic.name,
+      nameAr: clinic.nameAr,
+      address: clinic.address,
+      addressAr: clinic.addressAr,
+      city: clinic.city,
+      cityAr: clinic.cityAr,
+      phoneNumber: clinic.phoneNumber,
+      isActive: true,
+      subscriptionStartDateUtc: clinic.subscriptionStartDateUtc || now.toISOString(),
+      subscriptionEndDateUtc: newEnd.toISOString(),
+      subscriptionPlan: clinic.subscriptionPlan || 'Enterprise',
+      isPrivateClinic: clinic.isPrivateClinic ?? true,
+      isSingleDoctorClinic: clinic.isSingleDoctorClinic ?? true,
+      enableProceduresDuringShifts: clinic.enableProceduresDuringShifts ?? true,
+      enableGeneralClinicFeatures: clinic.enableGeneralClinicFeatures ?? false,
+      consultationFee: clinic.consultationFee ?? 350,
+      followUpFee: clinic.followUpFee ?? 100,
+      procedureFee: clinic.procedureFee ?? 1200
+    };
+
+    this.adminService.updateClinic(clinic.id, request).subscribe({
+      next: (updated) => {
+        this.clinics.update((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        this.showMessage(
+          this.translation.isArabic()
+            ? `✅ تم تجديد اشتراك "${updated.nameAr || updated.name}" لمدة ${months} شهر بنجاح!`
+            : `✅ Renewed subscription for "${updated.name}" (+${months} months)!`
+        );
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to renew clinic subscription.')
+    });
+  }
+
+  protected toggleClinicActiveStatus(clinic: ClinicDto): void {
+    const nextActive = !clinic.isActive;
+    const request: UpdateClinicRequest = {
+      name: clinic.name,
+      nameAr: clinic.nameAr,
+      address: clinic.address,
+      addressAr: clinic.addressAr,
+      city: clinic.city,
+      cityAr: clinic.cityAr,
+      phoneNumber: clinic.phoneNumber,
+      isActive: nextActive,
+      subscriptionStartDateUtc: clinic.subscriptionStartDateUtc,
+      subscriptionEndDateUtc: clinic.subscriptionEndDateUtc,
+      subscriptionPlan: clinic.subscriptionPlan || 'Enterprise',
+      isPrivateClinic: clinic.isPrivateClinic ?? true,
+      isSingleDoctorClinic: clinic.isSingleDoctorClinic ?? true,
+      enableProceduresDuringShifts: clinic.enableProceduresDuringShifts ?? true,
+      enableGeneralClinicFeatures: clinic.enableGeneralClinicFeatures ?? false,
+      consultationFee: clinic.consultationFee ?? 350,
+      followUpFee: clinic.followUpFee ?? 100,
+      procedureFee: clinic.procedureFee ?? 1200
+    };
+
+    this.adminService.updateClinic(clinic.id, request).subscribe({
+      next: (updated) => {
+        this.clinics.update((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        this.showMessage(
+          this.translation.isArabic()
+            ? nextActive
+              ? `▶️ تم تفعيل العيادة "${updated.nameAr || updated.name}" بنجاح`
+              : `⏸️ تم إيقاف العيادة "${updated.nameAr || updated.name}" مؤقتاً`
+            : `Clinic "${updated.name}" is now ${nextActive ? 'Active' : 'Suspended'}.`
+        );
+      },
+      error: (err) => this.errorMessage.set(err.error?.detail || 'Failed to update clinic status.')
+    });
+  }
+
+  protected openCreateClinicAdminForClinic(clinic: ClinicDto): void {
+    this.openCreateStaffModal();
+    this.newStaffRole = 'ClinicAdmin';
+    this.newStaffClinicId = clinic.id;
+    this.applyCreatePreset('ClinicAdmin');
+  }
+
+  protected openAddDoctorForClinic(clinic: ClinicDto): void {
+    this.openDoctorModal();
+    this.docClinicId = clinic.id;
+    this.docConsultationFee = clinic.consultationFee ?? 350;
+  }
+
+  protected inspectClinicScope(clinic: ClinicDto): void {
+    this.selectedClinicId = clinic.id;
+    this.loadQueue();
+    this.setTab('appointments');
+    this.showMessage(
+      this.translation.isArabic()
+        ? `🔍 تم تحديد نطاق العرض على عيادة: ${clinic.nameAr || clinic.name}`
+        : `🔍 Viewing operational scope for: ${clinic.name}`
+    );
   }
 
   // --- Appointment Actions ---

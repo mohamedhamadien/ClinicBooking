@@ -325,8 +325,14 @@
       </div>
 
       <div class="topbar-actions">
-        <!-- Private vs General Clinic Badge -->
-        @if (isPrivateClinicMode()) {
+        @if (auth.isAdmin()) {
+          <span class="badge" style="background: #4f46e5; color: #fff; padding: 0.45rem 0.85rem; font-size: 0.85rem;">
+            🛡️ {{ translation.isArabic() ? 'السوبر أدمن (إدارة المنصة والعيادات المشتركة)' : 'Super Admin SaaS Console' }}
+          </span>
+          <button (click)="openClinicModal()" class="btn btn-primary btn-sm">
+            🏥 {{ translation.isArabic() ? '+ إضافة عيادة مشتركة جديدة' : '+ Add Subscribed Clinic' }}
+          </button>
+        } @else if (isPrivateClinicMode()) {
           <span class="badge badge-confirmed" style="padding: 0.45rem 0.85rem; font-size: 0.85rem;">
             🏥 {{ translation.isArabic() ? 'عيادة خاصة (مخصص للطبيب)' : 'Private Clinic Edition' }}
           </span>
@@ -355,7 +361,7 @@
             💳 {{ translation.isArabic() ? 'إصدار فاتورة' : 'Issue Invoice' }}
           </button>
         }
-        @if (canAccessTab('doctors') && (!isSingleDoctorMode() || enableGeneralClinicFeatures())) {
+        @if (auth.isAdmin() || (canAccessTab('doctors') && (!isSingleDoctorMode() || enableGeneralClinicFeatures()))) {
           <button (click)="openDoctorModal()" class="btn btn-outline btn-sm">
             👨‍⚕️ {{ translation.isArabic() ? '+ إضافة طبيب' : '+ Add Doctor' }}
           </button>
@@ -382,57 +388,106 @@
     <div class="cms-screen-viewport">
       <!-- TAB 1: OVERVIEW -->
   @if (activeTab() === 'overview') {
-    <!-- Dedicated Private Solo Clinic Banner -->
-    <div class="card p-4 mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #0f766e 100%); color: #fff; border: none; border-radius: 14px;">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="badge" style="background: #10b981; color: #fff; font-size: 0.85rem; padding: 0.35rem 0.75rem;">
-              {{ isPrivateClinicMode() ? (translation.isArabic() ? '🏥 عيادة خاصة (أفراد)' : '🏥 Private Solo Practice') : (translation.isArabic() ? '🏢 مركز / عيادة عامة' : '🏢 General Poly-Clinic') }}
-            </span>
-            @if (isSingleDoctorMode()) {
-              <span class="badge" style="background: rgba(255,255,255,0.18); color: #fff; font-size: 0.8rem;">
-                👨‍⚕️ {{ translation.isArabic() ? 'نسخة مخصصة للطبيب الفرد' : 'Dedicated Single-Doctor Mode' }}
+    @if (auth.isAdmin()) {
+      <!-- SUPER ADMIN SAAS PLATFORM CONTROL CENTER BANNER -->
+      @let saas = saasClinicMetrics();
+      <div class="card p-4 mb-4" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #0f766e 100%); color: #fff; border: none; border-radius: 14px;">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+              <span class="badge" style="background: #6366f1; color: #fff; font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+                🛡️ {{ translation.isArabic() ? 'لوحة تحكم السوبر أدمن — إدارة المنصة والعيادات المشتركة' : 'Super Admin SaaS Platform Control Center' }}
               </span>
-            }
-            @if (enableProceduresDuringShifts()) {
-              <span class="badge" style="background: #f59e0b; color: #fff; font-size: 0.8rem;">
-                🔪 {{ translation.isArabic() ? 'العمليات وسط الكشوفات مفعلة' : 'In-Shift Procedures Active' }}
+              <span class="badge" style="background: #10b981; color: #fff; font-size: 0.8rem;">
+                🏥 {{ saas.totalClinics }} {{ translation.isArabic() ? 'عيادة مشتركة' : 'Subscribed Clinics' }}
               </span>
-            }
+              <span class="badge" style="background: rgba(255,255,255,0.2); color: #fff; font-size: 0.8rem;">
+                👨‍⚕️ {{ doctors().length }} {{ translation.isArabic() ? 'طبيب مسجل' : 'Doctors' }}
+              </span>
+              <span class="badge" style="background: rgba(255,255,255,0.2); color: #fff; font-size: 0.8rem;">
+                👥 {{ staffMembers().length }} {{ translation.isArabic() ? 'حساب موظف ومدير عيادة' : 'Staff & Clinic Admins' }}
+              </span>
+            </div>
+            <h3 class="m-0" style="color: #fff;">
+              {{ translation.isArabic() ? 'إدارة شاملة لكافة العيادات المشتركة، الباقات، الأطباء، ومديري العيادات' : 'Complete SaaS Management of Subscribed Clinics, Plans, Doctors & Clinic Admins' }}
+            </h3>
+            <p class="m-0 mt-1" style="color: rgba(255,255,255,0.85); font-size: 0.92rem;">
+              {{ translation.isArabic() ? 'الاشتراكات النشطة:' : 'Active Subscriptions:' }} <strong>{{ saas.activeSubscriptions }}</strong> |
+              {{ translation.isArabic() ? 'عيادات خاصة للأفراد:' : 'Private Solo Clinics:' }} <strong>{{ saas.privateClinicsCount }}</strong> |
+              {{ translation.isArabic() ? 'مراكز وعيادات عامة:' : 'General Poly-Clinics:' }} <strong>{{ saas.generalClinicsCount }}</strong> |
+              {{ translation.isArabic() ? 'منتهية / موقوفة:' : 'Expired / Suspended:' }} <strong>{{ saas.expiredOrSuspendedCount }}</strong>
+            </p>
           </div>
-          <h3 class="m-0" style="color: #fff;">
-            {{ isSingleDoctorMode() && primaryDoctor()
-              ? (translation.isArabic() ? 'عيادة ' + primaryDoctor()?.fullName + ' الخاصة' : 'Dr. ' + primaryDoctor()?.fullName + ' Private Clinic')
-              : getActiveClinicName() }}
-          </h3>
-          <p class="m-0 mt-1" style="color: rgba(255,255,255,0.85); font-size: 0.92rem;">
-            {{ primaryDoctor()?.specialtyName || (translation.isArabic() ? 'استشاري متخصص' : 'Specialist Consultant') }}
-            &mdash;
-            {{ translation.isArabic() ? 'كشف جديد:' : 'Consultation:' }} <strong>{{ primaryConsultationFee }} ج.م</strong> |
-            {{ translation.isArabic() ? 'إعادة كشف:' : 'Follow-Up:' }} <strong>{{ primaryFollowUpFee }} ج.م</strong> |
-            {{ translation.isArabic() ? 'عملية / إجراء وسط الكشوفات:' : 'In-Shift Procedure:' }} <strong>{{ primaryProcedureFee }} ج.م</strong>
-          </p>
-        </div>
 
-        <div class="d-flex gap-2 flex-wrap">
-          <button (click)="openBookAppointmentModal(undefined, undefined, 'Consultation')" class="btn btn-sm" style="background: #fff; color: #0f172a; font-weight: 700;">
-            🩺 {{ translation.isArabic() ? '+ حجز كشف جديد' : '+ Book Consultation' }} ({{ primaryConsultationFee }} ج.م)
-          </button>
-          <button (click)="openBookAppointmentModal(undefined, undefined, 'FollowUp')" class="btn btn-sm" style="background: #38bdf8; color: #0f172a; font-weight: 700;">
-            🔄 {{ translation.isArabic() ? '+ حجز إعادة كشف' : '+ Book Follow-Up' }} ({{ primaryFollowUpFee }} ج.م)
-          </button>
-          @if (enableProceduresDuringShifts()) {
-            <button (click)="openBookAppointmentModal(undefined, undefined, 'Procedure')" class="btn btn-sm" style="background: #f59e0b; color: #0f172a; font-weight: 700;">
-              🔪 {{ translation.isArabic() ? '+ عملية / إجراء وسط الكشوفات' : '+ In-Shift Procedure' }}
+          <div class="d-flex gap-2 flex-wrap">
+            <button (click)="openClinicModal()" class="btn btn-sm" style="background: #10b981; color: #fff; font-weight: 700; border: none;">
+              ➕ {{ translation.isArabic() ? 'إضافة عيادة مشتركة جديدة' : '+ Add New Subscribed Clinic' }}
             </button>
-          }
-          <button (click)="isFeatureFlagsModalOpen.set(true)" class="btn btn-outline btn-sm" style="color: #fff; border-color: rgba(255,255,255,0.5);">
-            🚩 {{ translation.isArabic() ? 'إعدادات العيادة الخاصة / العامة' : 'Clinic Mode & Flags' }}
-          </button>
+            <button (click)="setTab('clinics')" class="btn btn-sm" style="background: #fff; color: #1e1b4b; font-weight: 700;">
+              🏥 {{ translation.isArabic() ? 'إدارة العيادات والاشتراكات' : 'Manage All Clinics & Plans' }} ({{ saas.totalClinics }})
+            </button>
+            <button (click)="openDoctorModal()" class="btn btn-sm" style="background: #38bdf8; color: #0f172a; font-weight: 700;">
+              👨‍⚕️ {{ translation.isArabic() ? '+ تسجيل طبيب لعيادة' : '+ Register Doctor' }}
+            </button>
+            <button (click)="openCreateStaffModal()" class="btn btn-sm" style="background: #f59e0b; color: #0f172a; font-weight: 700;">
+              🔑 {{ translation.isArabic() ? '+ إنشاء مدير عيادة / موظف' : '+ Create Clinic Admin' }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    } @else {
+      <!-- Dedicated Private Solo Clinic Banner (for ClinicAdmin / Doctor / Reception) -->
+      <div class="card p-4 mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #0f766e 100%); color: #fff; border: none; border-radius: 14px;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge" style="background: #10b981; color: #fff; font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+                {{ isPrivateClinicMode() ? (translation.isArabic() ? '🏥 عيادة خاصة (أفراد)' : '🏥 Private Solo Practice') : (translation.isArabic() ? '🏢 مركز / عيادة عامة' : '🏢 General Poly-Clinic') }}
+              </span>
+              @if (isSingleDoctorMode()) {
+                <span class="badge" style="background: rgba(255,255,255,0.18); color: #fff; font-size: 0.8rem;">
+                  👨‍⚕️ {{ translation.isArabic() ? 'نسخة مخصصة للطبيب الفرد' : 'Dedicated Single-Doctor Mode' }}
+                </span>
+              }
+              @if (enableProceduresDuringShifts()) {
+                <span class="badge" style="background: #f59e0b; color: #fff; font-size: 0.8rem;">
+                  🔪 {{ translation.isArabic() ? 'العمليات وسط الكشوفات مفعلة' : 'In-Shift Procedures Active' }}
+                </span>
+              }
+            </div>
+            <h3 class="m-0" style="color: #fff;">
+              {{ isSingleDoctorMode() && primaryDoctor()
+                ? (translation.isArabic() ? 'عيادة ' + primaryDoctor()?.fullName + ' الخاصة' : 'Dr. ' + primaryDoctor()?.fullName + ' Private Clinic')
+                : getActiveClinicName() }}
+            </h3>
+            <p class="m-0 mt-1" style="color: rgba(255,255,255,0.85); font-size: 0.92rem;">
+              {{ primaryDoctor()?.specialtyName || (translation.isArabic() ? 'استشاري متخصص' : 'Specialist Consultant') }}
+              &mdash;
+              {{ translation.isArabic() ? 'كشف جديد:' : 'Consultation:' }} <strong>{{ primaryConsultationFee }} ج.م</strong> |
+              {{ translation.isArabic() ? 'إعادة كشف:' : 'Follow-Up:' }} <strong>{{ primaryFollowUpFee }} ج.م</strong> |
+              {{ translation.isArabic() ? 'عملية / إجراء وسط الكشوفات:' : 'In-Shift Procedure:' }} <strong>{{ primaryProcedureFee }} ج.م</strong>
+            </p>
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap">
+            <button (click)="openBookAppointmentModal(undefined, undefined, 'Consultation')" class="btn btn-sm" style="background: #fff; color: #0f172a; font-weight: 700;">
+              🩺 {{ translation.isArabic() ? '+ حجز كشف جديد' : '+ Book Consultation' }} ({{ primaryConsultationFee }} ج.م)
+            </button>
+            <button (click)="openBookAppointmentModal(undefined, undefined, 'FollowUp')" class="btn btn-sm" style="background: #38bdf8; color: #0f172a; font-weight: 700;">
+              🔄 {{ translation.isArabic() ? '+ حجز إعادة كشف' : '+ Book Follow-Up' }} ({{ primaryFollowUpFee }} ج.م)
+            </button>
+            @if (enableProceduresDuringShifts()) {
+              <button (click)="openBookAppointmentModal(undefined, undefined, 'Procedure')" class="btn btn-sm" style="background: #f59e0b; color: #0f172a; font-weight: 700;">
+                🔪 {{ translation.isArabic() ? '+ عملية / إجراء وسط الكشوفات' : '+ In-Shift Procedure' }}
+              </button>
+            }
+            <button (click)="isFeatureFlagsModalOpen.set(true)" class="btn btn-outline btn-sm" style="color: #fff; border-color: rgba(255,255,255,0.5);">
+              🚩 {{ translation.isArabic() ? 'إعدادات العيادة الخاصة / العامة' : 'Clinic Mode & Flags' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
         <h3 class="m-0">{{ translation.isArabic() ? '📊 مؤشرات الأداء والتشغيل الطبي العام' : '📊 Executive Performance & Operational Analytics' }}</h3>
@@ -2068,122 +2123,373 @@
     }
   }
 
-  <!-- TAB 8: CLINICS -->
+  <!-- TAB 8: CLINICS & SUPER ADMIN SAAS SUBSCRIPTION MANAGEMENT -->
   @if (activeTab() === 'clinics') {
-    <div class="tab-header">
+    @let saas = saasClinicMetrics();
+    <div class="tab-header flex-wrap gap-2">
       <div>
         <h3>
-          @if (isPrivateClinicMode()) {
+          @if (auth.isAdmin()) {
+            🛡️ {{ translation.isArabic() ? 'إدارة العيادات المشتركة على النظام والباقات (Super Admin SaaS)' : 'Subscribed Clinics & SaaS License Management (Super Admin)' }}
+          } @else if (isPrivateClinicMode()) {
             🏥 {{ translation.isArabic() ? 'إعدادات العيادة الخاصة وأسعار الكشف والإعادة' : 'Private Clinic Profile & Consultation / Follow-Up Pricing' }}
           } @else {
             🏢 {{ translation.isArabic() ? 'فروع العيادات والمراكز الطبية' : 'Clinic Locations & Facilities' }}
           }
         </h3>
         <p class="text-muted m-0">
-          {{ isPrivateClinicMode()
-            ? (translation.isArabic() ? 'إدارة بيانات العيادة الخاصة، سعر الكشف، سعر الإعادة، والعمليات وسط الكشوفات.' : 'Manage private clinic details, consultation fee, follow-up fee, and in-shift procedure pricing.')
-            : (translation.isArabic() ? 'عرض وتحديث بيانات الفروع وعناوينها وأرقام التواصل وحالة العمل.' : 'View and update branch addresses, working contacts, and operational status.') }}
+          {{ auth.isAdmin()
+            ? (translation.isArabic() ? 'إضافة عيادات مشتركة جديدة، التحكم الكامل في الاشتراكات وتجديدها، تحديد نوع كل عيادة (خاصة للأفراد أو مركز عام)، تعيين مديري العيادات والأطباء، وضبط أسعار الكشف والإعادة.' : 'Add new subscribed clinics, manage subscriptions & renewals, configure Private vs. General clinic flags, assign Clinic Admins & Doctors, and set pricing.')
+            : (translation.isArabic() ? 'إدارة بيانات العيادة، سعر الكشف، سعر الإعادة، والعمليات وسط الكشوفات.' : 'Manage clinic details, consultation fee, follow-up fee, and in-shift procedure pricing.') }}
         </p>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 flex-wrap">
+        @if (auth.isAdmin()) {
+          <div class="d-flex gap-1">
+            <button
+              (click)="clinicViewLayout.set('cards')"
+              class="btn btn-sm"
+              [class.btn-primary]="clinicViewLayout() === 'cards'"
+              [class.btn-outline]="clinicViewLayout() !== 'cards'"
+            >
+              🗂️ {{ translation.isArabic() ? 'عرض البطاقات' : 'Cards' }}
+            </button>
+            <button
+              (click)="clinicViewLayout.set('table')"
+              class="btn btn-sm"
+              [class.btn-primary]="clinicViewLayout() === 'table'"
+              [class.btn-outline]="clinicViewLayout() !== 'table'"
+            >
+              📋 {{ translation.isArabic() ? 'جدول الإدارة الشامل' : 'Master Table' }}
+            </button>
+          </div>
+        }
         <button (click)="isFeatureFlagsModalOpen.set(true)" class="btn btn-outline btn-sm">
           🚩 {{ translation.isArabic() ? 'خصائص النظام (Feature Flags)' : 'Feature Flags' }}
         </button>
-        @if (auth.isAdmin() && enableGeneralClinicFeatures()) {
-          <button (click)="openClinicModal()" class="btn btn-primary btn-sm">+ {{ translation.isArabic() ? 'إضافة فرع عيادة' : 'Add Clinic Branch' }}</button>
+        @if (auth.isAdmin()) {
+          <button (click)="openClinicModal()" class="btn btn-primary btn-sm">
+            ➕ {{ translation.isArabic() ? 'إضافة عيادة مشتركة جديدة' : '+ Add New Subscribed Clinic' }}
+          </button>
         }
       </div>
     </div>
 
-    <div class="grid-3 mt-3">
-      @for (c of clinics(); track c.id) {
-        <div class="card clinic-card" [class.highlighted-branch]="c.id === assignedClinicId()">
-          <div class="d-flex justify-content-between align-items-start">
-            <div class="card-icon">🏥</div>
-            <div class="d-flex gap-1 flex-wrap justify-content-end">
-              @if (isPrivateClinicMode() || c.isPrivateClinic !== false) {
-                <span class="badge" style="background: #0284c7; color: #fff;">
-                  🏥 {{ translation.isArabic() ? 'عيادة خاصة' : 'Private Clinic' }}
-                </span>
-              } @else {
-                <span class="badge badge-info">
-                  🏢 {{ translation.isArabic() ? 'عيادة عامة / مركز' : 'General Clinic' }}
-                </span>
-              }
-              @if (c.id === assignedClinicId()) {
-                <span class="badge badge-confirmed">{{ translation.isArabic() ? 'عيادتك' : 'Assigned' }}</span>
-              } @else {
-                <span class="badge" [class.badge-confirmed]="c.isActive" [class.badge-cancelled]="!c.isActive">
-                  {{ c.isActive ? (translation.isArabic() ? 'نشط' : 'Active') : (translation.isArabic() ? 'مغلق' : 'Inactive') }}
-                </span>
-              }
-            </div>
-          </div>
-
-          <h4>{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</h4>
-          @if (!translation.isArabic() && c.nameAr) {
-            <p class="arabic-text">{{ c.nameAr }}</p>
-          }
-          <div class="clinic-details">
-            <p>📍 {{ translation.isArabic() && c.addressAr ? c.addressAr : c.address }}، {{ translation.isArabic() && c.cityAr ? c.cityAr : c.city }}</p>
-            <p>📞 {{ c.phoneNumber }}</p>
-          </div>
-
-          <!-- Private Clinic Pricing Schedule -->
-          <div class="p-2 rounded border mt-2" style="background: #f0f9ff; border-color: #bae6fd !important;">
-            <div class="d-flex justify-content-between small mb-1">
-              <span>🩺 {{ translation.isArabic() ? 'سعر الكشف الجديد:' : 'Consultation Fee:' }}</span>
-              <strong class="text-primary">{{ c.consultationFee ?? primaryConsultationFee }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
-            </div>
-            @if (enableFollowUpPricing()) {
-              <div class="d-flex justify-content-between small mb-1">
-                <span>🔄 {{ translation.isArabic() ? 'سعر الإعادة:' : 'Follow-Up Fee:' }}</span>
-                <strong class="text-success">{{ c.followUpFee ?? primaryFollowUpFee }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
-              </div>
-            }
-            @if (enableProceduresDuringShifts() || c.enableProceduresDuringShifts) {
-              <div class="d-flex justify-content-between small">
-                <span>🔪 {{ translation.isArabic() ? 'سعر العملية / الإجراء:' : 'Procedure Fee:' }}</span>
-                <strong style="color: #7c3aed;">{{ c.procedureFee ?? primaryProcedureFee }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
-              </div>
-            }
-          </div>
-
-          <div class="subscription-section mt-3 p-2 rounded bg-light border">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="fw-bold fs-7">💎 {{ c.subscriptionPlan || 'Enterprise' }}</span>
-              @if (c.subscriptionEndDateUtc) {
-                @if (c.isSubscriptionActive) {
-                  <span class="badge badge-confirmed fs-8">
-                    {{ translation.isArabic() ? ('نشط: متبقي ' + (c.subscriptionDaysRemaining ?? 0) + ' يوم') : ('Active: ' + (c.subscriptionDaysRemaining ?? 0) + 'd left') }}
-                  </span>
-                } @else {
-                  <span class="badge badge-cancelled fs-8">
-                    {{ translation.isArabic() ? 'الاشتراك منتهي' : 'Expired' }}
-                  </span>
-                }
-              } @else {
-                <span class="badge badge-info fs-8">{{ translation.isArabic() ? 'نشط دائماً' : 'Lifetime' }}</span>
-              }
-            </div>
-            <div class="text-muted fs-8">
-              <span>📅 {{ translation.isArabic() ? 'البداية:' : 'Start:' }} {{ c.subscriptionStartDateUtc ? (c.subscriptionStartDateUtc | date:'yyyy-MM-dd') : '—' }}</span>
-              <span class="mx-1">|</span>
-              <span>{{ translation.isArabic() ? 'النهاية:' : 'End:' }} {{ c.subscriptionEndDateUtc ? (c.subscriptionEndDateUtc | date:'yyyy-MM-dd') : '—' }}</span>
-            </div>
-          </div>
-
-          <div class="card-actions mt-3 d-flex gap-2">
-            <button (click)="openEditClinicModal(c)" class="btn btn-outline btn-sm flex-grow-1">
-              ✏️ {{ translation.isArabic() ? 'تعديل والاشتراك' : 'Edit & Sub' }}
-            </button>
-            <button (click)="openSocialShareModal(c)" class="btn btn-primary btn-sm flex-grow-1">
-              🔗 {{ translation.isArabic() ? 'روابط الحجز و QR' : 'Share & QR' }}
-            </button>
+    <!-- SUPER ADMIN SAAS KPI SUMMARY STRIP -->
+    @if (auth.isAdmin()) {
+      <div class="grid-4 stats-grid mt-3">
+        <div class="card stat-card" style="border-inline-start: 4px solid #4f46e5;">
+          <span class="stat-icon">🏥</span>
+          <div>
+            <span class="stat-label">{{ translation.isArabic() ? 'إجمالي العيادات المشتركة' : 'Total Subscribed Clinics' }}</span>
+            <span class="stat-val">{{ saas.totalClinics }}</span>
           </div>
         </div>
-      }
-    </div>
+        <div class="card stat-card" style="border-inline-start: 4px solid #10b981;">
+          <span class="stat-icon">✅</span>
+          <div>
+            <span class="stat-label">{{ translation.isArabic() ? 'اشتراكات نشطة ومفعلة' : 'Active Subscriptions' }}</span>
+            <span class="stat-val text-success">{{ saas.activeSubscriptions }}</span>
+          </div>
+        </div>
+        <div class="card stat-card" style="border-inline-start: 4px solid #0284c7;">
+          <span class="stat-icon">👨‍⚕️</span>
+          <div>
+            <span class="stat-label">{{ translation.isArabic() ? 'عيادات خاصة (أفراد) / عامة' : 'Private / General Clinics' }}</span>
+            <span class="stat-val" style="font-size: 1.25rem;">{{ saas.privateClinicsCount }} {{ translation.isArabic() ? 'خاصة' : 'Private' }} / {{ saas.generalClinicsCount }} {{ translation.isArabic() ? 'عامة' : 'General' }}</span>
+          </div>
+        </div>
+        <div class="card stat-card" style="border-inline-start: 4px solid #ef4444;">
+          <span class="stat-icon">⚠️</span>
+          <div>
+            <span class="stat-label">{{ translation.isArabic() ? 'منتهية أو موقوفة / قاربت الانتهاء' : 'Expired / Expiring Soon' }}</span>
+            <span class="stat-val text-danger">{{ saas.expiredOrSuspendedCount }} / {{ saas.expiringSoonCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPER ADMIN CLINICS SEARCH & FILTER BAR -->
+      <div class="card p-3 mt-3">
+        <div class="grid-3 gap-2">
+          <div class="form-group mb-0">
+            <label class="form-label small">{{ translation.isArabic() ? 'بحث عن عيادة مشتركة' : 'Search Subscribed Clinic' }}</label>
+            <input
+              type="text"
+              [(ngModel)]="clinicSearchQuery"
+              class="form-control form-control-sm"
+              [placeholder]="translation.isArabic() ? 'ابحث باسم العيادة، المدينة، الهاتف، أو خطة الاشتراك...' : 'Search by name, city, phone, or plan...'"
+            />
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label small">{{ translation.isArabic() ? 'حالة الاشتراك والتشغيل' : 'Subscription & Status' }}</label>
+            <select [(ngModel)]="clinicFilterStatus" class="form-select form-select-sm">
+              <option value="all">{{ translation.isArabic() ? 'جميع العيادات المشتركة' : 'All Clinics' }}</option>
+              <option value="active">{{ translation.isArabic() ? '✅ اشتراكات نشطة ومفعلة' : 'Active Subscriptions' }}</option>
+              <option value="expiring_soon">{{ translation.isArabic() ? '⏳ قاربت على الانتهاء (أقل من 14 يوم)' : 'Expiring Soon (<= 14 days)' }}</option>
+              <option value="expired">{{ translation.isArabic() ? '❌ اشتراكات منتهية' : 'Expired Subscriptions' }}</option>
+              <option value="suspended">{{ translation.isArabic() ? '⏸️ عيادات موقوفة مؤقتاً' : 'Suspended Clinics' }}</option>
+            </select>
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label small">{{ translation.isArabic() ? 'نوع العيادة (خاصة / عامة)' : 'Clinic Operating Mode' }}</label>
+            <select [(ngModel)]="clinicFilterMode" class="form-select form-select-sm">
+              <option value="all">{{ translation.isArabic() ? 'كافة الأنواع (خاصة وعامة)' : 'All Modes' }}</option>
+              <option value="private">{{ translation.isArabic() ? '🏥 عيادات خاصة للأفراد فقط' : 'Private Solo Clinics' }}</option>
+              <option value="general">{{ translation.isArabic() ? '🏢 عيادات عامة ومراكز طبية' : 'General Poly-Clinics' }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- SUPER ADMIN MASTER TABLE VIEW -->
+    @if (auth.isAdmin() && clinicViewLayout() === 'table') {
+      <div class="card table-card mt-3">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ translation.isArabic() ? 'العيادة المشتركة' : 'Subscribed Clinic' }}</th>
+                <th>{{ translation.isArabic() ? 'النوع والخصائص' : 'Mode & Flags' }}</th>
+                <th>{{ translation.isArabic() ? 'الأسعار (كشف/إعادة/عمليات)' : 'Fees (Cons/Follow/Proc)' }}</th>
+                <th>{{ translation.isArabic() ? 'الأطباء والموظفون' : 'Doctors & Staff' }}</th>
+                <th>{{ translation.isArabic() ? 'باقة وصلاحية الاشتراك' : 'Subscription & Validity' }}</th>
+                <th>{{ translation.isArabic() ? 'تجديد سريع للاشتراك' : 'Quick Renew' }}</th>
+                <th>{{ translation.isArabic() ? 'إجراءات التحكم الكامل' : 'Full Control Actions' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of filteredClinics(); track c.id) {
+                <tr>
+                  <td>
+                    <strong>{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</strong>
+                    <div class="small text-muted">📍 {{ translation.isArabic() && c.cityAr ? c.cityAr : c.city }} — {{ c.phoneNumber }}</div>
+                  </td>
+                  <td>
+                    @if (c.isPrivateClinic !== false) {
+                      <span class="badge" style="background: #0284c7; color: #fff;">🏥 {{ translation.isArabic() ? 'عيادة خاصة' : 'Private' }}</span>
+                    } @else {
+                      <span class="badge badge-info">🏢 {{ translation.isArabic() ? 'مركز عام' : 'General' }}</span>
+                    }
+                    @if (c.isSingleDoctorClinic !== false) {
+                      <div class="small text-muted mt-1">👨‍⚕️ {{ translation.isArabic() ? 'طبيب فرد' : 'Single-Doc' }}</div>
+                    }
+                  </td>
+                  <td>
+                    <div class="small">
+                      <span class="text-primary fw-bold">{{ c.consultationFee ?? primaryConsultationFee }}</span> /
+                      <span class="text-success fw-bold">{{ c.followUpFee ?? primaryFollowUpFee }}</span> /
+                      <span style="color:#7c3aed; font-weight:700;">{{ c.procedureFee ?? primaryProcedureFee }}</span>
+                      {{ translation.isArabic() ? 'ج.م' : 'EGP' }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="small">
+                      👨‍⚕️ {{ getClinicDoctorsCount(c.id) }} {{ translation.isArabic() ? 'طبيب' : 'Docs' }} &bull;
+                      👥 {{ getClinicStaffCount(c.id) }} {{ translation.isArabic() ? 'موظف' : 'Staff' }}
+                    </div>
+                    <div class="small text-muted">📅 {{ getClinicAppointmentsCount(c.id) }} {{ translation.isArabic() ? 'موعد' : 'Appts' }}</div>
+                  </td>
+                  <td>
+                    <div>
+                      <span class="fw-bold">{{ c.subscriptionPlan || 'Enterprise' }}</span>
+                      @if (!c.isActive) {
+                        <span class="badge badge-cancelled ms-1">{{ translation.isArabic() ? 'موقوفة' : 'Suspended' }}</span>
+                      } @else if (c.isSubscriptionActive !== false) {
+                        <span class="badge badge-confirmed ms-1">
+                          {{ translation.isArabic() ? ('نشط: ' + (c.subscriptionDaysRemaining ?? 365) + ' يوم') : ((c.subscriptionDaysRemaining ?? 365) + 'd left') }}
+                        </span>
+                      } @else {
+                        <span class="badge badge-cancelled ms-1">{{ translation.isArabic() ? 'منتهي' : 'Expired' }}</span>
+                      }
+                    </div>
+                    <div class="small text-muted">
+                      {{ c.subscriptionStartDateUtc ? (c.subscriptionStartDateUtc | date:'yyyy-MM-dd') : '—' }} &rarr;
+                      {{ c.subscriptionEndDateUtc ? (c.subscriptionEndDateUtc | date:'yyyy-MM-dd') : '—' }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                      <button (click)="renewClinicSubscription(c, 1)" class="btn btn-outline btn-xs" title="+1 Month">+{{ translation.isArabic() ? 'شهر' : '1M' }}</button>
+                      <button (click)="renewClinicSubscription(c, 6)" class="btn btn-outline btn-xs" title="+6 Months">+{{ translation.isArabic() ? '6 أشهر' : '6M' }}</button>
+                      <button (click)="renewClinicSubscription(c, 12)" class="btn btn-outline btn-xs text-success" title="+1 Year">+{{ translation.isArabic() ? 'سنة' : '1Y' }}</button>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                      <button (click)="openEditClinicModal(c)" class="btn btn-primary btn-xs">
+                        ✏️ {{ translation.isArabic() ? 'تعديل شامل' : 'Edit' }}
+                      </button>
+                      <button (click)="openAddDoctorForClinic(c)" class="btn btn-outline btn-xs">
+                        👨‍⚕️ {{ translation.isArabic() ? '+ طبيب' : '+ Doc' }}
+                      </button>
+                      <button (click)="openCreateClinicAdminForClinic(c)" class="btn btn-outline btn-xs">
+                        🔑 {{ translation.isArabic() ? '+ مدير' : '+ Admin' }}
+                      </button>
+                      <button
+                        (click)="toggleClinicActiveStatus(c)"
+                        class="btn btn-xs"
+                        [class.btn-danger]="c.isActive"
+                        [class.btn-success]="!c.isActive"
+                      >
+                        {{ c.isActive ? (translation.isArabic() ? 'إيقاف' : 'Suspend') : (translation.isArabic() ? 'تفعيل' : 'Activate') }}
+                      </button>
+                      <button (click)="inspectClinicScope(c)" class="btn btn-outline btn-xs">
+                        🔍 {{ translation.isArabic() ? 'استعراض' : 'Inspect' }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    } @else {
+      <!-- CARDS VIEW FOR SUBSCRIBED CLINICS -->
+      <div class="grid-3 mt-3">
+        @for (c of filteredClinics(); track c.id) {
+          <div class="card clinic-card" [class.highlighted-branch]="c.id === assignedClinicId()">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="card-icon">🏥</div>
+              <div class="d-flex gap-1 flex-wrap justify-content-end">
+                @if (c.isPrivateClinic !== false) {
+                  <span class="badge" style="background: #0284c7; color: #fff;">
+                    🏥 {{ translation.isArabic() ? 'عيادة خاصة' : 'Private Clinic' }}
+                  </span>
+                } @else {
+                  <span class="badge badge-info">
+                    🏢 {{ translation.isArabic() ? 'عيادة عامة / مركز' : 'General Clinic' }}
+                  </span>
+                }
+                @if (c.isSingleDoctorClinic !== false) {
+                  <span class="badge badge-scheduled">
+                    👨‍⚕️ {{ translation.isArabic() ? 'طبيب فرد' : 'Single-Doc' }}
+                  </span>
+                }
+                @if (c.id === assignedClinicId()) {
+                  <span class="badge badge-confirmed">{{ translation.isArabic() ? 'عيادتك' : 'Assigned' }}</span>
+                } @else {
+                  <span class="badge" [class.badge-confirmed]="c.isActive" [class.badge-cancelled]="!c.isActive">
+                    {{ c.isActive ? (translation.isArabic() ? 'نشط' : 'Active') : (translation.isArabic() ? 'موقوف' : 'Suspended') }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <h4>{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</h4>
+            @if (!translation.isArabic() && c.nameAr) {
+              <p class="arabic-text">{{ c.nameAr }}</p>
+            }
+            <div class="clinic-details">
+              <p>📍 {{ translation.isArabic() && c.addressAr ? c.addressAr : c.address }}، {{ translation.isArabic() && c.cityAr ? c.cityAr : c.city }}</p>
+              <p>📞 {{ c.phoneNumber }}</p>
+            </div>
+
+            <!-- Clinic Operational Counters (Doctors, Staff, Appointments, Clinic Admin) -->
+            <div class="d-flex justify-content-between p-2 rounded bg-light border mb-2 small">
+              <span>👨‍⚕️ <strong>{{ getClinicDoctorsCount(c.id) }}</strong> {{ translation.isArabic() ? 'أطباء' : 'Doctors' }}</span>
+              <span>👥 <strong>{{ getClinicStaffCount(c.id) }}</strong> {{ translation.isArabic() ? 'موظفون' : 'Staff' }}</span>
+              <span>📅 <strong>{{ getClinicAppointmentsCount(c.id) }}</strong> {{ translation.isArabic() ? 'حجوزات' : 'Visits' }}</span>
+            </div>
+
+            <!-- Private Clinic Pricing Schedule -->
+            <div class="p-2 rounded border mt-2" style="background: #f0f9ff; border-color: #bae6fd !important;">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>🩺 {{ translation.isArabic() ? 'سعر الكشف الجديد:' : 'Consultation Fee:' }}</span>
+                <strong class="text-primary">{{ c.consultationFee ?? primaryConsultationFee }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
+              </div>
+              @if (enableFollowUpPricing()) {
+                <div class="d-flex justify-content-between small mb-1">
+                  <span>🔄 {{ translation.isArabic() ? 'سعر الإعادة:' : 'Follow-Up Fee:' }}</span>
+                  <strong class="text-success">{{ c.followUpFee ?? primaryFollowUpFee }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
+                </div>
+              }
+              @if (enableProceduresDuringShifts() || c.enableProceduresDuringShifts) {
+                <div class="d-flex justify-content-between small">
+                  <span>🔪 {{ translation.isArabic() ? 'سعر العملية / الإجراء:' : 'Procedure Fee:' }}</span>
+                  <strong style="color: #7c3aed;">{{ c.procedureFee ?? primaryProcedureFee }} {{ translation.isArabic() ? 'ج.م' : 'EGP' }}</strong>
+                </div>
+              }
+            </div>
+
+            <div class="subscription-section mt-3 p-2 rounded bg-light border">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold fs-7">💎 {{ c.subscriptionPlan || 'Enterprise' }}</span>
+                @if (c.subscriptionEndDateUtc) {
+                  @if (c.isSubscriptionActive) {
+                    <span class="badge badge-confirmed fs-8">
+                      {{ translation.isArabic() ? ('نشط: متبقي ' + (c.subscriptionDaysRemaining ?? 0) + ' يوم') : ('Active: ' + (c.subscriptionDaysRemaining ?? 0) + 'd left') }}
+                    </span>
+                  } @else {
+                    <span class="badge badge-cancelled fs-8">
+                      {{ translation.isArabic() ? 'الاشتراك منتهي' : 'Expired' }}
+                    </span>
+                  }
+                } @else {
+                  <span class="badge badge-info fs-8">{{ translation.isArabic() ? 'نشط دائماً' : 'Lifetime' }}</span>
+                }
+              </div>
+              <div class="text-muted fs-8">
+                <span>📅 {{ translation.isArabic() ? 'البداية:' : 'Start:' }} {{ c.subscriptionStartDateUtc ? (c.subscriptionStartDateUtc | date:'yyyy-MM-dd') : '—' }}</span>
+                <span class="mx-1">|</span>
+                <span>{{ translation.isArabic() ? 'النهاية:' : 'End:' }} {{ c.subscriptionEndDateUtc ? (c.subscriptionEndDateUtc | date:'yyyy-MM-dd') : '—' }}</span>
+              </div>
+
+              @if (auth.isAdmin()) {
+                <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                  <span class="small fw-bold text-muted">🔄 {{ translation.isArabic() ? 'تجديد فوري:' : 'Quick Renew:' }}</span>
+                  <div class="d-flex gap-1">
+                    <button (click)="renewClinicSubscription(c, 1)" class="btn btn-outline btn-xs">+{{ translation.isArabic() ? 'شهر' : '1M' }}</button>
+                    <button (click)="renewClinicSubscription(c, 6)" class="btn btn-outline btn-xs">+{{ translation.isArabic() ? '6 أشهر' : '6M' }}</button>
+                    <button (click)="renewClinicSubscription(c, 12)" class="btn btn-outline btn-xs text-success">+{{ translation.isArabic() ? 'سنة' : '1Y' }}</button>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="card-actions mt-3 d-flex flex-wrap gap-1">
+              <button (click)="openEditClinicModal(c)" class="btn btn-primary btn-sm flex-grow-1">
+                ✏️ {{ translation.isArabic() ? 'تعديل شامل والأسعار' : 'Edit & Pricing' }}
+              </button>
+              <button (click)="openSocialShareModal(c)" class="btn btn-outline btn-sm flex-grow-1">
+                🔗 {{ translation.isArabic() ? 'روابط الحجز و QR' : 'Share & QR' }}
+              </button>
+              @if (auth.isAdmin()) {
+                <button (click)="openAddDoctorForClinic(c)" class="btn btn-outline btn-xs flex-grow-1">
+                  👨‍⚕️ {{ translation.isArabic() ? '+ طبيب للعيادة' : '+ Add Doctor' }}
+                </button>
+                <button (click)="openCreateClinicAdminForClinic(c)" class="btn btn-outline btn-xs flex-grow-1">
+                  🔑 {{ translation.isArabic() ? '+ مدير عيادة' : '+ Clinic Admin' }}
+                </button>
+                <button (click)="inspectClinicScope(c)" class="btn btn-outline btn-xs flex-grow-1">
+                  🔍 {{ translation.isArabic() ? 'استعراض العيادة' : 'Inspect' }}
+                </button>
+                <button
+                  (click)="toggleClinicActiveStatus(c)"
+                  class="btn btn-xs flex-grow-1"
+                  [class.btn-danger]="c.isActive"
+                  [class.btn-success]="!c.isActive"
+                >
+                  {{ c.isActive ? (translation.isArabic() ? '⏸️ إيقاف العيادة' : 'Suspend') : (translation.isArabic() ? '▶️ تفعيل العيادة' : 'Activate') }}
+                </button>
+              }
+            </div>
+          </div>
+        } @empty {
+          <div class="card p-5 text-center" style="grid-column: 1 / -1;">
+            <h4>{{ translation.isArabic() ? 'لا توجد عيادات مطابقة لمعايير البحث' : 'No clinics match the current filter' }}</h4>
+            @if (auth.isAdmin()) {
+              <div class="mt-2">
+                <button (click)="openClinicModal()" class="btn btn-primary btn-sm">
+                  ➕ {{ translation.isArabic() ? 'إضافة عيادة مشتركة جديدة الآن' : '+ Add New Subscribed Clinic' }}
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
 
     @if (isSocialShareModalOpen && socialShareClinic; as sc) {
       <div class="modal-backdrop" (click)="isSocialShareModalOpen = false">
@@ -3451,21 +3757,26 @@
     </div>
   }
 
-  <!-- MODAL: CREATE CLINIC BRANCH -->
+  <!-- MODAL: CREATE CLINIC BRANCH (SUPER ADMIN ADD SUBSCRIBED CLINIC) -->
   @if (isClinicModalOpen) {
     <div class="modal-backdrop">
-      <div class="card modal-card">
-        <h3>{{ translation.isArabic() ? 'إضافة فرع عيادة جديد' : 'Create New Clinic Branch' }}</h3>
-        <p class="text-muted">{{ translation.isArabic() ? 'تسجيل مرفق طبي جديد لاستقبال المرضى والكشوفات.' : 'Register a clinical facility for patient consultations.' }}</p>
+      <div class="card modal-card" style="max-width: 720px; max-height: 92vh; overflow-y: auto;">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+          <div>
+            <h3 class="m-0">🏥 {{ translation.isArabic() ? 'إضافة عيادة مشتركة جديدة للنظام (Super Admin)' : 'Add New Subscribed Clinic to Platform' }}</h3>
+            <p class="text-muted m-0 small">{{ translation.isArabic() ? 'تسجيل عيادة جديدة وتحديد نوعها (خاصة للأفراد أو مركز عام)، تسعير الكشف والإعادة، وباقة الاشتراك.' : 'Register a new clinic, set operating mode (Private Solo vs. General), pricing, and subscription plan.' }}</p>
+          </div>
+          <button (click)="closeClinicModal()" class="btn btn-outline btn-xs">✕</button>
+        </div>
 
         <div class="grid-2 mt-3">
           <div class="form-group">
-            <label class="form-label">{{ translation.isArabic() ? 'اسم الفرع (بالإنجليزية) *' : 'Clinic Name (English) *' }}</label>
-            <input type="text" [(ngModel)]="clinicNameEn" class="form-control" placeholder="e.g. Apex West Clinic" />
+            <label class="form-label">{{ translation.isArabic() ? 'اسم العيادة (بالإنجليزية) *' : 'Clinic Name (English) *' }}</label>
+            <input type="text" [(ngModel)]="clinicNameEn" class="form-control" placeholder="e.g. Dr. Ahmed Private OB/GYN Clinic" />
           </div>
           <div class="form-group">
-            <label class="form-label">{{ translation.isArabic() ? 'اسم الفرع (بالعربية)' : 'Clinic Name (Arabic)' }}</label>
-            <input type="text" [(ngModel)]="clinicNameAr" class="form-control" placeholder="مثال: عيادة أبيكس الغربية" />
+            <label class="form-label">{{ translation.isArabic() ? 'اسم العيادة (بالعربية)' : 'Clinic Name (Arabic)' }}</label>
+            <input type="text" [(ngModel)]="clinicNameAr" class="form-control" placeholder="مثال: عيادة د. أحمد الخاصة للنساء والتوليد" />
           </div>
         </div>
 
@@ -3483,49 +3794,82 @@
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label">{{ translation.isArabic() ? 'العنوان والشارع (بالإنجليزية) *' : 'Street Address (English) *' }}</label>
-            <input type="text" [(ngModel)]="clinicAddressEn" class="form-control" />
+            <input type="text" [(ngModel)]="clinicAddressEn" class="form-control" placeholder="e.g. 15 Tahrir St, Dokki" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ translation.isArabic() ? 'العنوان والشارع (بالعربية)' : 'Street Address (Arabic)' }}</label>
-            <input type="text" [(ngModel)]="clinicAddressAr" class="form-control" />
+            <input type="text" [(ngModel)]="clinicAddressAr" class="form-control" placeholder="مثال: 15 شارع التحرير، الدقي" />
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">{{ translation.isArabic() ? 'رقم الهاتف *' : 'Phone Number *' }}</label>
+          <label class="form-label">{{ translation.isArabic() ? 'رقم هاتف العيادة / الحجز *' : 'Phone Number *' }}</label>
           <input type="tel" [(ngModel)]="clinicPhone" class="form-control" />
         </div>
 
-        <div class="card p-3 my-3 bg-light border">
-          <h5 class="mb-2">💎 {{ translation.isArabic() ? 'بيانات الاشتراك المبدئي' : 'Initial Subscription' }}</h5>
+        <!-- Operating Mode & Pricing Configuration for the New Clinic -->
+        <div class="card p-3 my-2 border" style="background: #f0f9ff; border-color: #bae6fd !important;">
+          <h5 class="mb-2" style="color: #0369a1;">🏥 {{ translation.isArabic() ? 'نوع العيادة وأسعار الكشف والإعادة والعمليات' : 'Clinic Mode & Consultation / Follow-Up Pricing' }}</h5>
+          <div class="grid-3 mb-2">
+            <div class="form-group mb-0">
+              <label class="form-label small fw-bold">{{ translation.isArabic() ? 'سعر الكشف الجديد (ج.م)' : 'Consultation Fee (EGP)' }}</label>
+              <input type="number" [(ngModel)]="clinicConsultationFee" class="form-control form-control-sm" min="0" step="25" />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label small fw-bold">{{ translation.isArabic() ? 'سعر الإعادة (ج.م)' : 'Follow-Up Fee (EGP)' }}</label>
+              <input type="number" [(ngModel)]="clinicFollowUpFee" class="form-control form-control-sm" min="0" step="25" />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label small fw-bold">{{ translation.isArabic() ? 'سعر العملية / الإجراء (ج.م)' : 'Procedure Fee (EGP)' }}</label>
+              <input type="number" [(ngModel)]="clinicProcedureFee" class="form-control form-control-sm" min="0" step="50" />
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-3 mt-2 small">
+            <label class="d-flex align-items-center gap-1" style="cursor: pointer;">
+              <input type="checkbox" [(ngModel)]="clinicIsPrivate" />
+              <strong>{{ translation.isArabic() ? '🏥 عيادة خاصة (تظهر كعيادة خاصة فقط)' : 'Private Clinic Only' }}</strong>
+            </label>
+            <label class="d-flex align-items-center gap-1" style="cursor: pointer;">
+              <input type="checkbox" [(ngModel)]="clinicIsSingleDoctor" />
+              <span>{{ translation.isArabic() ? '👨‍⚕️ عيادة طبيب واحد (مخصصة للطبيب الفرد)' : 'Single-Doctor Solo Practice' }}</span>
+            </label>
+            <label class="d-flex align-items-center gap-1" style="cursor: pointer;">
+              <input type="checkbox" [(ngModel)]="clinicEnableProcedures" />
+              <span>{{ translation.isArabic() ? '🔪 تفعيل العمليات وسط الكشوفات' : 'Enable In-Shift Procedures' }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card p-3 my-2 bg-light border">
+          <h5 class="mb-2">💎 {{ translation.isArabic() ? 'باقة وصلاحية اشتراك العيادة' : 'Subscription Plan & License Validity' }}</h5>
           <div class="grid-3">
-            <div class="form-group">
-              <label class="form-label">{{ translation.isArabic() ? 'خطة الاشتراك' : 'Subscription Plan' }}</label>
-              <select [(ngModel)]="clinicSubPlan" class="form-select">
-                <option value="Standard">Standard (الأساسية)</option>
+            <div class="form-group mb-0">
+              <label class="form-label small">{{ translation.isArabic() ? 'خطة الاشتراك' : 'Subscription Plan' }}</label>
+              <select [(ngModel)]="clinicSubPlan" class="form-select form-select-sm">
+                <option value="Standard">Standard (الأساسية - عيادة فردية)</option>
                 <option value="Professional">Professional (الاحترافية)</option>
                 <option value="Enterprise">Enterprise (المؤسسية الشاملة)</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">{{ translation.isArabic() ? 'تاريخ بداية الاشتراك' : 'Start Date' }}</label>
-              <input type="date" [(ngModel)]="clinicSubStartDate" class="form-control" />
+            <div class="form-group mb-0">
+              <label class="form-label small">{{ translation.isArabic() ? 'تاريخ بداية الاشتراك' : 'Start Date' }}</label>
+              <input type="date" [(ngModel)]="clinicSubStartDate" class="form-control form-control-sm" />
             </div>
-            <div class="form-group">
-              <label class="form-label">{{ translation.isArabic() ? 'تاريخ نهاية الاشتراك' : 'End Date' }}</label>
-              <input type="date" [(ngModel)]="clinicSubEndDate" class="form-control" />
+            <div class="form-group mb-0">
+              <label class="form-label small">{{ translation.isArabic() ? 'تاريخ نهاية الاشتراك' : 'End Date' }}</label>
+              <input type="date" [(ngModel)]="clinicSubEndDate" class="form-control form-control-sm" />
             </div>
           </div>
         </div>
 
-        <div class="modal-actions">
+        <div class="modal-actions mt-3">
           <button (click)="closeClinicModal()" class="btn btn-outline">{{ translation.isArabic() ? 'إلغاء' : 'Cancel' }}</button>
           <button
             (click)="submitClinic()"
             [disabled]="!clinicNameEn || !clinicCityEn || !clinicAddressEn"
             class="btn btn-primary"
           >
-            {{ translation.isArabic() ? 'إنشاء الفرع' : 'Create Branch' }}
+            ➕ {{ translation.isArabic() ? 'إضافة وتفعيل العيادة المشتركة' : 'Create & Activate Subscribed Clinic' }}
           </button>
         </div>
       </div>
