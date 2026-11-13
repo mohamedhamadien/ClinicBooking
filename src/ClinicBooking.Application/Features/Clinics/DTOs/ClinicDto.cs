@@ -18,4 +18,11 @@ public sealed record ClinicDto(
     DateTime? SubscriptionEndDateUtc = null,
     string? SubscriptionPlan = null,
     bool? IsSubscriptionActive = null,
-    int? SubscriptionDaysRemaining = null);
+    int? SubscriptionDaysRemaining = null,
+    bool IsPrivateClinic = true,
+    bool IsSingleDoctorClinic = true,
+    bool EnableProceduresDuringShifts = true,
+    bool EnableGeneralClinicFeatures = false,
+    decimal ConsultationFee = 350m,
+    decimal FollowUpFee = 100m,
+    decimal ProcedureFee = 1200m);

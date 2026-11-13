@@ -40,6 +40,9 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHa
     }
     public AppointmentStatus Status { get; private set; }
     public AppointmentSource Source { get; private set; } = AppointmentSource.Website;
+    public AppointmentVisitType VisitType { get; private set; } = AppointmentVisitType.Consultation;
+    public string? ProcedureName { get; private set; }
+    public decimal? AgreedFee { get; private set; }
     public Guid? CreatedByStaffId { get; private set; }
     public string? UtmSource { get; private set; }
     public string? UtmMedium { get; private set; }
@@ -281,9 +284,15 @@ public sealed class Appointment : AggregateRoot<Guid>, IAuditableEntity, IMustHa
         string? utmSource = null,
         string? utmMedium = null,
         string? utmCampaign = null,
-        string? externalReference = null)
+        string? externalReference = null,
+        AppointmentVisitType visitType = AppointmentVisitType.Consultation,
+        string? procedureName = null,
+        decimal? agreedFee = null)
     {
         Source = Enum.IsDefined(source) ? source : AppointmentSource.Website;
+        VisitType = Enum.IsDefined(visitType) ? visitType : AppointmentVisitType.Consultation;
+        ProcedureName = string.IsNullOrWhiteSpace(procedureName) ? null : procedureName.Trim();
+        AgreedFee = agreedFee is >= 0 ? agreedFee : null;
         CreatedByStaffId = createdByStaffId == Guid.Empty ? null : createdByStaffId;
         UtmSource = string.IsNullOrWhiteSpace(utmSource) ? null : utmSource.Trim();
         UtmMedium = string.IsNullOrWhiteSpace(utmMedium) ? null : utmMedium.Trim();

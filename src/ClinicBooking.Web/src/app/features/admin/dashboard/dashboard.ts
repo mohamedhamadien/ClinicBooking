@@ -219,9 +219,308 @@ export class DashboardComponent implements OnInit {
   protected bookSelectedSlot: AvailableSlotDto | null = null;
   protected bookNotes = '';
   protected bookImmediateCheckIn = false;
+  protected bookVisitType: 'Consultation' | 'FollowUp' | 'Procedure' = 'Consultation';
+  protected bookProcedureName = 'سونار رباعي الأبعاد 4D / متابعة حمل متقدمة';
+  protected bookProcedureDurationMinutes = 45;
+  protected bookAgreedFee = 350;
   protected readonly bookSlots = signal<AvailableSlotDto[]>([]);
   protected readonly isLoadingBookSlots = signal(false);
   protected readonly bookSlotsError = signal<string | null>(null);
+
+  // Enhanced Patient File / Dossier Extended Fields
+  protected historySurgicalHistory = '';
+  protected historyOngoingMedications = '';
+  protected historySpecialtyNotes = '';
+
+  // Specialty Pre-defined Diseases, Medications & In-Shift Procedures Catalog
+  protected selectedSpecialtyCatalogKey = 'obgyn';
+  protected customDiseaseName = '';
+  protected customDiseaseDiagnosis = '';
+  protected customMedName = '';
+  protected customMedDosage = 'قرص واحد';
+  protected customMedFrequency = 'مرتين يومياً بعد الأكل';
+  protected customMedDuration = '7 أيام';
+
+  protected readonly specialtyCatalog: Record<
+    string,
+    {
+      key: string;
+      labelAr: string;
+      labelEn: string;
+      icon: string;
+      diseases: {
+        nameAr: string;
+        nameEn: string;
+        complaintAr: string;
+        examAr: string;
+        diagnosisAr: string;
+        planAr: string;
+        labsAr: string;
+        meds: { medicationName: string; dosage: string; frequency: string; duration: string; instructions: string }[];
+      }[];
+      medications: {
+        medicationName: string;
+        labelAr: string;
+        dosage: string;
+        frequency: string;
+        duration: string;
+        instructions: string;
+      }[];
+      procedures: {
+        nameAr: string;
+        nameEn: string;
+        durationMinutes: number;
+        fee: number;
+      }[];
+    }
+  > = {
+    obgyn: {
+      key: 'obgyn',
+      labelAr: 'النساء والتوليد والحقن المجهري (OB/GYN)',
+      labelEn: 'Obstetrics & Gynecology (OB/GYN)',
+      icon: '🤰',
+      diseases: [
+        {
+          nameAr: 'متابعة حمل روتينية (الثلث الثاني / الثالث)',
+          nameEn: 'Routine Antenatal Care (ANC)',
+          complaintAr: 'متابعة حمل دورية والاطمئنان على نبض ونمو الجنين.',
+          examAr: 'الضغط والوزن طبيعيان، سونار البطن يوضح نبض الجنين منتظم والسائل الأمنيوسي طبيعي.',
+          diagnosisAr: 'حمل مستقر في الأسبوع العشرين - متابعة حمل روتينية (Normal Pregnancy ANC)',
+          planAr: 'الاستمرار على الفيتامينات والحديد والكالسيوم، متابعة حركة الجنين، وإعادة الكشف بعد أسبوعين.',
+          labsAr: 'CBC, Urine Analysis, Random Blood Sugar',
+          meds: [
+            { medicationName: 'Feroglobin B12 Capsules', dosage: '1 Capsule', frequency: 'Once daily after lunch', duration: '30 days', instructions: 'كبسولة حديد يومياً بعد الغداء' },
+            { medicationName: 'Osteocare Calcium & Vit D', dosage: '1 Tablet', frequency: 'Once daily after dinner', duration: '30 days', instructions: 'قرص كالسيوم يومياً مساءً بعيداً عن الحديد' },
+            { medicationName: 'Folic Acid 500mcg', dosage: '1 Tablet', frequency: 'Once daily in the morning', duration: '30 days', instructions: 'قرص يومياً صباحاً' }
+          ]
+        },
+        {
+          nameAr: 'متلازمة تكيس المبايض واضطراب الدورة (PCOS)',
+          nameEn: 'Polycystic Ovary Syndrome (PCOS)',
+          complaintAr: 'عدم انتظام الدورة الشهرية وتأخر الحمل.',
+          examAr: 'سونار الحوض يظهر تكيسات متعددة صغيرة بالمبيضين (PCO morphology).',
+          diagnosisAr: 'متلازمة تكيس المبايض (Polycystic Ovary Syndrome - PCOS)',
+          planAr: 'تنظيم الوزن والغذاء، تناول منظم السكر والمكملات، ومتابعة التبويض بالسونار.',
+          labsAr: 'FSH, LH, Prolactin, TSH, AMH, Fasting Insulin',
+          meds: [
+            { medicationName: 'Cidophage 850mg Retard', dosage: '1 Tablet', frequency: 'Twice daily with meals', duration: '60 days', instructions: 'قرص وسط الأكل مرتين يومياً' },
+            { medicationName: 'Duphaston 10mg Tablets', dosage: '1 Tablet', frequency: 'Twice daily from day 16 to 25', duration: '10 days', instructions: 'قرص مرتين يومياً لمدة 10 أيام' }
+          ]
+        },
+        {
+          nameAr: 'التهابات نسائية حادة (Vulvovaginal Candidiasis)',
+          nameEn: 'Acute Vulvovaginitis',
+          complaintAr: 'إفرازات وحكة شديدة.',
+          examAr: 'فحص موضعي يوضح التهابات فطرية مع احتقان موضعي.',
+          diagnosisAr: 'التهابات فطرية نسائية حادة (Acute Vulvovaginal Candidiasis)',
+          planAr: 'علاج مضاد للفطريات موضعي وفموي مع غسول طبي ومراجعة بعد أسبوع.',
+          labsAr: 'High Vaginal Swab (HVS) if recurrent',
+          meds: [
+            { medicationName: 'Diflucan 150mg Capsule', dosage: '1 Capsule', frequency: 'Single oral dose', duration: '1 day', instructions: 'كبسولة واحدة جرعة وحيدة' },
+            { medicationName: 'Gyno-Pevaryl 150mg Ovules', dosage: '1 Ovule', frequency: 'Once nightly at bedtime', duration: '3 days', instructions: 'لبوس مهبلي مساءً لمدة 3 أيام' }
+          ]
+        }
+      ],
+      medications: [
+        { medicationName: 'Duphaston 10mg Tab', labelAr: 'دوفاستون 10 مجم (مثبت حمل)', dosage: '1 Tablet', frequency: 'Twice daily', duration: '14 days', instructions: 'قرص كل 12 ساعة' },
+        { medicationName: 'Prontogest 400mg Supp', labelAr: 'برونتوجيست 400 مجم لبوس مثبت', dosage: '1 Suppository', frequency: 'Once daily at night', duration: '14 days', instructions: 'لبوس مساءً يومياً' },
+        { medicationName: 'Feroglobin Capsules', labelAr: 'فيروجلوبين كبسولات حديد', dosage: '1 Capsule', frequency: 'Once daily after lunch', duration: '30 days', instructions: 'بعد الغداء يومياً' },
+        { medicationName: 'Osteocare Tablets', labelAr: 'أوستيوكير كالسيوم وفيتامين د', dosage: '1 Tablet', frequency: 'Once daily after dinner', duration: '30 days', instructions: 'بعد العشاء يومياً' },
+        { medicationName: 'Navidoxine Tablets', labelAr: 'نافيدوكسين للغثيان والقيء', dosage: '1 Tablet', frequency: 'Once at bedtime', duration: '10 days', instructions: 'قرص قبل النوم عند اللزوم' },
+        { medicationName: 'Augmentin 1g Tablets', labelAr: 'أوجمنتين 1 جرام مضاد حيوي', dosage: '1 Tablet', frequency: 'Every 12 hours', duration: '7 days', instructions: 'قرص كل 12 ساعة بعد الأكل' }
+      ],
+      procedures: [
+        { nameAr: 'سونار رباعي الأبعاد (4D Anomaly Scan)', nameEn: '4D Obstetric Ultrasound Scan', durationMinutes: 30, fee: 750 },
+        { nameAr: 'تركيب / إزالة لولب رحمي (IUD Insertion/Removal)', nameEn: 'IUD Insertion / Removal Procedure', durationMinutes: 30, fee: 900 },
+        { nameAr: 'كي عنق الرحم (Cervical Cauterization)', nameEn: 'Cervical Cryotherapy / Cauterization', durationMinutes: 45, fee: 1400 },
+        { nameAr: 'منظار عنق الرحم وأخذ عينة (Colposcopy & Biopsy)', nameEn: 'Diagnostic Colposcopy & Biopsy', durationMinutes: 45, fee: 1800 },
+        { nameAr: 'عملية ولادة / قيصرية وسط الجدول (Delivery / C-Section Block)', nameEn: 'In-Shift Delivery / Surgical Block', durationMinutes: 90, fee: 6500 }
+      ]
+    },
+    internal: {
+      key: 'internal',
+      labelAr: 'الباطنة والجهاز الهضمي والقلب (Internal Medicine)',
+      labelEn: 'Internal Medicine & Gastroenterology',
+      icon: '🩺',
+      diseases: [
+        {
+          nameAr: 'التهاب المعدة الحاد وارتجاع المريء (GERD & Gastritis)',
+          nameEn: 'Acute Gastritis & GERD',
+          complaintAr: 'حموضة شديدة وألم بفم المعدة بعد الأكل.',
+          examAr: 'إيلام بسيط بمنطقة الشرسوف (Epigastric tenderness)، علامات حيوية مستقرة.',
+          diagnosisAr: 'التهاب المعدة الحاد وارتجاع المريء (Acute Gastritis & GERD)',
+          planAr: 'تجنب المسبكات والكافيين، تناول مثبطات الحموضة قبل الأكل، وإجراء تحليل جرثومة المعدة.',
+          labsAr: 'H. Pylori Stool Antigen, CBC',
+          meds: [
+            { medicationName: 'Nexium 40mg Tablets', dosage: '1 Tablet', frequency: 'Once daily 30m before breakfast', duration: '14 days', instructions: 'قرص قبل الإفطار بنصف ساعة' },
+            { medicationName: 'Ganaton 50mg Tablets', dosage: '1 Tablet', frequency: 'Three times daily before meals', duration: '14 days', instructions: 'قرص قبل الأكل 3 مرات يومياً' },
+            { medicationName: 'Gaviscon Advance Susp', dosage: '10 ml', frequency: 'After meals and at bedtime', duration: '7 days', instructions: 'ملعقة كبيرة بعد الأكل وعند النوم' }
+          ]
+        },
+        {
+          nameAr: 'ارتفاع ضغط الدم الأساسي (Essential Hypertension)',
+          nameEn: 'Essential Hypertension',
+          complaintAr: 'صداع بالرأس مع قراءات ضغط مرتفعة.',
+          examAr: 'قياس ضغط الدم 155/95، نبض 78 منتظم، فحص القلب والصدر سليم.',
+          diagnosisAr: 'ارتفاع ضغط الدم الأساسي (Stage 2 Hypertension)',
+          planAr: 'تقليل الملح، متابعة خريطة الضغط يومياً، والالتزام بالعلاج الدوائي.',
+          labsAr: 'Lipid Profile, Serum Creatinine, ECG, Echo',
+          meds: [
+            { medicationName: 'Exforge 5/160mg Tablets', dosage: '1 Tablet', frequency: 'Once daily in the morning', duration: '30 days', instructions: 'قرص واحد صباحاً يومياً' },
+            { medicationName: 'Concor 5mg Tablets', dosage: '1 Tablet', frequency: 'Once daily in the morning', duration: '30 days', instructions: 'قرص صباحاً لتنظيم النبض والضغط' }
+          ]
+        }
+      ],
+      medications: [
+        { medicationName: 'Nexium 40mg Tab', labelAr: 'نيكسيوم 40 مجم للمعدة', dosage: '1 Tablet', frequency: 'Before breakfast', duration: '14 days', instructions: 'قبل الإفطار بنصف ساعة' },
+        { medicationName: 'Concor 5mg Tab', labelAr: 'كونكور 5 مجم للضغط والنبض', dosage: '1 Tablet', frequency: 'Once daily morning', duration: '30 days', instructions: 'صباحاً يومياً' },
+        { medicationName: 'Janumet 50/1000mg Tab', labelAr: 'جانوميت 50/1000 للسكري', dosage: '1 Tablet', frequency: 'Twice daily with meals', duration: '30 days', instructions: 'مع الإفطار والعشاء' },
+        { medicationName: 'Ator 20mg Tab', labelAr: 'أتور 20 مجم للكوليسترول', dosage: '1 Tablet', frequency: 'Once daily at night', duration: '30 days', instructions: 'قرص مساءً يومياً' }
+      ],
+      procedures: [
+        { nameAr: 'رسم قلب بالمجهود وإيكو (ECG & Echocardiogram)', nameEn: 'ECG & Cardiac Echo', durationMinutes: 30, fee: 650 },
+        { nameAr: 'موجات صوتية على البطن والحوض (Abdominal Ultrasound)', nameEn: 'Abdominal Ultrasound', durationMinutes: 30, fee: 500 },
+        { nameAr: 'منظار معدة تشخيصي (Upper GI Endoscopy)', nameEn: 'Diagnostic Upper Endoscopy', durationMinutes: 60, fee: 2200 }
+      ]
+    },
+    pediatrics: {
+      key: 'pediatrics',
+      labelAr: 'الأطفال وحديثي الولادة (Pediatrics)',
+      labelEn: 'Pediatrics & Neonatology',
+      icon: '👶',
+      diseases: [
+        {
+          nameAr: 'التهاب اللوزتين والحلق الحاد (Acute Tonsillopharyngitis)',
+          nameEn: 'Acute Tonsillopharyngitis',
+          complaintAr: 'ارتفاع بدرجة الحرارة وصعوبة في البلع.',
+          examAr: 'احتقان شديد وصديد على اللوزتين، الحرارة 38.8 درجة.',
+          diagnosisAr: 'التهاب اللوزتين البكتيري الحاد (Acute Bacterial Tonsillitis)',
+          planAr: 'مضاد حيوي مناسب للوزن وخافض حرارة مع سوائل دافئة.',
+          labsAr: 'CBC, CRP',
+          meds: [
+            { medicationName: 'Augmentin ES 600mg Susp', dosage: '5 ml', frequency: 'Every 12 hours', duration: '7 days', instructions: '5 سم كل 12 ساعة بعد الأكل' },
+            { medicationName: 'Cetal Syrup 250mg', dosage: '5 ml', frequency: 'Every 6 hours when feverish', duration: '5 days', instructions: 'عند ارتفاع الحرارة كل 6 ساعات' }
+          ]
+        },
+        {
+          nameAr: 'النزلة المعوية الحادة (Acute Gastroenteritis)',
+          nameEn: 'Acute Gastroenteritis',
+          complaintAr: 'قيء وإسهال متكرر.',
+          examAr: 'لا توجد علامات جفاف شديد، البطن لينة.',
+          diagnosisAr: 'نزلة معوية حادة (Acute Viral Gastroenteritis)',
+          planAr: 'محلول معالجة الجفاف عن طريق الفم، مطهر معوي، ونظام غذائي خفيف.',
+          labsAr: 'Stool Analysis',
+          meds: [
+            { medicationName: 'Hidrasec 10mg Sachets', dosage: '1 Sachet', frequency: 'Three times daily', duration: '5 days', instructions: 'كيس على ربع كوب ماء 3 مرات يومياً' },
+            { medicationName: 'Zofran 4mg Syrup', dosage: '2.5 ml', frequency: 'Twice daily before feeding', duration: '3 days', instructions: 'نصف ملعقة صغيرة قبل الرضاعة/الأكل' }
+          ]
+        }
+      ],
+      medications: [
+        { medicationName: 'Cetal Suspension', labelAr: 'سيتال شراب خافض حرارة', dosage: '5 ml', frequency: 'Every 6 hours PRN', duration: '5 days', instructions: 'عند الحرارة' },
+        { medicationName: 'Augmentin ES 600 Susp', labelAr: 'أوجمنتين إي إس شراب مضاد حيوي', dosage: '5 ml', frequency: 'Every 12 hours', duration: '7 days', instructions: 'ترج الزجاجة جيداً' },
+        { medicationName: 'Vidrop Oral Drops', labelAr: 'فيدروب نقط فيتامين د', dosage: '4 Drops', frequency: 'Once daily', duration: '60 days', instructions: '4 نقط بالفم يومياً' },
+        { medicationName: 'Zyrtec Oral Drops', labelAr: 'زيرتك نقط للحساسية', dosage: '5 Drops', frequency: 'Once daily at night', duration: '7 days', instructions: 'مساءً يومياً' }
+      ],
+      procedures: [
+        { nameAr: 'جلسة نيبولايزر وتوسيع شعب (Nebulizer Session)', nameEn: 'Pediatric Nebulizer Session', durationMinutes: 30, fee: 180 },
+        { nameAr: 'فحص ومتابعة حديثي الولادة والصفراء (Neonatal Check & Bilirubin)', nameEn: 'Neonatal Jaundice & Growth Check', durationMinutes: 30, fee: 400 }
+      ]
+    },
+    orthopedics: {
+      key: 'orthopedics',
+      labelAr: 'العظام والمفاصل والعمود الفقري (Orthopedics)',
+      labelEn: 'Orthopedics & Spine',
+      icon: '🦴',
+      diseases: [
+        {
+          nameAr: 'خشونة مفصل الركبة (Knee Osteoarthritis)',
+          nameEn: 'Knee Osteoarthritis',
+          complaintAr: 'ألم بمفصل الركبة يزداد مع صعود السلم والمشي.',
+          examAr: 'طقطقة بسيطة بالمفصل مع إيلام موضعي، مدى الحركة مقبول.',
+          diagnosisAr: 'خشونة مفصل الركبة من الدرجة الثانية (Grade II Knee Osteoarthritis)',
+          planAr: 'مضادات التهاب، تقوية عضلات الفخذ الأمامية، وتقليل الوزن.',
+          labsAr: 'Knee X-Ray Standing AP & Lateral, Uric Acid, Vit D',
+          meds: [
+            { medicationName: 'Celebrex 200mg Capsules', dosage: '1 Capsule', frequency: 'Once daily after lunch', duration: '10 days', instructions: 'كبسولة بعد الغداء' },
+            { medicationName: 'Dorofen Capsules', dosage: '1 Capsule', frequency: 'Twice daily after meals', duration: '30 days', instructions: 'كبسولة مرتين يومياً للمفاصل' },
+            { medicationName: 'Myolgin Capsules', dosage: '1 Capsule', frequency: 'Every 12 hours', duration: '7 days', instructions: 'باسط للعضلات مساءً' }
+          ]
+        }
+      ],
+      medications: [
+        { medicationName: 'Cataflam 50mg Tab', labelAr: 'كتافلام 50 مجم مسكن ومضاد التهاب', dosage: '1 Tablet', frequency: 'Twice daily after meals', duration: '5 days', instructions: 'بعد الأكل' },
+        { medicationName: 'Mydocalm 150mg Tab', labelAr: 'ميدوكالم 150 مجم باسط عضلات', dosage: '1 Tablet', frequency: 'Twice daily', duration: '7 days', instructions: 'قرص كل 12 ساعة' },
+        { medicationName: 'Neurobion Ampoules', labelAr: 'نيوروبيون حقن فيتامين ب المركب', dosage: '1 Ampoule IM', frequency: 'Every 3 days', duration: '15 days', instructions: 'حقنة عضل كل 3 أيام' }
+      ],
+      procedures: [
+        { nameAr: 'حقن موضعي بمفصل الركبة (Intra-articular Knee Injection)', nameEn: 'Intra-articular Hyaluronic Knee Injection', durationMinutes: 30, fee: 1500 },
+        { nameAr: 'تركيب أو فك جبس طبي (Cast Application / Removal)', nameEn: 'Orthopedic Cast Application', durationMinutes: 45, fee: 950 }
+      ]
+    },
+    dermatology: {
+      key: 'dermatology',
+      labelAr: 'الجلدية والتجميل والليزر (Dermatology & Laser)',
+      labelEn: 'Dermatology & Aesthetics',
+      icon: '✨',
+      diseases: [
+        {
+          nameAr: 'حب الشباب الالتهابي (Acne Vulgaris)',
+          nameEn: 'Inflammatory Acne Vulgaris',
+          complaintAr: 'حبوب ملتهبة بالوجه والظهر.',
+          examAr: 'رؤوس سوداء وحطاطات التهابية بالوجه.',
+          diagnosisAr: 'حب الشباب المتوسط (Moderate Acne Vulgaris)',
+          planAr: 'غسول طبي للبشرة الدهنية، دهان موضعي ليلي، ومضاد التهاب.',
+          labsAr: 'Lipid profile & Liver enzymes if Isotretinoin planned',
+          meds: [
+            { medicationName: 'Vibramycin 100mg Caps', dosage: '1 Capsule', frequency: 'Once daily after lunch with water', duration: '14 days', instructions: 'مع كوب ماء كبير بعد الغداء' },
+            { medicationName: 'Adapalene 0.1% Gel', dosage: 'Thin layer', frequency: 'Once nightly on affected areas', duration: '30 days', instructions: 'طبقة رقيقة ليلاً بعيداً عن الضوء' }
+          ]
+        }
+      ],
+      medications: [
+        { medicationName: 'Fucicort Cream', labelAr: 'فيوسيكورت كريم مضاد للالتهاب', dosage: 'Topical', frequency: 'Twice daily', duration: '7 days', instructions: 'دهان موضعي مرتين يومياً' },
+        { medicationName: 'Telfast 180mg Tab', labelAr: 'تلفاست 180 مجم مضاد هيستامين', dosage: '1 Tablet', frequency: 'Once daily at night', duration: '10 days', instructions: 'قرص مساءً' }
+      ],
+      procedures: [
+        { nameAr: 'جلسة ليزر / تقشير بارد أو كيميائي (Laser / Chemical Peel)', nameEn: 'Laser / Chemical Peel Session', durationMinutes: 45, fee: 1200 },
+        { nameAr: 'جلسة بلازما أو ميزوثيرابي (PRP / Mesotherapy)', nameEn: 'PRP / Mesotherapy Session', durationMinutes: 45, fee: 1400 },
+        { nameAr: 'كي الزوائد الجلدية بالتبريد (Cryotherapy / Electrocautery)', nameEn: 'Skin Tag Cryotherapy', durationMinutes: 30, fee: 800 }
+      ]
+    },
+    dentistry: {
+      key: 'dentistry',
+      labelAr: 'طب وجراحة الفم والأسنان (Dentistry)',
+      labelEn: 'Dentistry & Oral Surgery',
+      icon: '🦷',
+      diseases: [
+        {
+          nameAr: 'التهاب عصب الضرس الحاد (Acute Pulpitis)',
+          nameEn: 'Acute Irreversible Pulpitis',
+          complaintAr: 'ألم نابض شديد بالضرس يزداد ليلاً ومع المشروبات.',
+          examAr: 'تسوس عميق واصل للعصب بالضرس السفلي السادس.',
+          diagnosisAr: 'التهاب عصب حاد يستدعي علاج جذور (Acute Pulpitis - Root Canal)',
+          planAr: 'جلسة سحب عصب وتنظيف قنوات الجذور مع مضاد حيوي ومسكن.',
+          labsAr: 'Periapical Dental X-Ray',
+          meds: [
+            { medicationName: 'Hibiotic 1g Tablets', dosage: '1 Tablet', frequency: 'Every 12 hours', duration: '7 days', instructions: 'قرص كل 12 ساعة' },
+            { medicationName: 'Brufen 600mg Granules', dosage: '1 Sachet', frequency: 'Every 8 hours after food', duration: '5 days', instructions: 'فوار بعد الأكل عند الألم' },
+            { medicationName: 'Hexitol Mouthwash', dosage: '15 ml', frequency: 'Three times daily', duration: '7 days', instructions: 'مضمضة 3 مرات يومياً' }
+          ]
+        }
+      ],
+      medications: [
+        { medicationName: 'Hibiotic 1g Tab', labelAr: 'هاي بيوتك 1 جرام مضاد حيوي', dosage: '1 Tablet', frequency: 'Every 12 hours', duration: '7 days', instructions: 'كل 12 ساعة' },
+        { medicationName: 'Flagyl 500mg Tab', labelAr: 'فلاجيل 500 مجم مطهر ومضاد لاهوائيات', dosage: '1 Tablet', frequency: 'Every 8 hours', duration: '5 days', instructions: 'كل 8 ساعات بعد الأكل' },
+        { medicationName: 'Catafast 50mg Sachets', labelAr: 'كتافاست فوار مسكن سريع', dosage: '1 Sachet', frequency: 'Every 8 hours PRN', duration: '3 days', instructions: 'عند الألم الشديد' }
+      ],
+      procedures: [
+        { nameAr: 'جلسة حشو عصب وعلاج جذور (Root Canal Treatment)', nameEn: 'Root Canal Endodontic Session', durationMinutes: 45, fee: 1500 },
+        { nameAr: 'خلع جراحي لضرس العقل (Surgical Wisdom Tooth Extraction)', nameEn: 'Surgical Tooth Extraction', durationMinutes: 45, fee: 1800 },
+        { nameAr: 'زراعة أسنان أو تركيبات زيركون (Dental Implant / Crown)', nameEn: 'Dental Implant / Zirconia Crown', durationMinutes: 60, fee: 4500 }
+      ]
+    }
+  };
 
   // Feature 2: Patient Attachments State
   protected readonly patientAttachments = signal<MedicalAttachmentDto[]>([]);
@@ -340,8 +639,52 @@ export class DashboardComponent implements OnInit {
     notifications: 'Screen.Notifications'
   };
 
+  // =========================================================================
+  // SYSTEM FEATURE FLAGS & PRIVATE CLINIC MODE (وضع العيادات الخاصة للأفراد)
+  // =========================================================================
+  protected readonly isFeatureFlagsModalOpen = signal(false);
+  protected readonly isPrivateClinicMode = signal(true); // Default: Private Clinic (العيادات الخاصة للأفراد)
+  protected readonly isSingleDoctorMode = signal(true); // Default: Dedicated Single-Doctor experience
+  protected readonly enableProceduresDuringShifts = signal(true); // العمليات وسط الكشوفات (مثل النساء والتوليد)
+  protected readonly enableFollowUpPricing = signal(true); // سعر للكشف وسعر للإعادة
+  protected readonly enableSpecialtyTemplates = signal(true); // قوائم الأدوية والأمراض المكتوبة مسبقاً لكل تخصص
+  protected readonly enableGeneralClinicFeatures = signal(false); // خصائص العيادات العامة والمراكز المتعددة (يمكن فتحها لاحقاً)
+
+  protected primaryConsultationFee = 350;
+  protected primaryFollowUpFee = 100;
+  protected primaryProcedureFee = 1200;
+
+  protected readonly primaryDoctor = computed(() => {
+    const docs = this.doctors();
+    if (docs.length === 0) return null;
+    const assignedId = this.assignedClinicId();
+    if (assignedId) {
+      const match = docs.find((d) => d.doctorClinics?.some((dc) => dc.clinicId === assignedId));
+      if (match) return match;
+    }
+    return docs[0];
+  });
+
   protected canAccessTab(tab: AdminTab): boolean {
-    if (this.auth.isAdmin() || this.auth.isClinicAdmin()) return true;
+    // Super Admin only screens: System Audit Logs & Global Specialties Catalog
+    if (tab === 'audit') {
+      return this.auth.isAdmin();
+    }
+    if (tab === 'specialties') {
+      return this.auth.isAdmin() && this.enableGeneralClinicFeatures();
+    }
+    // In Single-Doctor Private Clinic mode, hide multi-doctor directory for non-Super-Admin unless General Clinic features are unlocked
+    if (tab === 'doctors' && this.isSingleDoctorMode() && !this.enableGeneralClinicFeatures() && !this.auth.isAdmin()) {
+      return false;
+    }
+
+    if (this.auth.isAdmin()) return true;
+
+    if (this.auth.isClinicAdmin()) {
+      // ClinicAdmin can access their own clinic's operational tabs, NEVER SuperAdmin-only screens (filtered above)
+      return true;
+    }
+
     if (tab === 'reports' || tab === 'overview') {
       if (this.auth.isDoctor() || this.auth.isReceptionist()) return true;
     }
@@ -1190,7 +1533,11 @@ export class DashboardComponent implements OnInit {
   }
 
   // --- Staff / Reception Booking Actions ---
-  protected openBookAppointmentModal(patientId?: string, doctorId?: string): void {
+  protected openBookAppointmentModal(
+    patientId?: string,
+    doctorId?: string,
+    visitType: 'Consultation' | 'FollowUp' | 'Procedure' = 'Consultation'
+  ): void {
     this.bookPatientId = patientId || (this.patients().length > 0 ? this.patients()[0].id : '');
     this.bookDoctorId = doctorId || (this.doctors().length > 0 ? this.doctors()[0].id : '');
     this.bookClinicId = this.assignedClinicId() || (this.clinics().length > 0 ? this.clinics()[0].id : '');
@@ -1203,12 +1550,64 @@ export class DashboardComponent implements OnInit {
     this.bookSelectedSlot = null;
     this.bookNotes = '';
     this.bookImmediateCheckIn = false;
+    this.onBookVisitTypeChange(visitType);
     this.bookSlots.set([]);
     this.bookSlotsError.set(null);
     this.isBookAppointmentModalOpen.set(true);
 
     if (this.bookDoctorId && this.bookClinicId && this.bookDate) {
       this.loadBookSlots();
+    }
+  }
+
+  protected onBookVisitTypeChange(type: 'Consultation' | 'FollowUp' | 'Procedure'): void {
+    this.bookVisitType = type;
+    const clinic = this.clinics().find((c) => c.id === this.bookClinicId) || this.assignedClinic() || this.clinics()[0];
+    if (type === 'Consultation') {
+      this.bookAgreedFee = clinic?.consultationFee ?? this.primaryConsultationFee;
+      this.bookProcedureName = '';
+      this.bookProcedureDurationMinutes = 30;
+    } else if (type === 'FollowUp') {
+      this.bookAgreedFee = clinic?.followUpFee ?? this.primaryFollowUpFee;
+      this.bookProcedureName = '';
+      this.bookProcedureDurationMinutes = 20;
+    } else if (type === 'Procedure') {
+      const cat = this.specialtyCatalog[this.selectedSpecialtyCatalogKey] || this.specialtyCatalog['obgyn'];
+      const firstProc = cat.procedures[0];
+      this.bookProcedureName = firstProc ? (this.translation.isArabic() ? firstProc.nameAr : firstProc.nameEn) : 'إجراء طبي / عملية بالعيادة';
+      this.bookProcedureDurationMinutes = firstProc?.durationMinutes ?? 45;
+      this.bookAgreedFee = firstProc?.fee ?? (clinic?.procedureFee ?? this.primaryProcedureFee);
+    }
+  }
+
+  protected onBookProcedurePresetSelect(proc: { nameAr: string; nameEn: string; durationMinutes: number; fee: number }): void {
+    this.bookProcedureName = this.translation.isArabic() ? proc.nameAr : proc.nameEn;
+    this.bookProcedureDurationMinutes = proc.durationMinutes;
+    this.bookAgreedFee = proc.fee;
+  }
+
+  protected getVisitTypeLabel(visitType?: string, procedureName?: string): string {
+    const isAr = this.translation.isArabic();
+    switch (visitType) {
+      case 'FollowUp':
+        return isAr ? '🔄 إعادة كشف' : '🔄 Follow-Up';
+      case 'Procedure':
+        return procedureName
+          ? `🔪 ${procedureName}`
+          : (isAr ? '🔪 عملية / إجراء طبي' : '🔪 Procedure / Surgery');
+      default:
+        return isAr ? '🩺 كشف جديد' : '🩺 New Consultation';
+    }
+  }
+
+  protected getVisitTypeBadgeClass(visitType?: string): string {
+    switch (visitType) {
+      case 'FollowUp':
+        return 'badge-in-consultation';
+      case 'Procedure':
+        return 'badge-warning';
+      default:
+        return 'badge-confirmed';
     }
   }
 
@@ -1291,6 +1690,19 @@ export class DashboardComponent implements OnInit {
     const doc = this.doctors().find((d) => d.id === this.bookDoctorId);
     const tenantId = doc?.tenantId || (this.auth.currentUser()?.tenantId ?? '');
 
+    let effectiveEndUtc = this.bookSelectedSlot.endTimeUtc;
+    if (this.bookVisitType === 'Procedure' && this.bookProcedureDurationMinutes > 0) {
+      const startMs = new Date(this.bookSelectedSlot.startTimeUtc).getTime();
+      effectiveEndUtc = new Date(startMs + this.bookProcedureDurationMinutes * 60000).toISOString();
+    }
+
+    const enrichedNotes =
+      this.bookVisitType === 'Procedure'
+        ? `[عملية/إجراء: ${this.bookProcedureName} | التكلفة: ${this.bookAgreedFee} ج.م] ${this.bookNotes.trim()}`.trim()
+        : this.bookVisitType === 'FollowUp'
+          ? `[إعادة كشف | رسوم الإعادة: ${this.bookAgreedFee} ج.م] ${this.bookNotes.trim()}`.trim()
+          : this.bookNotes.trim() || undefined;
+
     this.isBookingAppointment.set(true);
     this.appointmentService
       .bookAppointment({
@@ -1299,8 +1711,11 @@ export class DashboardComponent implements OnInit {
         patientId: this.bookPatientId,
         clinicId: this.bookClinicId,
         startTimeUtc: this.bookSelectedSlot.startTimeUtc,
-        endTimeUtc: this.bookSelectedSlot.endTimeUtc,
-        notes: this.bookNotes.trim() || undefined
+        endTimeUtc: effectiveEndUtc,
+        notes: enrichedNotes,
+        visitType: this.bookVisitType,
+        procedureName: this.bookVisitType === 'Procedure' ? this.bookProcedureName : undefined,
+        agreedFee: this.bookAgreedFee
       })
       .subscribe({
         next: (appt) => {
@@ -1327,6 +1742,153 @@ export class DashboardComponent implements OnInit {
           );
         }
       });
+  }
+
+  // --- Pre-defined Specialty Diseases, Medications & Procedures Actions ---
+  protected getSpecialtyCatalogList() {
+    return Object.values(this.specialtyCatalog);
+  }
+
+  protected getCurrentSpecialtyTemplate() {
+    return this.specialtyCatalog[this.selectedSpecialtyCatalogKey] || this.specialtyCatalog['obgyn'];
+  }
+
+  protected applyPresetDisease(disease: {
+    nameAr: string;
+    nameEn: string;
+    complaintAr: string;
+    examAr: string;
+    diagnosisAr: string;
+    planAr: string;
+    labsAr: string;
+    meds: { medicationName: string; dosage: string; frequency: string; duration: string; instructions: string }[];
+  }): void {
+    this.consultChiefComplaint = disease.complaintAr;
+    this.consultExamination = disease.examAr;
+    this.consultDiagnosis = disease.diagnosisAr;
+    this.consultTreatmentPlan = disease.planAr;
+    this.consultLabRequests = disease.labsAr;
+    if (disease.meds && disease.meds.length > 0) {
+      this.rxMedications = disease.meds.map((m) => ({ ...m }));
+    }
+    this.showMessage(
+      this.translation.isArabic()
+        ? `✅ تم تحميل بروتوكول تشخيص وعلاج "${disease.nameAr}" مع الأدوية الجاهزة!`
+        : `✅ Loaded clinical protocol & medications for "${disease.nameEn}"!`
+    );
+  }
+
+  protected addPresetMedication(med: {
+    medicationName: string;
+    labelAr: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    instructions: string;
+  }): void {
+    // Replace empty first row if present
+    if (this.rxMedications.length === 1 && !this.rxMedications[0].medicationName.trim()) {
+      this.rxMedications = [
+        {
+          medicationName: med.medicationName,
+          dosage: med.dosage,
+          frequency: med.frequency,
+          duration: med.duration,
+          instructions: med.instructions
+        }
+      ];
+    } else {
+      this.rxMedications.push({
+        medicationName: med.medicationName,
+        dosage: med.dosage,
+        frequency: med.frequency,
+        duration: med.duration,
+        instructions: med.instructions
+      });
+    }
+    this.showMessage(
+      this.translation.isArabic()
+        ? `💊 تمت إضافة "${med.labelAr}" إلى الروشتة بنجاح`
+        : `💊 Added "${med.medicationName}" to prescription`
+    );
+  }
+
+  protected addCustomDiseaseToSpecialty(): void {
+    if (!this.customDiseaseName.trim()) return;
+    const cat = this.getCurrentSpecialtyTemplate();
+    cat.diseases.unshift({
+      nameAr: this.customDiseaseName.trim(),
+      nameEn: this.customDiseaseName.trim(),
+      complaintAr: this.customDiseaseName.trim(),
+      examAr: 'فحص سريري شامل ومستقر.',
+      diagnosisAr: this.customDiseaseDiagnosis.trim() || this.customDiseaseName.trim(),
+      planAr: 'الالتزام بالعلاج الموصوف والمتابعة.',
+      labsAr: '',
+      meds: []
+    });
+    this.customDiseaseName = '';
+    this.customDiseaseDiagnosis = '';
+    this.showMessage(
+      this.translation.isArabic()
+        ? '✅ تمت إضافة التشخيص المرضي لقائمة التخصص بنجاح!'
+        : '✅ Custom diagnosis added to specialty template!'
+    );
+  }
+
+  protected addCustomMedicationToSpecialty(): void {
+    if (!this.customMedName.trim()) return;
+    const cat = this.getCurrentSpecialtyTemplate();
+    const newMed = {
+      medicationName: this.customMedName.trim(),
+      labelAr: this.customMedName.trim(),
+      dosage: this.customMedDosage.trim() || '1 Tablet',
+      frequency: this.customMedFrequency.trim() || 'Twice daily',
+      duration: this.customMedDuration.trim() || '7 days',
+      instructions: `${this.customMedDosage} - ${this.customMedFrequency} لمدة ${this.customMedDuration}`
+    };
+    cat.medications.unshift(newMed);
+    this.addPresetMedication(newMed);
+    this.customMedName = '';
+  }
+
+  // --- Enhanced Patient Dossier Helpers ---
+  protected getPatientAge(dob?: string): number | null {
+    if (!dob) return null;
+    const birth = new Date(dob);
+    if (isNaN(birth.getTime())) return null;
+    const diff = Date.now() - birth.getTime();
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)));
+  }
+
+  protected saveFeatureFlags(): void {
+    this.isFeatureFlagsModalOpen.set(false);
+    this.showMessage(
+      this.translation.isArabic()
+        ? '✅ تم حفظ وتطبيق خصائص النظام ووضع العيادة بنجاح!'
+        : '✅ System Feature Flags & Clinic Mode saved and applied!'
+    );
+  }
+
+  protected getPatientVisitsBreakdown(patientId?: string): {
+    total: number;
+    consultations: number;
+    followUps: number;
+    procedures: number;
+    lastVisitDate: string | null;
+  } {
+    if (!patientId) return { total: 0, consultations: 0, followUps: 0, procedures: 0, lastVisitDate: null };
+    const appts = this.appointments().filter((a) => a.patientId === patientId);
+    const procedures = appts.filter((a) => a.visitType === 'Procedure' || a.notes?.includes('عملية/إجراء')).length;
+    const followUps = appts.filter((a) => a.visitType === 'FollowUp' || a.notes?.includes('إعادة كشف')).length;
+    const consultations = Math.max(0, appts.length - procedures - followUps);
+    const sorted = [...appts].sort((a, b) => new Date(b.startTimeUtc).getTime() - new Date(a.startTimeUtc).getTime());
+    return {
+      total: appts.length,
+      consultations,
+      followUps,
+      procedures,
+      lastVisitDate: sorted.length > 0 ? sorted[0].startTimeUtc : null
+    };
   }
 
   protected loadQueue(): void {
@@ -1891,7 +2453,15 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // --- Edit Clinic Branch Actions ---
+  // --- Edit Clinic Branch & Private Clinic Mode Actions ---
+  protected editClinicIsPrivate = true;
+  protected editClinicIsSingleDoctor = true;
+  protected editClinicEnableProcedures = true;
+  protected editClinicEnableGeneralFeatures = false;
+  protected editClinicConsultationFee = 350;
+  protected editClinicFollowUpFee = 100;
+  protected editClinicProcedureFee = 1200;
+
   protected openEditClinicModal(clinic: ClinicDto): void {
     this.isEditClinicModalOpen = true;
     this.editingClinicId = clinic.id;
@@ -1906,6 +2476,13 @@ export class DashboardComponent implements OnInit {
     this.editClinicSubStartDate = clinic.subscriptionStartDateUtc ? clinic.subscriptionStartDateUtc.substring(0, 10) : '';
     this.editClinicSubEndDate = clinic.subscriptionEndDateUtc ? clinic.subscriptionEndDateUtc.substring(0, 10) : '';
     this.editClinicSubPlan = clinic.subscriptionPlan || 'Enterprise';
+    this.editClinicIsPrivate = clinic.isPrivateClinic ?? this.isPrivateClinicMode();
+    this.editClinicIsSingleDoctor = clinic.isSingleDoctorClinic ?? this.isSingleDoctorMode();
+    this.editClinicEnableProcedures = clinic.enableProceduresDuringShifts ?? this.enableProceduresDuringShifts();
+    this.editClinicEnableGeneralFeatures = clinic.enableGeneralClinicFeatures ?? this.enableGeneralClinicFeatures();
+    this.editClinicConsultationFee = clinic.consultationFee ?? this.primaryConsultationFee;
+    this.editClinicFollowUpFee = clinic.followUpFee ?? this.primaryFollowUpFee;
+    this.editClinicProcedureFee = clinic.procedureFee ?? this.primaryProcedureFee;
   }
 
   protected closeEditClinicModal(): void {
@@ -1926,14 +2503,28 @@ export class DashboardComponent implements OnInit {
       isActive: this.editClinicIsActive,
       subscriptionStartDateUtc: this.editClinicSubStartDate ? new Date(this.editClinicSubStartDate).toISOString() : undefined,
       subscriptionEndDateUtc: this.editClinicSubEndDate ? new Date(this.editClinicSubEndDate).toISOString() : undefined,
-      subscriptionPlan: this.editClinicSubPlan || undefined
+      subscriptionPlan: this.editClinicSubPlan || undefined,
+      isPrivateClinic: this.editClinicIsPrivate,
+      isSingleDoctorClinic: this.editClinicIsSingleDoctor,
+      enableProceduresDuringShifts: this.editClinicEnableProcedures,
+      enableGeneralClinicFeatures: this.editClinicEnableGeneralFeatures,
+      consultationFee: this.editClinicConsultationFee,
+      followUpFee: this.editClinicFollowUpFee,
+      procedureFee: this.editClinicProcedureFee
     };
 
     this.adminService.updateClinic(this.editingClinicId, request).subscribe({
       next: (updated) => {
         this.closeEditClinicModal();
         this.clinics.update((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-        this.showMessage(`Clinic branch "${updated.name}" updated successfully!`);
+        this.isPrivateClinicMode.set(this.editClinicIsPrivate);
+        this.isSingleDoctorMode.set(this.editClinicIsSingleDoctor);
+        this.enableProceduresDuringShifts.set(this.editClinicEnableProcedures);
+        this.enableGeneralClinicFeatures.set(this.editClinicEnableGeneralFeatures);
+        this.primaryConsultationFee = this.editClinicConsultationFee;
+        this.primaryFollowUpFee = this.editClinicFollowUpFee;
+        this.primaryProcedureFee = this.editClinicProcedureFee;
+        this.showMessage(`Clinic "${updated.name}" settings & fees updated successfully!`);
       },
       error: (err) => {
         this.errorMessage.set(err.error?.detail || 'Failed to update clinic branch.');

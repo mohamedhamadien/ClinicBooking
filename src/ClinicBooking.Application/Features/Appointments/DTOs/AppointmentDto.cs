@@ -25,4 +25,7 @@ public sealed record AppointmentDto(
     string? UtmMedium = null,
     string? UtmCampaign = null,
     string? ExternalReference = null,
-    int? QueueNumber = null);
+    int? QueueNumber = null,
+    AppointmentVisitType VisitType = AppointmentVisitType.Consultation,
+    string? ProcedureName = null,
+    decimal? AgreedFee = null);

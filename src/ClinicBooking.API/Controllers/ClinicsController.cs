@@ -47,10 +47,10 @@ public sealed class ClinicsController : ApiControllerBase
     }
 
     /// <summary>
-    /// Create a clinic branch for a tenant (Admin or ClinicAdmin).
+    /// Create a clinic branch for a tenant (Super Admin only).
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin,ClinicAdmin")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ClinicDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ClinicDto>> CreateClinic(
@@ -85,7 +85,14 @@ public sealed class ClinicsController : ApiControllerBase
             request.CityAr,
             request.SubscriptionStartDateUtc,
             request.SubscriptionEndDateUtc,
-            request.SubscriptionPlan);
+            request.SubscriptionPlan,
+            request.IsPrivateClinic,
+            request.IsSingleDoctorClinic,
+            request.EnableProceduresDuringShifts,
+            request.EnableGeneralClinicFeatures,
+            request.ConsultationFee,
+            request.FollowUpFee,
+            request.ProcedureFee);
 
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -103,4 +110,11 @@ public sealed record UpdateClinicRequest(
     string? CityAr = null,
     DateTime? SubscriptionStartDateUtc = null,
     DateTime? SubscriptionEndDateUtc = null,
-    string? SubscriptionPlan = null);
+    string? SubscriptionPlan = null,
+    bool? IsPrivateClinic = null,
+    bool? IsSingleDoctorClinic = null,
+    bool? EnableProceduresDuringShifts = null,
+    bool? EnableGeneralClinicFeatures = null,
+    decimal? ConsultationFee = null,
+    decimal? FollowUpFee = null,
+    decimal? ProcedureFee = null);

@@ -145,7 +145,10 @@ public sealed class GetAllAppointmentsQueryHandler
                 UtmMedium: a.UtmMedium,
                 UtmCampaign: a.UtmCampaign,
                 ExternalReference: a.ExternalReference,
-                QueueNumber: a.QueueNumber);
+                QueueNumber: a.QueueNumber,
+                VisitType: a.VisitType,
+                ProcedureName: a.ProcedureName,
+                AgreedFee: a.AgreedFee);
         }).ToList();
 
         return Result.Success<IReadOnlyList<AppointmentDto>>(dtos);

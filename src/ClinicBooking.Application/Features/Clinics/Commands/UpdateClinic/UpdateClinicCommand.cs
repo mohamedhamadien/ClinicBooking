@@ -20,7 +20,14 @@ public sealed record UpdateClinicCommand(
     string? CityAr = null,
     DateTime? SubscriptionStartDateUtc = null,
     DateTime? SubscriptionEndDateUtc = null,
-    string? SubscriptionPlan = null) : IRequest<Result<ClinicDto>>;
+    string? SubscriptionPlan = null,
+    bool? IsPrivateClinic = null,
+    bool? IsSingleDoctorClinic = null,
+    bool? EnableProceduresDuringShifts = null,
+    bool? EnableGeneralClinicFeatures = null,
+    decimal? ConsultationFee = null,
+    decimal? FollowUpFee = null,
+    decimal? ProcedureFee = null) : IRequest<Result<ClinicDto>>;
 
 public sealed class UpdateClinicCommandValidator : AbstractValidator<UpdateClinicCommand>
 {
@@ -72,7 +79,14 @@ public sealed class UpdateClinicCommandHandler : IRequestHandler<UpdateClinicCom
             request.CityAr,
             request.SubscriptionStartDateUtc,
             request.SubscriptionEndDateUtc,
-            request.SubscriptionPlan);
+            request.SubscriptionPlan,
+            request.IsPrivateClinic,
+            request.IsSingleDoctorClinic,
+            request.EnableProceduresDuringShifts,
+            request.EnableGeneralClinicFeatures,
+            request.ConsultationFee,
+            request.FollowUpFee,
+            request.ProcedureFee);
 
         await _clinicRepository.UpdateAsync(clinic, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -97,7 +111,14 @@ public sealed class UpdateClinicCommandHandler : IRequestHandler<UpdateClinicCom
             clinic.SubscriptionEndDateUtc,
             clinic.SubscriptionPlan ?? "Enterprise",
             clinic.IsSubscriptionActive,
-            clinic.SubscriptionDaysRemaining);
+            clinic.SubscriptionDaysRemaining,
+            clinic.IsPrivateClinic,
+            clinic.IsSingleDoctorClinic,
+            clinic.EnableProceduresDuringShifts,
+            clinic.EnableGeneralClinicFeatures,
+            clinic.ConsultationFee,
+            clinic.FollowUpFee,
+            clinic.ProcedureFee);
 
         return Result.Success(dto);
     }

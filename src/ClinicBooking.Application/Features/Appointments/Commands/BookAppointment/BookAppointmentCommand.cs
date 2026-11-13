@@ -24,7 +24,10 @@ public sealed record BookAppointmentCommand(
     string? UtmSource = null,
     string? UtmMedium = null,
     string? UtmCampaign = null,
-    string? ExternalReference = null) : IRequest<Result<AppointmentDto>>;
+    string? ExternalReference = null,
+    AppointmentVisitType VisitType = AppointmentVisitType.Consultation,
+    string? ProcedureName = null,
+    decimal? AgreedFee = null) : IRequest<Result<AppointmentDto>>;
 
 public sealed class BookAppointmentCommandValidator : AbstractValidator<BookAppointmentCommand>
 {
@@ -176,7 +179,10 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
                 request.UtmSource,
                 request.UtmMedium,
                 request.UtmCampaign,
-                request.ExternalReference);
+                request.ExternalReference,
+                request.VisitType,
+                request.ProcedureName,
+                request.AgreedFee);
 
             await _appointmentRepository.AddAsync(appointment, ct);
             await _unitOfWork.SaveChangesAsync(ct);
@@ -200,7 +206,10 @@ public sealed class BookAppointmentCommandHandler : IRequestHandler<BookAppointm
                 UtmMedium: appointment.UtmMedium,
                 UtmCampaign: appointment.UtmCampaign,
                 ExternalReference: appointment.ExternalReference,
-                QueueNumber: appointment.QueueNumber);
+                QueueNumber: appointment.QueueNumber,
+                VisitType: appointment.VisitType,
+                ProcedureName: appointment.ProcedureName,
+                AgreedFee: appointment.AgreedFee);
 
             return Result.Success(dto);
         }, cancellationToken);

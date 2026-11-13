@@ -37,6 +37,13 @@ export interface UpdateClinicRequest {
   subscriptionStartDateUtc?: string;
   subscriptionEndDateUtc?: string;
   subscriptionPlan?: string;
+  isPrivateClinic?: boolean;
+  isSingleDoctorClinic?: boolean;
+  enableProceduresDuringShifts?: boolean;
+  enableGeneralClinicFeatures?: boolean;
+  consultationFee?: number;
+  followUpFee?: number;
+  procedureFee?: number;
 }
 
 export interface AuditLogDto {

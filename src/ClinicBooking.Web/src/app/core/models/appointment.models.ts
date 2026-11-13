@@ -43,6 +43,9 @@ export interface AppointmentDto {
   utmCampaign?: string;
   externalReference?: string;
   queueNumber?: number;
+  visitType?: 'Consultation' | 'FollowUp' | 'Procedure' | string;
+  procedureName?: string;
+  agreedFee?: number;
 }
 
 export interface BookAppointmentRequest {
@@ -53,6 +56,9 @@ export interface BookAppointmentRequest {
   startTimeUtc: string;
   endTimeUtc: string;
   notes?: string;
+  visitType?: 'Consultation' | 'FollowUp' | 'Procedure' | string;
+  procedureName?: string;
+  agreedFee?: number;
 }
 
 export interface CancelAppointmentRequest {

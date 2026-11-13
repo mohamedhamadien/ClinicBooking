@@ -44,7 +44,14 @@ public sealed class GetClinicsQueryHandler : IRequestHandler<GetClinicsQuery, Re
             c.SubscriptionEndDateUtc,
             c.SubscriptionPlan ?? "Enterprise",
             c.IsSubscriptionActive,
-            c.SubscriptionDaysRemaining)).ToList();
+            c.SubscriptionDaysRemaining,
+            c.IsPrivateClinic,
+            c.IsSingleDoctorClinic,
+            c.EnableProceduresDuringShifts,
+            c.EnableGeneralClinicFeatures,
+            c.ConsultationFee,
+            c.FollowUpFee,
+            c.ProcedureFee)).ToList();
 
         return Result.Success<IReadOnlyList<ClinicDto>>(dtos);
     }

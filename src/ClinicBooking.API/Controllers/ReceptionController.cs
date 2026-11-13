@@ -135,7 +135,10 @@ public sealed class ReceptionController : ApiControllerBase
             UtmSource: request.UtmSource,
             UtmMedium: request.UtmMedium,
             UtmCampaign: request.UtmCampaign,
-            ExternalReference: request.ExternalReference);
+            ExternalReference: request.ExternalReference,
+            VisitType: request.VisitType ?? AppointmentVisitType.Consultation,
+            ProcedureName: request.ProcedureName,
+            AgreedFee: request.AgreedFee);
 
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -270,7 +273,10 @@ public sealed record ReceptionBookAppointmentRequest(
     string? UtmSource = null,
     string? UtmMedium = null,
     string? UtmCampaign = null,
-    string? ExternalReference = null);
+    string? ExternalReference = null,
+    AppointmentVisitType? VisitType = AppointmentVisitType.Consultation,
+    string? ProcedureName = null,
+    decimal? AgreedFee = null);
 
 public sealed record RegisterWalkInRequest(
     Guid TenantId,

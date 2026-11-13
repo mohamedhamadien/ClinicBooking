@@ -116,6 +116,9 @@ internal sealed class AppointmentConfiguration : IEntityTypeConfiguration<Appoin
         // Stored as readable strings so the filtered index predicate is self-documenting.
         builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(32).IsUnicode(false).IsRequired();
         builder.Property(a => a.Source).HasConversion<string>().HasMaxLength(32).IsUnicode(false).HasDefaultValue(AppointmentSource.Website).IsRequired();
+        builder.Property(a => a.VisitType).HasConversion<string>().HasMaxLength(32).IsUnicode(false).HasDefaultValue(AppointmentVisitType.Consultation).IsRequired();
+        builder.Property(a => a.ProcedureName).HasMaxLength(200);
+        builder.Property(a => a.AgreedFee).HasColumnType("decimal(18,2)");
         builder.Property(a => a.CreatedByStaffId);
         builder.Property(a => a.UtmSource).HasMaxLength(100);
         builder.Property(a => a.UtmMedium).HasMaxLength(100);

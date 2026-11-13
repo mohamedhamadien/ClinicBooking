@@ -158,6 +158,14 @@ internal sealed class ClinicConfiguration : IEntityTypeConfiguration<Clinic>
         builder.Property(c => c.SubscriptionEndDateUtc).IsRequired(false);
         builder.Property(c => c.SubscriptionPlan).HasMaxLength(50).IsRequired(false);
 
+        builder.Property(c => c.IsPrivateClinic).HasDefaultValue(true).IsRequired();
+        builder.Property(c => c.IsSingleDoctorClinic).HasDefaultValue(true).IsRequired();
+        builder.Property(c => c.EnableProceduresDuringShifts).HasDefaultValue(true).IsRequired();
+        builder.Property(c => c.EnableGeneralClinicFeatures).HasDefaultValue(false).IsRequired();
+        builder.Property(c => c.ConsultationFee).HasColumnType("decimal(18,2)").HasDefaultValue(350m).IsRequired();
+        builder.Property(c => c.FollowUpFee).HasColumnType("decimal(18,2)").HasDefaultValue(100m).IsRequired();
+        builder.Property(c => c.ProcedureFee).HasColumnType("decimal(18,2)").HasDefaultValue(1200m).IsRequired();
+
         builder.ConfigureAudit();
     }
 }

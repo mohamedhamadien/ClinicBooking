@@ -23,6 +23,13 @@ export interface ClinicDto {
   subscriptionPlan?: string;
   isSubscriptionActive?: boolean;
   subscriptionDaysRemaining?: number;
+  isPrivateClinic?: boolean;
+  isSingleDoctorClinic?: boolean;
+  enableProceduresDuringShifts?: boolean;
+  enableGeneralClinicFeatures?: boolean;
+  consultationFee?: number;
+  followUpFee?: number;
+  procedureFee?: number;
 }
 
 export interface DoctorShiftDto {
