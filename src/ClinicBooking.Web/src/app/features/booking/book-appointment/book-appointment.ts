@@ -48,11 +48,10 @@ export class BookAppointmentComponent implements OnInit {
       return;
     }
 
-    // Set default date to tomorrow in YYYY-MM-DD
+    // Set default date to Today in YYYY-MM-DD
     const now = new Date();
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
-    this.selectedDate = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
+    this.selectedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
     // Load Doctor details and Clinics
     this.doctorService.getDoctorById(doctorId).subscribe({
@@ -63,6 +62,8 @@ export class BookAppointmentComponent implements OnInit {
         // Pre-select first clinic if assigned
         if (doc.doctorClinics.length > 0) {
           this.selectedClinicId = doc.doctorClinics[0].clinicId;
+        } else if (this.clinics().length > 0) {
+          this.selectedClinicId = this.clinics()[0].id;
         }
 
         this.loadAvailableSlots();
@@ -73,7 +74,13 @@ export class BookAppointmentComponent implements OnInit {
       }
     });
 
-    this.doctorService.getClinics().subscribe((data) => this.clinics.set(data));
+    this.doctorService.getClinics().subscribe((data) => {
+      this.clinics.set(data);
+      if (!this.selectedClinicId && data.length > 0) {
+        this.selectedClinicId = data[0].id;
+        this.loadAvailableSlots();
+      }
+    });
   }
 
   protected onDateOrClinicChange(): void {

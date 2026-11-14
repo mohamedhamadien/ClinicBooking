@@ -342,9 +342,11 @@
           </span>
         }
 
-        <button (click)="isFeatureFlagsModalOpen.set(true)" class="btn btn-outline btn-sm" title="Feature Flags & Clinic Mode">
-          🚩 {{ translation.isArabic() ? 'فلاجات وخصائص النظام' : 'Feature Flags' }}
-        </button>
+        @if (auth.isAdmin()) {
+          <button (click)="isFeatureFlagsModalOpen.set(true)" class="btn btn-outline btn-sm" title="Feature Flags & Clinic Mode">
+            🚩 {{ translation.isArabic() ? 'فلاجات وخصائص النظام' : 'Feature Flags' }}
+          </button>
+        }
 
         <!-- Language Switcher in Topbar -->
         <button (click)="translation.toggleLanguage()" class="btn btn-outline btn-sm lang-toggle">
@@ -481,9 +483,11 @@
                 🔪 {{ translation.isArabic() ? '+ عملية / إجراء وسط الكشوفات' : '+ In-Shift Procedure' }}
               </button>
             }
-            <button (click)="isFeatureFlagsModalOpen.set(true)" class="btn btn-outline btn-sm" style="color: #fff; border-color: rgba(255,255,255,0.5);">
-              🚩 {{ translation.isArabic() ? 'إعدادات العيادة الخاصة / العامة' : 'Clinic Mode & Flags' }}
-            </button>
+            @if (auth.isAdmin()) {
+              <button (click)="isFeatureFlagsModalOpen.set(true)" class="btn btn-outline btn-sm" style="color: #fff; border-color: rgba(255,255,255,0.5);">
+                🚩 {{ translation.isArabic() ? 'إعدادات العيادة الخاصة / العامة' : 'Clinic Mode & Flags' }}
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -1600,6 +1604,37 @@
     <div class="card filter-card">
       <div class="filter-grid">
         <div class="form-group mb-0">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label m-0">📅 {{ translation.isArabic() ? 'تصفية بالتاريخ (الافتراضي: اليوم)' : 'Filter by Date (Default: Today)' }}</label>
+            <div class="d-flex gap-1">
+              <button
+                type="button"
+                (click)="setFilterDateToday()"
+                class="btn btn-xs"
+                [class.btn-primary]="filterAppointmentDate === getTodayDateString()"
+                [class.btn-outline]="filterAppointmentDate !== getTodayDateString()"
+              >
+                📍 {{ translation.isArabic() ? 'اليوم' : 'Today' }}
+              </button>
+              <button
+                type="button"
+                (click)="clearFilterDate()"
+                class="btn btn-xs"
+                [class.btn-primary]="!filterAppointmentDate"
+                [class.btn-outline]="!!filterAppointmentDate"
+              >
+                📋 {{ translation.isArabic() ? 'كل التواريخ' : 'All Dates' }}
+              </button>
+            </div>
+          </div>
+          <input
+            type="date"
+            [(ngModel)]="filterAppointmentDate"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group mb-0">
           <label class="form-label">{{ translation.isArabic() ? 'بحث عن مريض أو طبيب' : 'Search Patient / Doctor' }}</label>
           <input
             type="text"
@@ -1624,15 +1659,17 @@
           </select>
         </div>
 
-        <div class="form-group mb-0">
-          <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب الطبيب' : 'Filter by Doctor' }}</label>
-          <select [(ngModel)]="filterDoctorId" class="form-select">
-            <option value="">{{ translation.isArabic() ? 'كافة الأطباء' : 'All Doctors' }}</option>
-            @for (d of doctors(); track d.id) {
-              <option [value]="d.id">{{ d.fullName || d.licenseNumber }} ({{ d.specialtyName || 'Specialist' }})</option>
-            }
-          </select>
-        </div>
+        @if (!isSoloPracticeView()) {
+          <div class="form-group mb-0">
+            <label class="form-label">{{ translation.isArabic() ? 'تصفية حسب الطبيب' : 'Filter by Doctor' }}</label>
+            <select [(ngModel)]="filterDoctorId" class="form-select">
+              <option value="">{{ translation.isArabic() ? 'كافة الأطباء' : 'All Doctors' }}</option>
+              @for (d of doctors(); track d.id) {
+                <option [value]="d.id">{{ d.fullName || d.licenseNumber }} ({{ d.specialtyName || 'Specialist' }})</option>
+              }
+            </select>
+          </div>
+        }
 
         <div class="form-group mb-0">
           <label class="form-label">{{ translation.isArabic() ? 'مصدر الحجز (القناة)' : 'Booking Source' }}</label>
@@ -1826,18 +1863,20 @@
             : 'Configure weekly shifts (including weekend work on Friday/Saturday or off), and record official holidays, leaves, and blackout periods.' }}
         </p>
       </div>
-      <div class="d-flex gap-2 align-items-center">
-        <select
-          [ngModel]="selectedScheduleDoctorId()"
-          (ngModelChange)="onSelectScheduleDoctor($event)"
-          class="form-select form-select-sm"
-          style="min-width: 260px;"
-        >
-          @for (d of doctors(); track d.id) {
-            <option [value]="d.id">👨‍⚕️ {{ d.fullName }} ({{ d.specialtyName || 'Doctor' }})</option>
-          }
-        </select>
-      </div>
+      @if (!isSoloPracticeView()) {
+        <div class="d-flex gap-2 align-items-center">
+          <select
+            [ngModel]="selectedScheduleDoctorId()"
+            (ngModelChange)="onSelectScheduleDoctor($event)"
+            class="form-select form-select-sm"
+            style="min-width: 260px;"
+          >
+            @for (d of doctors(); track d.id) {
+              <option [value]="d.id">👨‍⚕️ {{ d.fullName }} ({{ d.specialtyName || 'Doctor' }})</option>
+            }
+          </select>
+        </div>
+      }
     </div>
 
     @if (selectedScheduleDoctor(); as doc) {
@@ -1882,14 +1921,16 @@
           <form (ngSubmit)="saveDoctorAvailability()" class="p-3 bg-light rounded border mb-4">
             <h5 class="mb-3 text-primary">➕ {{ translation.isArabic() ? 'إضافة وردية عمل أسبوعية جديدة' : 'Add New Weekly Shift' }}</h5>
             <div class="grid-2 gap-2">
-              <div class="form-group mb-2">
-                <label class="form-label small">{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }}</label>
-                <select [(ngModel)]="scheduleClinicId" name="scheduleClinicId" class="form-select form-select-sm" required>
-                  @for (c of clinics(); track c.id) {
-                    <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
-                  }
-                </select>
-              </div>
+              @if (!isSoloPracticeView()) {
+                <div class="form-group mb-2">
+                  <label class="form-label small">{{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }}</label>
+                  <select [(ngModel)]="scheduleClinicId" name="scheduleClinicId" class="form-select form-select-sm" required>
+                    @for (c of clinics(); track c.id) {
+                      <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
+                    }
+                  </select>
+                </div>
+              }
 
               <div class="form-group mb-2">
                 <label class="form-label small">
@@ -2069,14 +2110,16 @@
             </div>
 
             <div class="grid-2 gap-2 mb-3">
-              <div class="form-group mb-0">
-                <label class="form-label small">{{ translation.isArabic() ? 'اختر الفرع' : 'Select Branch' }}</label>
-                <select [(ngModel)]="previewClinicId" class="form-select form-select-sm">
-                  @for (c of clinics(); track c.id) {
-                    <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
-                  }
-                </select>
-              </div>
+              @if (!isSoloPracticeView()) {
+                <div class="form-group mb-0">
+                  <label class="form-label small">{{ translation.isArabic() ? 'اختر الفرع' : 'Select Branch' }}</label>
+                  <select [(ngModel)]="previewClinicId" class="form-select form-select-sm">
+                    @for (c of clinics(); track c.id) {
+                      <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
+                    }
+                  </select>
+                </div>
+              }
 
               <div class="form-group mb-0">
                 <label class="form-label small">{{ translation.isArabic() ? 'اختر تاريخ اليوم' : 'Select Date' }}</label>
@@ -4935,32 +4978,45 @@
             </select>
           </div>
 
-          <!-- Doctor & Clinic Selection -->
-          <div class="grid-2 gap-2 mb-3">
-            <div class="form-group mb-0">
-              <label class="form-label small">
-                🩺 {{ translation.isArabic() ? 'الطبيب المعالج' : 'Doctor' }} <span class="text-danger">*</span>
-              </label>
-              <select [(ngModel)]="bookDoctorId" name="bookDoctorId" (change)="loadBookSlots()" class="form-select" required>
-                <option value="">{{ translation.isArabic() ? '-- اختر الطبيب --' : '-- Select Doctor --' }}</option>
-                @for (d of doctors(); track d.id) {
-                  <option [value]="d.id">👨‍⚕️ {{ d.fullName }} ({{ d.specialtyName || 'Doctor' }})</option>
-                }
-              </select>
-            </div>
+          <!-- Doctor & Clinic Selection (Hidden in Solo / Individual Doctor Clinics where 1 Doctor & 1 Clinic are auto-selected) -->
+          @if (!isSoloPracticeView()) {
+            <div class="grid-2 gap-2 mb-3">
+              <div class="form-group mb-0">
+                <label class="form-label small">
+                  🩺 {{ translation.isArabic() ? 'الطبيب المعالج' : 'Doctor' }} <span class="text-danger">*</span>
+                </label>
+                <select [(ngModel)]="bookDoctorId" name="bookDoctorId" (change)="loadBookSlots()" class="form-select" required>
+                  <option value="">{{ translation.isArabic() ? '-- اختر الطبيب --' : '-- Select Doctor --' }}</option>
+                  @for (d of doctors(); track d.id) {
+                    <option [value]="d.id">👨‍⚕️ {{ d.fullName }} ({{ d.specialtyName || 'Doctor' }})</option>
+                  }
+                </select>
+              </div>
 
-            <div class="form-group mb-0">
-              <label class="form-label small">
-                🏥 {{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }} <span class="text-danger">*</span>
-              </label>
-              <select [(ngModel)]="bookClinicId" name="bookClinicId" (change)="loadBookSlots()" class="form-select" required>
-                <option value="">{{ translation.isArabic() ? '-- اختر الفرع --' : '-- Select Branch --' }}</option>
-                @for (c of clinics(); track c.id) {
-                  <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
-                }
-              </select>
+              <div class="form-group mb-0">
+                <label class="form-label small">
+                  🏥 {{ translation.isArabic() ? 'فرع العيادة' : 'Clinic Branch' }} <span class="text-danger">*</span>
+                </label>
+                <select [(ngModel)]="bookClinicId" name="bookClinicId" (change)="loadBookSlots()" class="form-select" required>
+                  <option value="">{{ translation.isArabic() ? '-- اختر الفرع --' : '-- Select Branch --' }}</option>
+                  @for (c of clinics(); track c.id) {
+                    <option [value]="c.id">{{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }}</option>
+                  }
+                </select>
+              </div>
             </div>
-          </div>
+          } @else {
+            <div class="p-2 px-3 mb-3 rounded border d-flex justify-content-between align-items-center flex-wrap gap-2" style="background: #f0fdf4; border-color: #bbf7d0 !important;">
+              <div class="d-flex align-items-center gap-2 small">
+                <span>👨‍⚕️ <strong>{{ getBookDoctorName() }}</strong></span>
+                <span class="text-muted">|</span>
+                <span>🏥 <strong>{{ getBookClinicName() }}</strong></span>
+              </div>
+              <span class="badge badge-confirmed">
+                ⚡ {{ translation.isArabic() ? 'محدد تلقائياً للعيادة' : 'Auto-Selected for Solo Clinic' }}
+              </span>
+            </div>
+          }
 
           <!-- Visit Type Selection (Consultation vs Follow-Up vs In-Shift Procedure) -->
           <div class="card p-3 mb-3 border" style="background: #f8fafc;">

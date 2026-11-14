@@ -665,14 +665,23 @@ export class DashboardComponent implements OnInit {
     return docs[0];
   });
 
+  protected readonly isSoloPracticeView = computed(
+    () => !this.auth.isAdmin() && (this.isSingleDoctorMode() || !this.enableGeneralClinicFeatures())
+  );
+
   protected canAccessTab(tab: AdminTab): boolean {
     // Super Admin (Platform Owner) ALWAYS has full access to all screens on the system
     if (this.auth.isAdmin()) {
       return true;
     }
 
-    // Super Admin only screens: System Audit Logs & Global Specialties Catalog (never shown to ClinicAdmin or other staff)
-    if (tab === 'audit' || tab === 'specialties') {
+    // Super Admin only screens: System Audit Logs, Global Specialties Catalog, Clinics/Branches & Notification Logs
+    if (
+      tab === 'audit' ||
+      tab === 'specialties' ||
+      tab === 'clinics' ||
+      tab === 'notifications'
+    ) {
       return false;
     }
 
@@ -709,11 +718,60 @@ export class DashboardComponent implements OnInit {
   // Selected Clinic for Queue / Finance filters
   protected selectedClinicId = '';
 
-  // Appointment Filters
-  protected filterDoctorId = '';
-  protected filterStatus = '';
-  protected filterSource = '';
-  protected filterSearchPatient = '';
+  protected getTodayDateString(): string {
+    const now = new Date();
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }
+
+  // Appointment Filters (Signal-backed so computed filteredAppointments reacts immediately, with Today as default date)
+  private readonly _filterAppointmentDate = signal<string>(this.getTodayDateString());
+  protected get filterAppointmentDate(): string {
+    return this._filterAppointmentDate();
+  }
+  protected set filterAppointmentDate(v: string) {
+    this._filterAppointmentDate.set(v);
+  }
+
+  private readonly _filterDoctorId = signal<string>('');
+  protected get filterDoctorId(): string {
+    return this._filterDoctorId();
+  }
+  protected set filterDoctorId(v: string) {
+    this._filterDoctorId.set(v);
+  }
+
+  private readonly _filterStatus = signal<string>('');
+  protected get filterStatus(): string {
+    return this._filterStatus();
+  }
+  protected set filterStatus(v: string) {
+    this._filterStatus.set(v);
+  }
+
+  private readonly _filterSource = signal<string>('');
+  protected get filterSource(): string {
+    return this._filterSource();
+  }
+  protected set filterSource(v: string) {
+    this._filterSource.set(v);
+  }
+
+  private readonly _filterSearchPatient = signal<string>('');
+  protected get filterSearchPatient(): string {
+    return this._filterSearchPatient();
+  }
+  protected set filterSearchPatient(v: string) {
+    this._filterSearchPatient.set(v);
+  }
+
+  protected setFilterDateToday(): void {
+    this.filterAppointmentDate = this.getTodayDateString();
+  }
+
+  protected clearFilterDate(): void {
+    this.filterAppointmentDate = '';
+  }
 
   // Social-to-Booking & QR Code Share Modal State
   protected isSocialShareModalOpen = false;
@@ -860,6 +918,18 @@ export class DashboardComponent implements OnInit {
     });
 
     let result = enriched;
+
+    if (this.filterAppointmentDate) {
+      const targetDate = this.filterAppointmentDate;
+      result = result.filter((a) => {
+        if (!a.startTimeUtc) return false;
+        const d = new Date(a.startTimeUtc);
+        const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+        const localDateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const utcDateStr = a.startTimeUtc.substring(0, 10);
+        return localDateStr === targetDate || utcDateStr === targetDate;
+      });
+    }
 
     if (this.filterDoctorId) {
       result = result.filter((a) => a.doctorId === this.filterDoctorId);
@@ -1534,19 +1604,39 @@ export class DashboardComponent implements OnInit {
   }
 
   // --- Staff / Reception Booking Actions ---
+  protected getBookDoctorName(): string {
+    const doc =
+      this.doctors().find((d) => d.id === this.bookDoctorId) ||
+      this.primaryDoctor() ||
+      this.doctors()[0];
+    if (!doc) return this.translation.isArabic() ? 'طبيب العيادة' : 'Clinic Doctor';
+    return `${doc.fullName}${doc.specialtyName ? ' (' + doc.specialtyName + ')' : ''}`;
+  }
+
+  protected getBookClinicName(): string {
+    const clinic =
+      this.clinics().find((c) => c.id === this.bookClinicId) ||
+      this.assignedClinic() ||
+      this.clinics()[0];
+    if (!clinic) return this.translation.isArabic() ? 'العيادة الرئيسية' : 'Main Clinic';
+    return this.translation.isArabic() && clinic.nameAr ? clinic.nameAr : clinic.name;
+  }
+
   protected openBookAppointmentModal(
     patientId?: string,
     doctorId?: string,
     visitType: 'Consultation' | 'FollowUp' | 'Procedure' = 'Consultation'
   ): void {
     this.bookPatientId = patientId || (this.patients().length > 0 ? this.patients()[0].id : '');
-    this.bookDoctorId = doctorId || (this.doctors().length > 0 ? this.doctors()[0].id : '');
-    this.bookClinicId = this.assignedClinicId() || (this.clinics().length > 0 ? this.clinics()[0].id : '');
+    const defaultDoc = this.primaryDoctor() || (this.doctors().length > 0 ? this.doctors()[0] : null);
+    this.bookDoctorId = doctorId || defaultDoc?.id || '';
+    this.bookClinicId =
+      this.assignedClinicId() ||
+      defaultDoc?.doctorClinics?.[0]?.clinicId ||
+      (this.clinics().length > 0 ? this.clinics()[0].id : '');
 
-    const now = new Date();
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
-    this.bookDate = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
+    // Default booking date to Today's Date
+    this.bookDate = this.getTodayDateString();
 
     this.bookSelectedSlot = null;
     this.bookNotes = '';

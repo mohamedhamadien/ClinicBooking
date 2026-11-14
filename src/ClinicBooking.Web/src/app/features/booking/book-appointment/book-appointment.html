@@ -35,24 +35,26 @@
 
     <!-- Booking Form & Slot Picker -->
     <div class="grid-2 booking-grid">
-      <!-- Left: Clinic & Date Selectors -->
+      <!-- Left: Date & Notes (Clinic auto-selected for individual/single-clinic practices) -->
       <div class="card selector-card">
-        <h3>1. {{ 'booking.select_clinic' | translate }}</h3>
-        <div class="form-group">
-          <select
-            [(ngModel)]="selectedClinicId"
-            (change)="onDateOrClinicChange()"
-            class="form-select"
-          >
-            @for (c of clinics(); track c.id) {
-              <option [value]="c.id">
-                {{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }} ({{ c.city }})
-              </option>
-            }
-          </select>
-        </div>
+        @if (clinics().length > 1 && doc.doctorClinics.length > 1) {
+          <h3>1. {{ 'booking.select_clinic' | translate }}</h3>
+          <div class="form-group mb-4">
+            <select
+              [(ngModel)]="selectedClinicId"
+              (change)="onDateOrClinicChange()"
+              class="form-select"
+            >
+              @for (c of clinics(); track c.id) {
+                <option [value]="c.id">
+                  {{ translation.isArabic() && c.nameAr ? c.nameAr : c.name }} ({{ c.city }})
+                </option>
+              }
+            </select>
+          </div>
+        }
 
-        <h3 class="mt-4">2. {{ 'booking.select_date' | translate }}</h3>
+        <h3>{{ 'booking.select_date' | translate }}</h3>
         <div class="form-group">
           <input
             type="date"
